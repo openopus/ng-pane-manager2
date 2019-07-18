@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * ng-pane-manager2 - a fork of ng-pane-manager for Angular (public-api.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (public-api.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -22,6 +22,6 @@
  * Public API Surface of ng-pane-manager2
  */
 
-export * from './lib/ng-pane-manager2.service';
-export * from './lib/ng-pane-manager2.component';
+export * from './lib/ng-pane-manager.component';
 export * from './lib/ng-pane-manager2.module';
+export * from './lib/ng-panel.directive';

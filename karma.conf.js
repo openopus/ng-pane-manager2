@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * ng-pane-manager2 - a fork of ng-pane-manager for Angular (karma.conf.js)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (karma.conf.js)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify

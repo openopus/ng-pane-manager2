@@ -1,6 +1,6 @@
-/**********************************************************************************************
+/***********************************************************************************************
  *
- * ng-pane-manager2 - a fork of ng-pane-manager for Angular (ng-pane-manager2.component.spec.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-manager.component.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -16,23 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
  *
- *********************************************************************************************/
+ **********************************************************************************************/
 
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {NgPaneManager2Component} from './ng-pane-manager2.component';
+import {NgPaneManagerComponent} from './ng-pane-manager.component';
 
 describe('NgPaneManager2Component', () => {
-    let component: NgPaneManager2Component;
-    let fixture: ComponentFixture<NgPaneManager2Component>;
+    let component: NgPaneManagerComponent;
+    let fixture: ComponentFixture<NgPaneManagerComponent>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneManager2Component]})
+        TestBed.configureTestingModule({declarations: [NgPaneManagerComponent]})
             .compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneManager2Component);
+        fixture   = TestBed.createComponent(NgPaneManagerComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

@@ -1,6 +1,6 @@
 /********************************************************************************************
  *
- * ng-pane-manager2 - a fork of ng-pane-manager for Angular (ng-pane-manager2.service.spec.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-leaf.component.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -18,15 +18,23 @@
  *
  *******************************************************************************************/
 
-import {TestBed} from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {NgPaneManager2Service} from './ng-pane-manager2.service';
+import {NgPaneLeafComponent} from './ng-pane-leaf.component';
 
-describe('NgPaneManager2Service', () => {
-    beforeEach(() => TestBed.configureTestingModule({}));
+describe('NgPaneLeafComponent', () => {
+    let component: NgPaneLeafComponent;
+    let fixture: ComponentFixture<NgPaneLeafComponent>;
 
-    it('should be created', () => {
-        const service: NgPaneManager2Service = TestBed.get(NgPaneManager2Service);
-        expect(service).toBeTruthy();
+    beforeEach(async(() => {
+        TestBed.configureTestingModule({declarations: [NgPaneLeafComponent]}).compileComponents();
+    }));
+
+    beforeEach(() => {
+        fixture   = TestBed.createComponent(NgPaneLeafComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
     });
+
+    it('should create', () => { expect(component).toBeTruthy(); });
 });
