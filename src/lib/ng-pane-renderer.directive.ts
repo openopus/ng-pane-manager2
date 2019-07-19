@@ -1,6 +1,6 @@
-/***************************************************************************
+/*******************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (public-api.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-renderer.directive.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -16,13 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
  *
- **************************************************************************/
+ ******************************************************************************************/
 
-/*
- * Public API Surface of ng-pane-manager2
- */
+import {Directive, ViewContainerRef} from '@angular/core';
 
-export * from './lib/ng-pane-manager.component';
-export * from './lib/ng-pane-manager.module';
-export * from './lib/ng-panel.directive';
-export * from './lib/pane-layout';
+@Directive({selector: '[libNgPaneRenderer]'})
+export class NgPaneRendererDirective {
+    constructor(public viewContainer: ViewContainerRef) {}
+}

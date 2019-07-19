@@ -19,67 +19,42 @@
  *****************************************************************************************/
 
 import {
-    AfterViewInit,
     Component,
-    ComponentFactory,
     ComponentFactoryResolver,
+    Input,
     TemplateRef,
-    ViewContainerRef
+    ViewChild,
 } from '@angular/core';
 
-import {NgPaneLeafComponent} from './ng-pane-leaf.component';
+import {LayoutNodeFactory, LeafNodeContext} from './layout-node-factory';
+import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
+import {PaneLayout} from './pane-layout';
 
-export class NgPaneManagerContext {
-    constructor() {}
-}
+@Component({
+    selector: 'ng-pane-manager',
+    template: '<ng-container libNgPaneRenderer></ng-container>',
+    styleUrls: ['./ng-pane-manager.component.scss'],
+})
+export class NgPaneManagerComponent {
+    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
-@Component({selector: 'ng-pane-manager', template: '', styles: []})
-export class NgPaneManagerComponent implements AfterViewInit {
-    panelTemplates: Map<string, TemplateRef<NgPaneManagerContext>> = new Map();
-    leaves: Map<string, NgPaneLeafComponent[]> = new Map(); // Template ID -> leaves
-    leafFactory: ComponentFactory<any>;
+    private _layout: PaneLayout;
+    private factory: LayoutNodeFactory;
 
-    constructor(cfr: ComponentFactoryResolver, private viewContainer: ViewContainerRef) {
-        this.leafFactory = cfr.resolveComponentFactory(NgPaneLeafComponent);
+    @Input()
+    set layout(val: PaneLayout) {
+        this._layout = val;
+
+        this.factory.placeComponentForLayout(this.renderer.viewContainer, this._layout);
     }
 
-    ngAfterViewInit() {
-        this.viewContainer.clear();
-        var comp = this.viewContainer.createComponent(this.leafFactory);
+    get layout(): PaneLayout { return this._layout; }
 
-        this.addLeaf('test1', comp.instance);
+    constructor(cfr: ComponentFactoryResolver) { this.factory = new LayoutNodeFactory(cfr); }
+
+    public registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
+        this.factory.registerTemplate(name, template);
     }
 
-    private updateTemplate(name: string) {
-        const leaves = this.leaves.get(name);
-
-        if (!leaves) return;
-
-        const template = this.panelTemplates.get(name);
-        leaves.forEach(leaf => leaf.template = template);
-    }
-
-    public registerPanelTemplate(name: string, template: TemplateRef<NgPaneManagerContext>) {
-        if (this.panelTemplates.has(name))
-            throw new Error(`panel template '${name}' already registered`);
-
-        this.panelTemplates.set(name, template);
-
-        this.updateTemplate(name);
-    }
-
-    public unregisterPanelTemplate(name: string) {
-        this.panelTemplates.delete(name);
-
-        this.updateTemplate(name);
-    }
-
-    public addLeaf(template: string, leaf: NgPaneLeafComponent) {
-        if (this.leaves.has(template))
-            this.leaves.get(template).push(leaf);
-        else
-            this.leaves.set(template, [leaf]);
-
-        leaf.template = this.panelTemplates.get(template);
-    }
+    public unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }
 }

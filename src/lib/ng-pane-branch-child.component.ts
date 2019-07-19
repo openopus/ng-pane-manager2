@@ -1,6 +1,6 @@
 /***********************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-manager.component.spec.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-branch-child.component.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -18,24 +18,18 @@
  *
  **********************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import {Component, ViewChild} from '@angular/core';
+import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
 
-import {NgPaneManagerComponent} from './ng-pane-manager.component';
+@Component({
+    selector: 'lib-ng-pane-branch-child',
+    template: `<div *ngIf="internalHeader" class="ng-pane-header">title</div>
+<ng-container libNgPaneRenderer></ng-container>`,
+    styles: []
+})
+export class NgPaneBranchChildComponent {
+    @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
+    internalHeader: boolean;
 
-describe('NgPaneManagerComponent', () => {
-    let component: NgPaneManagerComponent;
-    let fixture: ComponentFixture<NgPaneManagerComponent>;
-
-    beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneManagerComponent]})
-            .compileComponents();
-    }));
-
-    beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneManagerComponent);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
-
-    it('should create', () => { expect(component).toBeTruthy(); });
-});
+    constructor() {}
+}

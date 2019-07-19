@@ -18,25 +18,35 @@
  *
  **************************************************************************************/
 
-import {Component, Input, OnInit, TemplateRef, ViewChild, ViewContainerRef} from '@angular/core';
+import {Component, Input, TemplateRef, ViewChild} from '@angular/core';
 
-import {NgPaneManagerContext} from './ng-pane-manager.component';
+import {LeafNodeContext} from './layout-node-factory';
+import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
+import {LeafLayout} from './pane-layout';
 
-@Component({selector: 'lib-ng-pane-leaf', template: '', styles: []})
+@Component({
+    selector: 'lib-ng-pane-leaf',
+    template: '<ng-container libNgPaneRenderer></ng-container>',
+    styles: [],
+})
 export class NgPaneLeafComponent {
-    private _template?: TemplateRef<NgPaneManagerContext>;
+    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
+
+    private _template?: TemplateRef<LeafNodeContext>;
+    @Input() layout: LeafLayout;
 
     @Input()
-    set template(val: TemplateRef<NgPaneManagerContext>) {
+    set template(val: TemplateRef<LeafNodeContext>) {
         if (this._template === val) return;
 
         this._template = val;
 
-        this.viewContainer.clear();
-        this.viewContainer.createEmbeddedView(this._template, new NgPaneManagerContext());
+        this.renderer.viewContainer.clear();
+
+        if (this._template) this.renderer.viewContainer.createEmbeddedView(this._template, {});
     }
 
-    get template(): TemplateRef<NgPaneManagerContext> { return this._template; }
+    get template(): TemplateRef<LeafNodeContext> { return this._template; }
 
-    constructor(private viewContainer: ViewContainerRef) {}
+    constructor() {}
 }
