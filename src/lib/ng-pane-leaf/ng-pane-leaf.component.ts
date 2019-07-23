@@ -20,14 +20,14 @@
 
 import {Component, Input, TemplateRef, ViewChild} from '@angular/core';
 
-import {LeafNodeContext} from './layout-node-factory';
-import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
-import {LeafLayout} from './pane-layout';
+import {LeafNodeContext} from '../layout-node-factory';
+import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
+import {LeafLayout} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-leaf',
     template: '<ng-container libNgPaneRenderer></ng-container>',
-    styles: [],
+    styleUrls: ['./ng-pane-leaf.component.scss'],
 })
 export class NgPaneLeafComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;

@@ -20,14 +20,14 @@
 
 import {Component, HostBinding, Input, ViewChild} from '@angular/core';
 
-import {LayoutNodeFactory} from './layout-node-factory';
-import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
-import {BranchLayout, LayoutType} from './pane-layout';
+import {LayoutNodeFactory} from '../layout-node-factory';
+import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
+import {BranchLayout, LayoutType} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-branch',
     template: '<ng-container libNgPaneRenderer></ng-container>',
-    styles: [],
+    styleUrls: ['./ng-pane-branch.component.scss'],
 })
 export class NgPaneBranchComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
@@ -37,29 +37,34 @@ export class NgPaneBranchComponent {
 
     @HostBinding('class.horiz')
     get horiz() {
-        return this._layout.type === LayoutType.Horiz;
+        return this._layout && this._layout.type === LayoutType.Horiz;
     }
 
     @HostBinding('class.vert')
     get vert() {
-        return this._layout.type === LayoutType.Vert;
+        return this._layout && this._layout.type === LayoutType.Vert;
     }
 
     @HostBinding('class.tab')
     get tab() {
-        return this._layout.type === LayoutType.Tabbed;
+        return this._layout && this._layout.type === LayoutType.Tabbed;
     }
 
     @Input()
     set layout(val: BranchLayout) {
+        if (this._layout === val) return;
+
         this._layout = val;
+
+        if (!this._layout) return;
 
         let internalHeader = this._layout.type !== LayoutType.Tabbed;
 
         for (let child of this._layout.getChildren()) {
             this.factory.placeBranchChildForLayout(this.renderer.viewContainer,
                                                    child,
-                                                   internalHeader);
+                                                   internalHeader &&
+                                                       child.type === LayoutType.Leaf);
         }
     }
 

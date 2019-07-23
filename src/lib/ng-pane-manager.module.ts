@@ -21,9 +21,9 @@
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 
-import {NgPaneBranchChildComponent} from './ng-pane-branch-child.component';
-import {NgPaneBranchComponent} from './ng-pane-branch.component';
-import {NgPaneLeafComponent} from './ng-pane-leaf.component';
+import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-child.component';
+import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
+import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
 import {NgPanelDirective} from './ng-panel.directive';
@@ -35,7 +35,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneLeafComponent,
         NgPaneBranchComponent,
         NgPaneRendererDirective,
-        NgPaneBranchChildComponent
+        NgPaneBranchChildComponent,
     ],
     imports: [BrowserModule],
     exports: [NgPaneManagerComponent, NgPanelDirective],

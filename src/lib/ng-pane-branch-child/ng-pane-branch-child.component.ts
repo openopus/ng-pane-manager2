@@ -19,13 +19,13 @@
  **********************************************************************************************/
 
 import {Component, ViewChild} from '@angular/core';
-import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
+import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 
 @Component({
     selector: 'lib-ng-pane-branch-child',
     template: `<div *ngIf="internalHeader" class="ng-pane-header">title</div>
 <ng-container libNgPaneRenderer></ng-container>`,
-    styles: []
+    styleUrls: ['./ng-pane-branch-child.component.scss'],
 })
 export class NgPaneBranchChildComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;

@@ -26,9 +26,9 @@ import {
     ViewContainerRef
 } from '@angular/core';
 
-import {NgPaneBranchChildComponent} from './ng-pane-branch-child.component';
-import {NgPaneBranchComponent} from './ng-pane-branch.component';
-import {NgPaneLeafComponent} from './ng-pane-leaf.component';
+import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-child.component';
+import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
+import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
 export interface LeafNodeContext {}
