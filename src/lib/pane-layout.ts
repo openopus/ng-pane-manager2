@@ -42,22 +42,32 @@ export class LayoutBase {
 }
 
 export class BranchLayout extends LayoutBase {
+    get children(): Readonly<PaneLayout[]> { return this._children; }
+    get ratios(): Readonly<number[]> { return this._ratios; }
+    get currentTabIndex(): number { return this._currentTabIndex; }
+
+    set currentTabIndex(val: number) {
+        if (this._currentTabIndex === val) return;
+
+        this._currentTabIndex = val;
+
+        // TODO: send an event here
+    }
+
     constructor(public readonly type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
-                private children: PaneLayout[],
-                private ratios?: number[],
-                private currentTabIndex?: number,
+                private _children: PaneLayout[],
+                private _ratios?: number[],
+                private _currentTabIndex?: number,
                 gravity?: LayoutGravity,
                 group?: string) {
         super(gravity, group);
     }
 
-    getChildren(): Readonly<PaneLayout[]> { return this.children; }
-    getRatios(): Readonly<number[]> { return this.ratios; }
-    getCurrentTabIndex(): number { return this.currentTabIndex; }
+    resizeChild(idx: number, ratio: number) {
+        this._ratios[idx] = ratio;
 
-    // TODO: send an event when children are modified
-
-    replaceChild(index: number, child: PaneLayout) { this.children[index] = child; }
+        // TODO: send an event here
+    }
 }
 
 export class LeafLayout extends LayoutBase {
@@ -81,7 +91,7 @@ export interface LayoutTemplateBase {
 
 export interface BranchLayoutTemplate extends LayoutTemplateBase {
     split: 'horiz'|'vert'|'tab';
-    ratio?: number|number[];
+    ratio?: number[];
     currentTab?: number;
     children: LayoutTemplate[];
 }
@@ -167,9 +177,9 @@ export function saveLayout(layout: PaneLayout): any {
 
         return <BranchLayoutTemplate>{
             split,
-            ratio: layout.getRatios(),
-            currentTab: layout.getCurrentTabIndex(),
-            children: layout.getChildren().map(child => saveLayout(child)),
+            ratio: layout.ratios,
+            currentTab: layout.currentTabIndex,
+            children: layout.children.map(child => saveLayout(child)),
             gravity,
             group: layout.group,
         };
@@ -187,20 +197,3 @@ export function saveLayout(layout: PaneLayout): any {
         break;
     }
 }
-
-// export function collapseLayout(layout: PaneLayout) {
-//     if (layout.type === LayoutType.Leaf) return layout;
-
-//     const branch   = layout as BranchLayout;
-//     const children = branch.getChildren();
-
-//     for (let i = 0; i < children.length; ++i) {
-//         branch.replaceChild(i, collapseLayout(children[i]));
-//     }
-
-//     if (children.length === 1) return children[0];
-
-//     // TODO: collapse split layouts with identical orientations
-
-//     return branch;
-// }

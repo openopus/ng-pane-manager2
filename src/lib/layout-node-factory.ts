@@ -100,12 +100,14 @@ export class LayoutNodeFactory {
 
     public placeBranchChildForLayout(container: ViewContainerRef,
                                      layout: PaneLayout,
+                                     ratio: number,
                                      internalHeader: boolean) {
         const component = container.createComponent(this.childFactory) as
                           ComponentRef<NgPaneBranchChildComponent>;
 
         const inst = component.instance;
 
+        inst.ratio          = ratio;
         inst.internalHeader = internalHeader;
 
         return this.placeComponentForLayout(inst.renderer.viewContainer, layout);

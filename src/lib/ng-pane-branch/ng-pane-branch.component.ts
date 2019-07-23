@@ -60,15 +60,14 @@ export class NgPaneBranchComponent {
 
         let internalHeader = this._layout.type !== LayoutType.Tabbed;
 
-        for (let child of this._layout.getChildren()) {
+        this._layout.children.forEach((child, idx) => {
             this.factory.placeBranchChildForLayout(this.renderer.viewContainer,
                                                    child,
+                                                   this._layout.ratios[idx],
                                                    internalHeader &&
                                                        child.type === LayoutType.Leaf);
-        }
+        });
     }
 
     get layout(): BranchLayout { return this._layout; }
-
-    constructor() {}
 }

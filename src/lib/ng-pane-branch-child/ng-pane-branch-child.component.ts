@@ -18,7 +18,8 @@
  *
  **********************************************************************************************/
 
-import {Component, ViewChild} from '@angular/core';
+import {Component, HostBinding, ViewChild} from '@angular/core';
+
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 
 @Component({
@@ -31,5 +32,5 @@ export class NgPaneBranchChildComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
     internalHeader: boolean;
 
-    constructor() {}
+    @HostBinding('style.flex-grow') ratio: number;
 }

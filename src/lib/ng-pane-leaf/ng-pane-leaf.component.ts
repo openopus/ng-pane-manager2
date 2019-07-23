@@ -47,6 +47,4 @@ export class NgPaneLeafComponent {
     }
 
     get template(): TemplateRef<LeafNodeContext> { return this._template; }
-
-    constructor() {}
 }
