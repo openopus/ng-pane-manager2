@@ -19,10 +19,10 @@
  ******************************************************************************************/
 
 :host {
-	flex: 1 0 0;
-	display: flex;
-	overflow: hidden;
+    flex: 1 0 0;
+    display: flex;
+    overflow: hidden;
 
-	&.horiz { flex-flow: row nowrap; }
-	&.vert, &.tab { flex-flow: column nowrap; }
+    &.horiz { flex-flow: row nowrap; }
+    &.vert, &.tab { flex-flow: column nowrap; }
 }

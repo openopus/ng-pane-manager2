@@ -19,12 +19,12 @@
  ************************************************************************************************/
 
 :host {
-  flex: 1 0 0;
-  display: flex;
-  flex-flow: column nowrap;
-  overflow: hidden;
+    flex: 1 0 0;
+    display: flex;
+    flex-flow: column nowrap;
+    overflow: hidden;
 }
 
 .ng-pane-header {
-  flex: 0 0 auto;
+    flex: 0 0 auto;
 }
