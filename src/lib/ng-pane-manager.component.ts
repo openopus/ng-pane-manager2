@@ -52,9 +52,9 @@ export class NgPaneManagerComponent {
 
     constructor(cfr: ComponentFactoryResolver) { this.factory = new LayoutNodeFactory(cfr); }
 
-    public registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
+    registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
         this.factory.registerTemplate(name, template);
     }
 
-    public unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }
+    unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }
 }

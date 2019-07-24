@@ -22,11 +22,13 @@ import {
     ComponentFactory,
     ComponentFactoryResolver,
     ComponentRef,
+    ElementRef,
     TemplateRef,
     ViewContainerRef
 } from '@angular/core';
 
 import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-child.component';
+import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
@@ -41,6 +43,7 @@ export class LayoutNodeFactory {
     private branchFactory: ComponentFactory<any>;
     private leafFactory: ComponentFactory<any>;
     private childFactory: ComponentFactory<any>;
+    private branchThumbFactory: ComponentFactory<any>;
 
     // TODO: leaves are never unregistered...this is Not Good
     private leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
@@ -48,9 +51,10 @@ export class LayoutNodeFactory {
     private templates: Map<string, TemplateRef<LeafNodeContext>> = new Map();
 
     constructor(private cfr: ComponentFactoryResolver) {
-        this.branchFactory = cfr.resolveComponentFactory(NgPaneBranchComponent);
-        this.leafFactory   = cfr.resolveComponentFactory(NgPaneLeafComponent);
-        this.childFactory  = cfr.resolveComponentFactory(NgPaneBranchChildComponent);
+        this.branchFactory      = cfr.resolveComponentFactory(NgPaneBranchComponent);
+        this.leafFactory        = cfr.resolveComponentFactory(NgPaneLeafComponent);
+        this.childFactory       = cfr.resolveComponentFactory(NgPaneBranchChildComponent);
+        this.branchThumbFactory = cfr.resolveComponentFactory(NgPaneBranchThumbComponent);
     }
 
     private placeLeafForLayout(container: ViewContainerRef, layout: LeafLayout) {
@@ -89,7 +93,7 @@ export class LayoutNodeFactory {
         inst.layout  = layout;
     }
 
-    public placeComponentForLayout(container: ViewContainerRef, layout: PaneLayout) {
+    placeComponentForLayout(container: ViewContainerRef, layout: PaneLayout) {
         switch (layout.type) {
         case LayoutType.Horiz:
         case LayoutType.Vert:
@@ -98,10 +102,10 @@ export class LayoutNodeFactory {
         }
     }
 
-    public placeBranchChildForLayout(container: ViewContainerRef,
-                                     layout: PaneLayout,
-                                     ratio: number,
-                                     internalHeader: boolean) {
+    placeBranchChildForLayout(container: ViewContainerRef,
+                              layout: PaneLayout,
+                              ratio: number,
+                              internalHeader: boolean): NgPaneBranchChildComponent {
         const component = container.createComponent(this.childFactory) as
                           ComponentRef<NgPaneBranchChildComponent>;
 
@@ -110,7 +114,23 @@ export class LayoutNodeFactory {
         inst.ratio          = ratio;
         inst.internalHeader = internalHeader;
 
-        return this.placeComponentForLayout(inst.renderer.viewContainer, layout);
+        this.placeComponentForLayout(inst.renderer.viewContainer, layout);
+
+        return inst;
+    }
+
+    placeBranchThumb(container: ViewContainerRef,
+                     branchEl: ElementRef<HTMLElement>,
+                     index: number,
+                     layout: BranchLayout) {
+        const component = container.createComponent(this.branchThumbFactory) as
+                          ComponentRef<NgPaneBranchThumbComponent>;
+
+        const inst = component.instance;
+
+        inst.branchEl = branchEl;
+        inst.index    = index;
+        inst.layout   = layout;
     }
 
     private updateLeaveWithTemplate(name: string) {
@@ -123,7 +143,7 @@ export class LayoutNodeFactory {
         }
     }
 
-    public registerTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
+    registerTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
         if (this.templates.has(name))
             throw new Error(`panel template '${name}' already registered`);
 
@@ -132,7 +152,7 @@ export class LayoutNodeFactory {
         this.updateLeaveWithTemplate(name);
     }
 
-    public unregisterTemplate(name: string) {
+    unregisterTemplate(name: string) {
         if (this.templates.delete(name)) this.updateLeaveWithTemplate(name);
     }
 }

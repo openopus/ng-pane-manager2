@@ -18,7 +18,7 @@
  *
  ***************************************************************************/
 
-import {TemplateRef} from '@angular/core';
+import {Observable, ReplaySubject, Subject} from 'rxjs';
 
 export type PaneLayout = BranchLayout|LeafLayout;
 
@@ -41,17 +41,29 @@ export class LayoutBase {
     constructor(public readonly gravity?: LayoutGravity, public readonly group?: string) {}
 }
 
+export interface ResizeEvent {
+    readonly idx: number;
+    readonly ratio: number;
+}
+
 export class BranchLayout extends LayoutBase {
+    private _resizeEvents: Subject<ResizeEvent>      = new Subject();
+    private _$currentTabIndex: ReplaySubject<number> = new ReplaySubject(1);
+    private _ratioSum: number;
+
     get children(): Readonly<PaneLayout[]> { return this._children; }
     get ratios(): Readonly<number[]> { return this._ratios; }
     get currentTabIndex(): number { return this._currentTabIndex; }
+    get ratioSum(): number { return this._ratioSum; }
+
+    get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
+    get $currentTabIndex(): Observable<number> { return this._$currentTabIndex; }
 
     set currentTabIndex(val: number) {
         if (this._currentTabIndex === val) return;
 
         this._currentTabIndex = val;
-
-        // TODO: send an event here
+        this._$currentTabIndex.next(val);
     }
 
     constructor(public readonly type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
@@ -61,17 +73,39 @@ export class BranchLayout extends LayoutBase {
                 gravity?: LayoutGravity,
                 group?: string) {
         super(gravity, group);
+
+        this._ratioSum = _ratios.reduce((s, e) => s + e);
     }
 
     resizeChild(idx: number, ratio: number) {
         this._ratios[idx] = ratio;
 
-        // TODO: send an event here
+        this._ratioSum = this._ratios.reduce((s, e) => s + e);
+
+        // TODO: send an event if ratioSum changes significantly
+
+        this._resizeEvents.next({idx, ratio});
+    }
+
+    moveSplit(firstIdx: number, amount: number) {
+        const secondIdx = firstIdx + 1;
+
+        if (secondIdx >= this._ratios.length)
+            throw new Error(`firstIdx must be less than ${this._ratios.length - 1}`);
+
+        const clampedAmount = Math.max(-this._ratios[firstIdx],
+                                       Math.min(this._ratios[secondIdx], amount));
+
+        this._ratios[firstIdx] += clampedAmount;
+        this._ratios[secondIdx] -= clampedAmount;
+
+        this._resizeEvents.next({idx: firstIdx, ratio: this._ratios[firstIdx]});
+        this._resizeEvents.next({idx: secondIdx, ratio: this._ratios[secondIdx]});
     }
 }
 
 export class LeafLayout extends LayoutBase {
-    public readonly type: LayoutType.Leaf = LayoutType.Leaf;
+    readonly type: LayoutType.Leaf = LayoutType.Leaf;
     // TODO: each pane should have control of title, icon, closeable, and alwaysTab
 
     constructor(public readonly id: string,

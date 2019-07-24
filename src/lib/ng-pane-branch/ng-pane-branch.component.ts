@@ -18,9 +18,11 @@
  *
  ****************************************************************************************/
 
-import {Component, HostBinding, Input, ViewChild} from '@angular/core';
+import {Component, ElementRef, HostBinding, Input, OnDestroy, ViewChild} from '@angular/core';
+import {Subscription} from 'rxjs';
 
 import {LayoutNodeFactory} from '../layout-node-factory';
+import {NgPaneBranchChildComponent} from '../ng-pane-branch-child/ng-pane-branch-child.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {BranchLayout, LayoutType} from '../pane-layout';
 
@@ -29,10 +31,11 @@ import {BranchLayout, LayoutType} from '../pane-layout';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-branch.component.scss'],
 })
-export class NgPaneBranchComponent {
+export class NgPaneBranchComponent implements OnDestroy {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
     private _layout?: BranchLayout;
+    private resizeSub?: Subscription;
     @Input() factory: LayoutNodeFactory;
 
     @HostBinding('class.horiz')
@@ -54,20 +57,40 @@ export class NgPaneBranchComponent {
     set layout(val: BranchLayout) {
         if (this._layout === val) return;
 
+        if (this.resizeSub) {
+            this.resizeSub.unsubscribe();
+            this.resizeSub = null;
+        }
+
         this._layout = val;
 
         if (!this._layout) return;
 
-        let internalHeader = this._layout.type !== LayoutType.Tabbed;
+        const internalHeader                         = this._layout.type !== LayoutType.Tabbed;
+        const children: NgPaneBranchChildComponent[] = [];
 
         this._layout.children.forEach((child, idx) => {
-            this.factory.placeBranchChildForLayout(this.renderer.viewContainer,
-                                                   child,
-                                                   this._layout.ratios[idx],
-                                                   internalHeader &&
-                                                       child.type === LayoutType.Leaf);
+            if (idx && this._layout.type !== LayoutType.Tabbed)
+                this.factory.placeBranchThumb(this.renderer.viewContainer,
+                                              this.el,
+                                              idx - 1,
+                                              this._layout);
+
+            children.push(
+                this.factory.placeBranchChildForLayout(this.renderer.viewContainer,
+                                                       child,
+                                                       this._layout.ratios[idx],
+                                                       internalHeader &&
+                                                           child.type === LayoutType.Leaf));
         });
+
+        this.resizeSub = this._layout.resizeEvents.subscribe(
+            evt => children[evt.idx].ratio = evt.ratio);
     }
 
     get layout(): BranchLayout { return this._layout; }
+
+    constructor(private el: ElementRef<HTMLElement>) {}
+
+    ngOnDestroy() { this.layout = null; }
 }
