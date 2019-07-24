@@ -24,7 +24,7 @@ import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 
 @Component({
     selector: 'lib-ng-pane-branch-child',
-    template: `<div *ngIf="internalHeader" class="ng-pane-header">title</div>
+    template: `<lib-ng-pane-header *ngIf="internalHeader"></lib-ng-pane-header>
 <ng-container libNgPaneRenderer></ng-container>`,
     styleUrls: ['./ng-pane-branch-child.component.scss'],
 })

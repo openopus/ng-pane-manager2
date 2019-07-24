@@ -32,7 +32,7 @@ interface TabContext {
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: `<ng-template #tab let-idx="idx" let-curr="curr">
-    <div class="tab" [class.active]="(curr | async) === idx" (click)="selectTab(idx)">tab</div>
+    <lib-ng-pane-header class="tab" [class.active]="(curr | async) === idx" (mousedown)="selectTab(idx)"></lib-ng-pane-header>
 </ng-template>
 <ng-container libNgPaneRenderer></ng-container>`,
     styleUrls: ['./ng-pane-tab-row.component.scss']

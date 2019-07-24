@@ -1,0 +1,45 @@
+/*****************************************************************************************
+ *
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-header.component.ts)
+ * Copyright (C) 2019 Opus Logica
+ *
+ * ng-pane-manager2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ng-pane-manager2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****************************************************************************************/
+
+import {Component, HostListener} from '@angular/core';
+
+@Component({
+    selector: 'lib-ng-pane-header',
+    template: 'title',
+    styleUrls: ['./ng-pane-header.component.scss'],
+})
+export class NgPaneHeaderComponent {
+    @HostListener('mousedown')
+    private onMouseDown() {
+        const opts = {capture: true};
+
+        const listener = evt => { /* TODO: detach the panel for drag 'n' drop */ };
+        const selectListener = (evt: Event) => evt.preventDefault();
+        const mouseUpListener = () => {
+            window.removeEventListener('mousemove', listener, opts);
+            window.removeEventListener('selectstart', selectListener, opts);
+            window.removeEventListener('mouseup', mouseUpListener, opts);
+        };
+
+        window.addEventListener('mousemove', listener, opts);
+        window.addEventListener('selectstart', selectListener, opts);
+        window.addEventListener('mouseup', mouseUpListener, opts);
+    }
+}

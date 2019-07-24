@@ -98,16 +98,19 @@ export class NgPaneBranchThumbComponent {
             break;
         }
 
+        const opts = {capture: true};
+
         const listener = (evt: MouseEvent) => this.onMouseMove(evt, state);
         const selectListener = (evt: Event) => evt.preventDefault();
+        const mouseUpListener = () => {
+            window.removeEventListener('mousemove', listener, opts);
+            window.removeEventListener('selectstart', selectListener, opts);
+            window.removeEventListener('mouseup', mouseUpListener, opts);
+        };
 
-        window.addEventListener('mousemove', listener, {capture: true});
-        window.addEventListener('selectstart', selectListener, {capture: true});
-
-        window.addEventListener('mouseup', () => {
-            window.removeEventListener('mousemove', listener, {capture: true});
-            window.removeEventListener('selectstart', selectListener, {capture: true});
-        }, {capture: true});
+        window.addEventListener('mousemove', listener, opts);
+        window.addEventListener('selectstart', selectListener, opts);
+        window.addEventListener('mouseup', mouseUpListener, opts);
 
         // TODO: this won't work at all with touch
     }

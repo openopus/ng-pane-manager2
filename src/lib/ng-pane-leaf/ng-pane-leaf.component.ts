@@ -43,6 +43,7 @@ export class NgPaneLeafComponent {
 
         this.renderer.viewContainer.clear();
 
+        // TODO: use the context to get data from the layout and/or the parent component
         if (this._template) this.renderer.viewContainer.createEmbeddedView(this._template, {});
     }
 
