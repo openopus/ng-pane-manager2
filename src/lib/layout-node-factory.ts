@@ -31,6 +31,7 @@ import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
+import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
 export interface LeafNodeContext {}
@@ -44,6 +45,7 @@ export class LayoutNodeFactory {
     private leafFactory: ComponentFactory<any>;
     private childFactory: ComponentFactory<any>;
     private branchThumbFactory: ComponentFactory<any>;
+    private tabRowFactory: ComponentFactory<any>;
 
     // TODO: leaves are never unregistered...this is Not Good
     private leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
@@ -55,6 +57,7 @@ export class LayoutNodeFactory {
         this.leafFactory        = cfr.resolveComponentFactory(NgPaneLeafComponent);
         this.childFactory       = cfr.resolveComponentFactory(NgPaneBranchChildComponent);
         this.branchThumbFactory = cfr.resolveComponentFactory(NgPaneBranchThumbComponent);
+        this.tabRowFactory      = cfr.resolveComponentFactory(NgPaneTabRowComponent);
     }
 
     private placeLeafForLayout(container: ViewContainerRef, layout: LeafLayout) {
@@ -105,6 +108,7 @@ export class LayoutNodeFactory {
     placeBranchChildForLayout(container: ViewContainerRef,
                               layout: PaneLayout,
                               ratio: number,
+                              isHidden: boolean,
                               internalHeader: boolean): NgPaneBranchChildComponent {
         const component = container.createComponent(this.childFactory) as
                           ComponentRef<NgPaneBranchChildComponent>;
@@ -112,6 +116,7 @@ export class LayoutNodeFactory {
         const inst = component.instance;
 
         inst.ratio          = ratio;
+        inst.isHidden       = isHidden;
         inst.internalHeader = internalHeader;
 
         this.placeComponentForLayout(inst.renderer.viewContainer, layout);
@@ -131,6 +136,15 @@ export class LayoutNodeFactory {
         inst.branchEl = branchEl;
         inst.index    = index;
         inst.layout   = layout;
+    }
+
+    placeTabRow(container: ViewContainerRef, layout: BranchLayout&{type: LayoutType.Tabbed}) {
+        const component = container.createComponent(this.tabRowFactory) as
+                          ComponentRef<NgPaneTabRowComponent>;
+
+        const inst = component.instance;
+
+        inst.layout = layout;
     }
 
     private updateLeaveWithTemplate(name: string) {

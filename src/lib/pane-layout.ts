@@ -18,7 +18,7 @@
  *
  ***************************************************************************/
 
-import {Observable, ReplaySubject, Subject} from 'rxjs';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
 export type PaneLayout = BranchLayout|LeafLayout;
 
@@ -47,8 +47,8 @@ export interface ResizeEvent {
 }
 
 export class BranchLayout extends LayoutBase {
-    private _resizeEvents: Subject<ResizeEvent>      = new Subject();
-    private _$currentTabIndex: ReplaySubject<number> = new ReplaySubject(1);
+    private _resizeEvents: Subject<ResizeEvent>;
+    private _$currentTabIndex: BehaviorSubject<number>;
     private _ratioSum: number;
 
     get children(): Readonly<PaneLayout[]> { return this._children; }
@@ -66,15 +66,37 @@ export class BranchLayout extends LayoutBase {
         this._$currentTabIndex.next(val);
     }
 
-    constructor(public readonly type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
-                private _children: PaneLayout[],
-                private _ratios?: number[],
-                private _currentTabIndex?: number,
-                gravity?: LayoutGravity,
-                group?: string) {
+    static split(type: LayoutType.Horiz|LayoutType.Vert,
+                 children: PaneLayout[],
+                 ratios: number[],
+                 gravity?: LayoutGravity,
+                 group?: string) {
+        return new BranchLayout(type, children, ratios, undefined, gravity, group);
+    }
+
+    static tabbed(children: PaneLayout[],
+                  currentIndex: number,
+                  gravity?: LayoutGravity,
+                  group?: string) {
+        return new BranchLayout(
+            LayoutType.Tabbed, children, undefined, currentIndex, gravity, group);
+    }
+
+    private constructor(public readonly type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
+                        private _children: PaneLayout[],
+                        private _ratios?: number[],
+                        private _currentTabIndex?: number,
+                        gravity?: LayoutGravity,
+                        group?: string) {
         super(gravity, group);
 
-        this._ratioSum = _ratios.reduce((s, e) => s + e);
+        if (_ratios != null) {
+            this._resizeEvents = new Subject();
+            this._ratioSum     = _ratios.reduce((s, e) => s + e);
+        }
+
+        if (_currentTabIndex != null)
+            this._$currentTabIndex = new BehaviorSubject(_currentTabIndex);
     }
 
     resizeChild(idx: number, ratio: number) {
@@ -170,12 +192,20 @@ export function loadLayout(template: LayoutTemplate): PaneLayout {
         else
             ratios = null;
 
-        return new BranchLayout(type,
-                                branch.children.map(child => loadLayout(child)),
-                                ratios,
-                                branch.currentTab,
-                                gravity,
-                                branch.group);
+        switch (type) {
+        case LayoutType.Horiz:
+        case LayoutType.Vert:
+            return BranchLayout.split(type,
+                                      branch.children.map(child => loadLayout(child)),
+                                      ratios,
+                                      gravity,
+                                      branch.group);
+        case LayoutType.Tabbed:
+            return BranchLayout.tabbed(branch.children.map(child => loadLayout(child)),
+                                       branch.currentTab,
+                                       gravity,
+                                       branch.group);
+        }
     }
     else {
         const leaf = template as LeafLayoutTemplate;

@@ -1,6 +1,6 @@
 /***********************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-branch-child.component.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-tab-row.component.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -18,20 +18,23 @@
  *
  **********************************************************************************************/
 
-import {Component, HostBinding, Input, ViewChild} from '@angular/core';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
+import {NgPaneTabRowComponent} from './ng-pane-tab-row.component';
 
-@Component({
-    selector: 'lib-ng-pane-branch-child',
-    template: `<div *ngIf="internalHeader" class="ng-pane-header">title</div>
-<ng-container libNgPaneRenderer></ng-container>`,
-    styleUrls: ['./ng-pane-branch-child.component.scss'],
-})
-export class NgPaneBranchChildComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
-    @Input() internalHeader: boolean;
+describe('NgPaneTabRowComponent', () => {
+    let component: NgPaneTabRowComponent;
+    let fixture: ComponentFixture<NgPaneTabRowComponent>;
 
-    @HostBinding('style.flex-grow') ratio: number;
-    @HostBinding('class.hidden') isHidden: boolean;
-}
+    beforeEach(async(() => {
+        TestBed.configureTestingModule({declarations: [NgPaneTabRowComponent]}).compileComponents();
+    }));
+
+    beforeEach(() => {
+        fixture   = TestBed.createComponent(NgPaneTabRowComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => { expect(component).toBeTruthy(); });
+});

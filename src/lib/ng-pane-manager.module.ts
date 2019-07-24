@@ -27,6 +27,7 @@ import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
+import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {NgPanelDirective} from './ng-panel.directive';
 
 @NgModule({
@@ -38,6 +39,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneRendererDirective,
         NgPaneBranchChildComponent,
         NgPaneBranchThumbComponent,
+        NgPaneTabRowComponent,
     ],
     imports: [BrowserModule],
     exports: [NgPaneManagerComponent, NgPanelDirective],
@@ -46,6 +48,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneBranchComponent,
         NgPaneBranchChildComponent,
         NgPaneBranchThumbComponent,
+        NgPaneTabRowComponent,
     ],
 })
 export class NgPaneManagerModule {
