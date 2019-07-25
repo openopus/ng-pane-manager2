@@ -43,7 +43,7 @@ export class NgPaneManagerComponent {
 
     @Input()
     set layout(val: PaneLayout) {
-        this._layout = val;
+        this._layout = val && (val.simplifyDeep() || val);
 
         const oldView = this.renderer.viewContainer.detach();
 

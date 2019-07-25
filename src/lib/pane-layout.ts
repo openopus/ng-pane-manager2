@@ -40,7 +40,11 @@ export enum LayoutGravity {
 export abstract class LayoutBase {
     constructor(public readonly gravity?: LayoutGravity, public readonly group?: string) {}
 
+    // NB: this function returns undefined if nothing changed
     abstract transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout;
+
+    // NB: this function returns undefined if nothing changed
+    abstract simplifyDeep(): PaneLayout;
 }
 
 export interface ResizeEvent {
@@ -225,6 +229,67 @@ export class BranchLayout extends LayoutBase {
                                               this.group)
                            : undefined;
     }
+
+    simplifyDeep(): PaneLayout {
+        if (this._children.length === 1) {
+            const child = this._children[0];
+
+            return child.simplifyDeep() || child;
+        }
+
+        let newChildren: (PaneLayout|PaneLayout[])[];
+        let newRatios: (number|number[])[];
+
+        this._children.forEach((el, idx) => {
+            let newChild: PaneLayout|PaneLayout[] = undefined;
+            let newRatio: number|number[]         = undefined;
+
+            if (el.type !== LayoutType.Leaf && el._children.length === 0)
+                newChild = null;
+            else {
+                newChild = el.simplifyDeep();
+
+                const child = newChild || el;
+
+                if (this.type !== LayoutType.Tabbed && child.type === this.type) {
+                    newChild = child._children;
+                    newRatio = child._ratios.map(r => (r / child.ratioSum) * this._ratios[idx]);
+                }
+            }
+
+            if (newChild !== undefined) {
+                if (!newChildren) newChildren = this._children.slice();
+
+                newChildren[idx] = newChild;
+            }
+
+            if (newRatio !== undefined) {
+                if (!newRatios) newRatios = this._ratios.slice();
+
+                newRatios[idx] = newRatio;
+            }
+        });
+
+        if (newChildren) {
+            newChildren.filter(e => e);
+
+            let ratios = this._ratios;
+
+            if (newRatios) {
+                newRatios.filter(e => e != undefined);
+                ratios = (newRatios as any).flat();
+            }
+
+            return new BranchLayout(this.type,
+                                    (newChildren as any).flat(),
+                                    ratios,
+                                    this._currentTabIndex,
+                                    this.gravity,
+                                    this.group);
+        }
+
+        return undefined;
+    }
 }
 
 export class LeafLayout extends LayoutBase {
@@ -241,6 +306,8 @@ export class LeafLayout extends LayoutBase {
     transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout {
         return this === node ? replace : undefined;
     }
+
+    simplifyDeep(): PaneLayout { return undefined; }
 }
 
 export type LayoutTemplate = BranchLayoutTemplate|LeafLayoutTemplate;
