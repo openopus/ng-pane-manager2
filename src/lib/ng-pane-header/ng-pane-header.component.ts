@@ -18,7 +18,10 @@
  *
  ****************************************************************************************/
 
-import {Component, HostListener} from '@angular/core';
+import {Component, HostListener, Input} from '@angular/core';
+
+import {NgPaneManagerComponent} from '../ng-pane-manager.component';
+import {BranchLayout} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-header',
@@ -26,11 +29,20 @@ import {Component, HostListener} from '@angular/core';
     styleUrls: ['./ng-pane-header.component.scss'],
 })
 export class NgPaneHeaderComponent {
+    @Input() manager: NgPaneManagerComponent;
+    @Input() branch: BranchLayout;
+    @Input() index: number;
+
     @HostListener('mousedown')
     private onMouseDown() {
         const opts = {capture: true};
 
-        const listener = evt => { /* TODO: detach the panel for drag 'n' drop */ };
+        const listener = evt => {
+            const transposed = this.manager.layout.transposeDeep(
+                this.branch, this.branch.withoutChild(this.index).layout);
+
+            if (transposed) this.manager.layout = transposed;
+        };
         const selectListener = (evt: Event) => evt.preventDefault();
         const mouseUpListener = () => {
             window.removeEventListener('mousemove', listener, opts);

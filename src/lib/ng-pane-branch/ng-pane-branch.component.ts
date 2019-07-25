@@ -18,7 +18,15 @@
  *
  ****************************************************************************************/
 
-import {Component, ElementRef, HostBinding, Input, OnDestroy, ViewChild} from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    HostBinding,
+    Input,
+    OnDestroy,
+    ViewChild,
+    ViewRef
+} from '@angular/core';
 import {Subscription} from 'rxjs';
 
 import {LayoutNodeFactory} from '../layout-node-factory';
@@ -64,49 +72,56 @@ export class NgPaneBranchComponent implements OnDestroy {
 
         this._layout = val;
 
-        if (!this._layout) return;
+        const oldViews: ViewRef[] = [];
+        while (this.renderer.viewContainer.length)
+            oldViews.push(this.renderer.viewContainer.detach());
 
-        const internalHeader                         = this._layout.type !== LayoutType.Tabbed;
-        const children: NgPaneBranchChildComponent[] = [];
+        if (this._layout) {
+            const internalHeader                         = this._layout.type !== LayoutType.Tabbed;
+            const children: NgPaneBranchChildComponent[] = [];
 
-        if (this._layout.type === LayoutType.Tabbed) {
-            // I'm disappointed type inference didn't figure this one out, it's
-            // done some impressive things before...
-            this.factory.placeTabRow(this.renderer.viewContainer,
-                                     this._layout as BranchLayout & {type: LayoutType.Tabbed});
-        }
+            if (this._layout.type === LayoutType.Tabbed) {
+                // I'm disappointed type inference didn't figure this one out, it's
+                // done some impressive things before...
+                this.factory.placeTabRow(this.renderer.viewContainer,
+                                         this._layout as BranchLayout & {type: LayoutType.Tabbed});
+            }
 
-        this._layout.children.forEach((child, idx) => {
-            if (idx && this._layout.type !== LayoutType.Tabbed)
-                this.factory.placeBranchThumb(this.renderer.viewContainer,
-                                              this.el,
-                                              idx - 1,
-                                              this._layout);
+            this._layout.children.forEach((child, idx) => {
+                if (idx && this._layout.type !== LayoutType.Tabbed)
+                    this.factory.placeBranchThumb(this.renderer.viewContainer,
+                                                  this.el,
+                                                  idx - 1,
+                                                  this._layout);
 
-            children.push(this.factory.placeBranchChildForLayout(
-                this.renderer.viewContainer,
-                child,
-                this._layout.ratios && this._layout.ratios[idx],
-                this._layout.type === LayoutType.Tabbed && this._layout.currentTabIndex !== idx,
-                internalHeader && child.type === LayoutType.Leaf));
-        });
-
-        if (this._layout.type === LayoutType.Tabbed) {
-            let lastIdx = this._layout.currentTabIndex;
-
-            this.layoutSub = this._layout.$currentTabIndex.subscribe(idx => {
-                if (idx === lastIdx) return;
-
-                children[lastIdx].isHidden = true;
-                children[idx].isHidden     = false;
-
-                lastIdx = idx;
+                children.push(this.factory.placeBranchChildForLayout(
+                    this.renderer.viewContainer,
+                    this._layout,
+                    idx,
+                    this._layout.ratios && this._layout.ratios[idx],
+                    this._layout.type === LayoutType.Tabbed && this._layout.currentTabIndex !== idx,
+                    internalHeader && child.type === LayoutType.Leaf));
             });
+
+            if (this._layout.type === LayoutType.Tabbed) {
+                let lastIdx = this._layout.currentTabIndex;
+
+                this.layoutSub = this._layout.$currentTabIndex.subscribe(idx => {
+                    if (idx === lastIdx) return;
+
+                    children[lastIdx].isHidden = true;
+                    children[idx].isHidden     = false;
+
+                    lastIdx = idx;
+                });
+            }
+            else {
+                this.layoutSub = this._layout.resizeEvents.subscribe(
+                    evt => children[evt.idx].ratio = evt.ratio);
+            }
         }
-        else {
-            this.layoutSub = this._layout.resizeEvents.subscribe(
-                evt => children[evt.idx].ratio = evt.ratio);
-        }
+
+        oldViews.forEach(e => e.destroy());
     }
 
     get layout(): BranchLayout { return this._layout; }

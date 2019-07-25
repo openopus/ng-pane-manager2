@@ -21,6 +21,7 @@
 import {Component, Input, TemplateRef, ViewChild} from '@angular/core';
 import {Observable} from 'rxjs';
 
+import {NgPaneManagerComponent} from '../ng-pane-manager.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {BranchLayout, LayoutType} from '../pane-layout';
 
@@ -32,7 +33,13 @@ interface TabContext {
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: `<ng-template #tab let-idx="idx" let-curr="curr">
-    <lib-ng-pane-header class="tab" [class.active]="(curr | async) === idx" (mousedown)="selectTab(idx)"></lib-ng-pane-header>
+    <lib-ng-pane-header
+        class="tab"
+        [class.active]="(curr | async) === idx"
+        [manager]="manager"
+        [branch]="_layout"
+        [index]="idx"
+        (mousedown)="selectTab(idx)"></lib-ng-pane-header>
 </ng-template>
 <ng-container libNgPaneRenderer></ng-container>`,
     styleUrls: ['./ng-pane-tab-row.component.scss']
@@ -41,6 +48,7 @@ export class NgPaneTabRowComponent {
     @ViewChild('tab', {static: true}) private tabTemplate: TemplateRef<any>;
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
+    @Input() manager: NgPaneManagerComponent;
     private _layout: BranchLayout&{type: LayoutType.Tabbed};
 
     @Input()

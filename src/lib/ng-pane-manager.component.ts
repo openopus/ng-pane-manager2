@@ -45,12 +45,16 @@ export class NgPaneManagerComponent {
     set layout(val: PaneLayout) {
         this._layout = val;
 
+        const oldView = this.renderer.viewContainer.detach();
+
         this.factory.placeComponentForLayout(this.renderer.viewContainer, this._layout);
+
+        if (oldView) oldView.destroy();
     }
 
     get layout(): PaneLayout { return this._layout; }
 
-    constructor(cfr: ComponentFactoryResolver) { this.factory = new LayoutNodeFactory(cfr); }
+    constructor(cfr: ComponentFactoryResolver) { this.factory = new LayoutNodeFactory(this, cfr); }
 
     registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
         this.factory.registerTemplate(name, template);

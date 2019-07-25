@@ -20,17 +20,26 @@
 
 import {Component, HostBinding, Input, ViewChild} from '@angular/core';
 
+import {NgPaneManagerComponent} from '../ng-pane-manager.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
+import {BranchLayout} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-branch-child',
-    template: `<lib-ng-pane-header *ngIf="internalHeader"></lib-ng-pane-header>
+    template: `<lib-ng-pane-header
+    *ngIf="internalHeader"
+    [manager]="manager"
+    [branch]="branch"
+    [index]="index"></lib-ng-pane-header>
 <ng-container libNgPaneRenderer></ng-container>`,
     styleUrls: ['./ng-pane-branch-child.component.scss'],
 })
 export class NgPaneBranchChildComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
     @Input() internalHeader: boolean;
+    @Input() manager: NgPaneManagerComponent;
+    @Input() branch: BranchLayout;
+    @Input() index: number;
 
     @HostBinding('style.flex-grow') ratio: number;
     @HostBinding('class.hidden') isHidden: boolean;

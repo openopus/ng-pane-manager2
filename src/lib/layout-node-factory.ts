@@ -31,6 +31,7 @@ import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
+import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
@@ -52,7 +53,7 @@ export class LayoutNodeFactory {
 
     private templates: Map<string, TemplateRef<LeafNodeContext>> = new Map();
 
-    constructor(private cfr: ComponentFactoryResolver) {
+    constructor(private manager: NgPaneManagerComponent, private cfr: ComponentFactoryResolver) {
         this.branchFactory      = cfr.resolveComponentFactory(NgPaneBranchComponent);
         this.leafFactory        = cfr.resolveComponentFactory(NgPaneLeafComponent);
         this.childFactory       = cfr.resolveComponentFactory(NgPaneBranchChildComponent);
@@ -106,7 +107,8 @@ export class LayoutNodeFactory {
     }
 
     placeBranchChildForLayout(container: ViewContainerRef,
-                              layout: PaneLayout,
+                              branch: BranchLayout,
+                              index: number,
                               ratio: number,
                               isHidden: boolean,
                               internalHeader: boolean): NgPaneBranchChildComponent {
@@ -118,8 +120,11 @@ export class LayoutNodeFactory {
         inst.ratio          = ratio;
         inst.isHidden       = isHidden;
         inst.internalHeader = internalHeader;
+        inst.manager        = this.manager;
+        inst.branch         = branch;
+        inst.index          = index;
 
-        this.placeComponentForLayout(inst.renderer.viewContainer, layout);
+        this.placeComponentForLayout(inst.renderer.viewContainer, branch.children[index]);
 
         return inst;
     }
@@ -144,7 +149,8 @@ export class LayoutNodeFactory {
 
         const inst = component.instance;
 
-        inst.layout = layout;
+        inst.manager = this.manager;
+        inst.layout  = layout;
     }
 
     private updateLeaveWithTemplate(name: string) {

@@ -37,8 +37,10 @@ export enum LayoutGravity {
     Bottom,
 }
 
-export class LayoutBase {
+export abstract class LayoutBase {
     constructor(public readonly gravity?: LayoutGravity, public readonly group?: string) {}
+
+    abstract transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout;
 }
 
 export interface ResizeEvent {
@@ -61,6 +63,9 @@ export class BranchLayout extends LayoutBase {
 
     set currentTabIndex(val: number) {
         if (this._currentTabIndex === val) return;
+
+        if (val < 0 || val >= Math.max(1, this._children.length))
+            throw new Error('current tab index is out of range');
 
         this._currentTabIndex = val;
         this._$currentTabIndex.next(val);
@@ -91,18 +96,25 @@ export class BranchLayout extends LayoutBase {
         super(gravity, group);
 
         if (_ratios != null) {
+            if (_ratios.length != _children.length)
+                throw new Error('mismatched child and split ratio counts');
+
             this._resizeEvents = new Subject();
-            this._ratioSum     = _ratios.reduce((s, e) => s + e);
+            this._ratioSum     = _ratios.reduce((s, e) => s + e, 0);
         }
 
-        if (_currentTabIndex != null)
+        if (_currentTabIndex != null) {
+            if (_currentTabIndex < 0 || _currentTabIndex >= Math.max(1, this._children.length))
+                throw new Error('current tab index is out of range');
+
             this._$currentTabIndex = new BehaviorSubject(_currentTabIndex);
+        }
     }
 
     resizeChild(idx: number, ratio: number) {
         this._ratios[idx] = ratio;
 
-        this._ratioSum = this._ratios.reduce((s, e) => s + e);
+        this._ratioSum = this._ratios.reduce((s, e) => s + e, 0);
 
         // TODO: send an event if ratioSum changes significantly
 
@@ -124,6 +136,95 @@ export class BranchLayout extends LayoutBase {
         this._resizeEvents.next({idx: firstIdx, ratio: this._ratios[firstIdx]});
         this._resizeEvents.next({idx: secondIdx, ratio: this._ratios[secondIdx]});
     }
+
+    mapChildren(func: (value: PaneLayout, index: number) => PaneLayout): BranchLayout {
+        return new BranchLayout(this.type,
+                                this._children.map(func),
+                                this._ratios,
+                                this._currentTabIndex,
+                                this.gravity,
+                                this.group);
+    }
+
+    mapChild(idx: number, func: (value: PaneLayout) => PaneLayout): BranchLayout {
+        // We need to make a shallow copy of the array anyway, so it's not much
+        // slower to just do this.
+        return this.mapChildren((e, i) => i === idx ? func(e) : e);
+    }
+
+    spliceChildren(start: number, remove: number, addChildren?: PaneLayout[], addRatios?: number[]):
+        {layout: PaneLayout, removed: PaneLayout[], removedRatios?: number[]} {
+        const newChildren = this._children.slice();
+        const removed     = addChildren ? newChildren.splice(start, remove, ...addChildren)
+                                    : newChildren.splice(start, remove);
+
+        let newRatios: number[]     = undefined;
+        let removedRatios: number[] = undefined;
+        let newCurrentTabIndex      = this._currentTabIndex;
+
+        if (this._ratios) {
+            if ((addRatios ? addRatios.length : 0) !== (addChildren ? addChildren.length : 0))
+                throw new Error('incorrect number of split ratios to add');
+
+            newRatios     = this._ratios.slice();
+            removedRatios = addRatios ? newRatios.splice(start, remove, ...addRatios)
+                                      : newRatios.splice(start, remove);
+        }
+
+        if (newCurrentTabIndex != null) {
+            newCurrentTabIndex = newCurrentTabIndex -
+                                 Math.max(0, Math.min(remove, newCurrentTabIndex - start + 1));
+
+            if (newCurrentTabIndex >= start) newCurrentTabIndex += addChildren.length;
+
+            newCurrentTabIndex = Math.max(0, Math.min(newChildren.length - 1, newCurrentTabIndex));
+        }
+
+        return {
+            layout: new BranchLayout(
+                this.type, newChildren, newRatios, newCurrentTabIndex, this.gravity, this.group),
+            removed,
+            removedRatios,
+        };
+    }
+
+    withoutChild(index: number): {layout: PaneLayout, removed: PaneLayout, removedRatio?: number} {
+        const {layout, removed, removedRatios} = this.spliceChildren(index, 1);
+
+        return {layout, removed: removed[0], removedRatio: removedRatios && removedRatios[0]};
+    }
+
+    withChild(child: PaneLayout, index?: number, ratio?: number): PaneLayout {
+        if (index == null) index = this._children.length;
+
+        const ratios   = ratio != null ? [ratio] : undefined;
+        const {layout} = this.spliceChildren(index, 0, [child], ratios);
+
+        return layout;
+    }
+
+    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout {
+        if (this === node) return replace;
+
+        let newChildren: PaneLayout[];
+
+        this._children.forEach((el, idx) => {
+            const transposed = el.transposeDeep(node, replace);
+
+            if (!transposed) return;
+            if (!newChildren) newChildren = this._children.slice();
+
+            newChildren[idx] = transposed;
+        });
+
+        return newChildren ? new BranchLayout(this.type,
+                                              newChildren,
+                                              this._ratios,
+                                              this._currentTabIndex,
+                                              this.gravity,
+                                              this.group)
+                           : undefined;
+    }
 }
 
 export class LeafLayout extends LayoutBase {
@@ -135,6 +236,10 @@ export class LeafLayout extends LayoutBase {
                 gravity?: LayoutGravity,
                 group?: string) {
         super(gravity, group);
+    }
+
+    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout {
+        return this === node ? replace : undefined;
     }
 }
 
