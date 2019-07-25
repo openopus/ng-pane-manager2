@@ -129,6 +129,24 @@ export class LayoutNodeFactory {
         return inst;
     }
 
+    placeBranchChildForRootLayout(container: ViewContainerRef,
+                                  root: PaneLayout): NgPaneBranchChildComponent {
+        const component = container.createComponent(this.childFactory) as
+                          ComponentRef<NgPaneBranchChildComponent>;
+
+        const inst = component.instance;
+
+        delete inst.ratio;
+        inst.isHidden       = false;
+        inst.internalHeader = root.type === LayoutType.Leaf;
+        inst.manager        = this.manager;
+        inst.branch = inst.index = undefined;
+
+        this.placeComponentForLayout(inst.renderer.viewContainer, root);
+
+        return inst;
+    }
+
     placeBranchThumb(container: ViewContainerRef,
                      branchEl: ElementRef<HTMLElement>,
                      index: number,

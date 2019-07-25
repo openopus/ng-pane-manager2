@@ -156,7 +156,12 @@ export class BranchLayout extends LayoutBase {
         return this.mapChildren((e, i) => i === idx ? func(e) : e);
     }
 
-    spliceChildren(start: number, remove: number, addChildren?: PaneLayout[], addRatios?: number[]):
+    // NB: changeTabTo should be an index within addChildren
+    spliceChildren(start: number,
+                   remove: number,
+                   addChildren?: PaneLayout[],
+                   addRatios?: number[],
+                   changeTabTo?: number):
         {layout: PaneLayout, removed: PaneLayout[], removedRatios?: number[]} {
         const newChildren = this._children.slice();
         const removed     = addChildren ? newChildren.splice(start, remove, ...addChildren)
@@ -176,12 +181,21 @@ export class BranchLayout extends LayoutBase {
         }
 
         if (newCurrentTabIndex != null) {
-            newCurrentTabIndex = newCurrentTabIndex -
-                                 Math.max(0, Math.min(remove, newCurrentTabIndex - start + 1));
+            if (changeTabTo != undefined) {
+                if (changeTabTo < 0 || changeTabTo >= addChildren.length)
+                    throw new Error('invalid value for changeTabTo');
 
-            if (newCurrentTabIndex >= start) newCurrentTabIndex += addChildren.length;
+                newCurrentTabIndex = start + changeTabTo;
+            }
+            else {
+                newCurrentTabIndex = newCurrentTabIndex -
+                                     Math.max(0, Math.min(remove, newCurrentTabIndex - start + 1));
 
-            newCurrentTabIndex = Math.max(0, Math.min(newChildren.length - 1, newCurrentTabIndex));
+                if (newCurrentTabIndex >= start) newCurrentTabIndex += addChildren.length;
+
+                newCurrentTabIndex = Math.max(0,
+                                              Math.min(newChildren.length - 1, newCurrentTabIndex));
+            }
         }
 
         return {
@@ -198,11 +212,17 @@ export class BranchLayout extends LayoutBase {
         return {layout, removed: removed[0], removedRatio: removedRatios && removedRatios[0]};
     }
 
-    withChild(child: PaneLayout, index?: number, ratio?: number): PaneLayout {
+    withChild(child: PaneLayout, index?: number, ratio?: number, changeTabTo?: boolean):
+        PaneLayout {
         if (index == null) index = this._children.length;
 
-        const ratios   = ratio != null ? [ratio] : undefined;
-        const {layout} = this.spliceChildren(index, 0, [child], ratios);
+        const {
+            layout,
+        } = this.spliceChildren(index,
+                                0,
+                                [child],
+                                ratio != null ? [ratio] : undefined,
+                                changeTabTo ? 0 : undefined);
 
         return layout;
     }

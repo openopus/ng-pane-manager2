@@ -37,12 +37,16 @@ export class NgPaneHeaderComponent {
     private onMouseDown() {
         const opts = {capture: true};
 
-        const listener = evt => {
+        // Disable drag'n'drop if we don't have a parent branch (i.e. we're the
+        // root layout node).  This should only happen if the layout consists of
+        // a single leaf and nothing else.
+        const listener = this.branch ? evt => {
             const transposed = this.manager.layout.transposeDeep(
                 this.branch, this.branch.withoutChild(this.index).layout);
 
             if (transposed) this.manager.layout = transposed;
-        };
+        } : undefined;
+
         const selectListener = (evt: Event) => evt.preventDefault();
         const mouseUpListener = () => {
             window.removeEventListener('mousemove', listener, opts);

@@ -47,7 +47,7 @@ export class NgPaneManagerComponent {
 
         const oldView = this.renderer.viewContainer.detach();
 
-        this.factory.placeComponentForLayout(this.renderer.viewContainer, this._layout);
+        this.factory.placeBranchChildForRootLayout(this.renderer.viewContainer, this._layout);
 
         if (oldView) oldView.destroy();
     }
