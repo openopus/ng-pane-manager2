@@ -105,6 +105,14 @@ export class BranchLayout extends LayoutBase {
 
             this._resizeEvents = new Subject();
             this._ratioSum     = _ratios.reduce((s, e) => s + e, 0);
+
+            // Apparently if the sum of a flex element's children's flex-grow
+            // properties is less than 1, they just don't span the entire
+            // element anymore...
+            if (this._ratioSum < 1.0) {
+                this._ratios   = _ratios.map(r => r / this._ratioSum);
+                this._ratioSum = 1.0;
+            }
         }
 
         if (_currentTabIndex != null) {
@@ -273,6 +281,9 @@ export class BranchLayout extends LayoutBase {
 
                 if (this.type !== LayoutType.Tabbed && child.type === this.type) {
                     newChild = child._children;
+                    // TODO: this calculation is slightly incorrect due to the
+                    //       fact that the gutters between panes throw off the
+                    //       actual widths ever so slightly
                     newRatio = child._ratios.map(r => (r / child.ratioSum) * this._ratios[idx]);
                 }
             }

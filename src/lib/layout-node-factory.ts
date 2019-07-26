@@ -48,10 +48,9 @@ export class LayoutNodeFactory {
     private branchThumbFactory: ComponentFactory<any>;
     private tabRowFactory: ComponentFactory<any>;
 
-    // TODO: leaves are never unregistered...this is Not Good
     private leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
-
-    private templates: Map<string, TemplateRef<LeafNodeContext>> = new Map();
+    private templates: Map<string, TemplateRef<LeafNodeContext>>    = new Map();
+    private hitTargets: Map<ElementRef<Element>, PaneLayout>;
 
     constructor(private manager: NgPaneManagerComponent, private cfr: ComponentFactoryResolver) {
         this.branchFactory      = cfr.resolveComponentFactory(NgPaneBranchComponent);
@@ -61,7 +60,29 @@ export class LayoutNodeFactory {
         this.tabRowFactory      = cfr.resolveComponentFactory(NgPaneTabRowComponent);
     }
 
-    private placeLeafForLayout(container: ViewContainerRef, layout: LeafLayout) {
+    notifyLayoutChangeStart(hitTargets: Map<ElementRef<Element>, PaneLayout>) {
+        this.hitTargets = hitTargets;
+    }
+
+    notifyLayoutChangeEnd() {
+        let remove = [];
+
+        // TODO: leaves are occasionally getting deleted and reconstructed
+        //       during drag'n'drop when they shouldn't be
+
+        for (let [key, val] of this.leaves.entries()) {
+            if (val.component.hostView.destroyed) {
+                console.log(`leaf '${key}' destroyed`);
+                remove.push(key);
+            }
+        }
+
+        remove.forEach(k => this.leaves.delete(k));
+    }
+
+    // ONLY FOR USE INSIDE placeComponentForLayout, DO NOT USE ANYWHERE ELSE
+    private placeLeafForLayout(container: ViewContainerRef,
+                               layout: LeafLayout): ElementRef<HTMLElement> {
         let leaf = this.leaves.get(layout.id);
 
         if (leaf) {
@@ -85,9 +106,13 @@ export class LayoutNodeFactory {
 
         inst.template = this.templates.get(layout.template);
         inst.layout   = layout;
+
+        return inst.el;
     }
 
-    private placeBranchForLayout(container: ViewContainerRef, layout: BranchLayout) {
+    // ONLY FOR USE INSIDE placeComponentForLayout, DO NOT USE ANYWHERE ELSE
+    private placeBranchForLayout(container: ViewContainerRef,
+                                 layout: BranchLayout): ElementRef<HTMLElement> {
         const component = container.createComponent(this.branchFactory) as
                           ComponentRef<NgPaneBranchComponent>;
 
@@ -95,15 +120,21 @@ export class LayoutNodeFactory {
 
         inst.factory = this;
         inst.layout  = layout;
+
+        return inst.el;
     }
 
     placeComponentForLayout(container: ViewContainerRef, layout: PaneLayout) {
+        let el: ElementRef<HTMLElement>;
+
         switch (layout.type) {
         case LayoutType.Horiz:
         case LayoutType.Vert:
-        case LayoutType.Tabbed: this.placeBranchForLayout(container, layout); break;
-        case LayoutType.Leaf: this.placeLeafForLayout(container, layout); break;
+        case LayoutType.Tabbed: el = this.placeBranchForLayout(container, layout); break;
+        case LayoutType.Leaf: el = this.placeLeafForLayout(container, layout); break;
         }
+
+        this.hitTargets.set(el, layout);
     }
 
     placeBranchChildForLayout(container: ViewContainerRef,

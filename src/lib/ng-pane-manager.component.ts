@@ -21,6 +21,7 @@
 import {
     Component,
     ComponentFactoryResolver,
+    ElementRef,
     Input,
     TemplateRef,
     ViewChild,
@@ -39,10 +40,15 @@ export class NgPaneManagerComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
     private _layout: PaneLayout;
+    private _hitTargets: Map<ElementRef<Element>, PaneLayout> = new Map();
     private factory: LayoutNodeFactory;
 
     @Input()
     set layout(val: PaneLayout) {
+        if (val === this._layout) return;
+
+        this.factory.notifyLayoutChangeStart(this._hitTargets = new Map());
+
         this._layout = val && (val.simplifyDeep() || val);
 
         const oldView = this.renderer.viewContainer.detach();
@@ -50,11 +56,23 @@ export class NgPaneManagerComponent {
         this.factory.placeBranchChildForRootLayout(this.renderer.viewContainer, this._layout);
 
         if (oldView) oldView.destroy();
+
+        this.factory.notifyLayoutChangeEnd();
     }
 
     get layout(): PaneLayout { return this._layout; }
 
-    constructor(cfr: ComponentFactoryResolver) { this.factory = new LayoutNodeFactory(this, cfr); }
+    get hitTargets(): Map<Element, PaneLayout> {
+        const ret = new Map();
+
+        for (let [key, val] of this._hitTargets) ret.set(key.nativeElement, val);
+
+        return ret;
+    }
+
+    constructor(cfr: ComponentFactoryResolver, public el: ElementRef<HTMLElement>) {
+        this.factory = new LayoutNodeFactory(this, cfr);
+    }
 
     registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
         this.factory.registerTemplate(name, template);

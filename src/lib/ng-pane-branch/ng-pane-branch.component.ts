@@ -126,7 +126,7 @@ export class NgPaneBranchComponent implements OnDestroy {
 
     get layout(): BranchLayout { return this._layout; }
 
-    constructor(private el: ElementRef<HTMLElement>) {}
+    constructor(public el: ElementRef<HTMLElement>) {}
 
     ngOnDestroy() { this.layout = null; }
 }

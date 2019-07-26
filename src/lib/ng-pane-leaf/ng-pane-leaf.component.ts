@@ -18,7 +18,7 @@
  *
  **************************************************************************************/
 
-import {Component, Input, TemplateRef, ViewChild} from '@angular/core';
+import {Component, ElementRef, Input, TemplateRef, ViewChild} from '@angular/core';
 
 import {LeafNodeContext} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
@@ -48,4 +48,6 @@ export class NgPaneLeafComponent {
     }
 
     get template(): TemplateRef<LeafNodeContext> { return this._template; }
+
+    constructor(public el: ElementRef<HTMLElement>) {}
 }

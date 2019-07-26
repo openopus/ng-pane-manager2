@@ -1,3 +1,8 @@
+# TODO
+
+**This README needs to be filled out with information regarding how to set this project up for
+development.**
+
 # NgPaneManager2
 
 This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.1.1.
