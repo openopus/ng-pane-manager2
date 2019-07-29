@@ -30,6 +30,9 @@ interface TabContext {
     curr: Observable<number>;
 }
 
+// TODO: tab rows should be draggable like headers
+// TODO: tabs aren't being registered as hit targets
+
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: `<ng-template #tab let-idx="idx" let-curr="curr">

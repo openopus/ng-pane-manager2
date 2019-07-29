@@ -1,6 +1,6 @@
-/*************************************************************************************************
+/*****************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-branch-child.component.scss)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-slot.component.scss)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
  *
- ************************************************************************************************/
+ ****************************************************************************************/
 
 :host {
     flex: 1 0 0;
@@ -25,8 +25,8 @@
     overflow: hidden;
 
     &.hidden { display: none; }
-}
-
-lib-ng-pane-header {
-    flex: 0 0 auto;
+    &.float { 
+        position: fixed;
+        z-index: 9001;
+    }
 }

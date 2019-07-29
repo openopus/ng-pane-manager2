@@ -1,6 +1,6 @@
-/***********************************************************************************************
+/***************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-branch-child.component.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-slot.component.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -16,31 +16,25 @@
  * You should have received a copy of the GNU General Public License
  * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
  *
- **********************************************************************************************/
+ **************************************************************************************/
 
-import {Component, HostBinding, Input, ViewChild} from '@angular/core';
+import {Component, HostBinding, ViewChild} from '@angular/core';
 
-import {NgPaneManagerComponent} from '../ng-pane-manager.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {BranchLayout} from '../pane-layout';
 
 @Component({
-    selector: 'lib-ng-pane-branch-child',
-    template: `<lib-ng-pane-header
-    *ngIf="internalHeader"
-    [manager]="manager"
-    [branch]="branch"
-    [index]="index"></lib-ng-pane-header>
-<ng-container libNgPaneRenderer></ng-container>`,
-    styleUrls: ['./ng-pane-branch-child.component.scss'],
+    selector: 'lib-ng-pane-slot',
+    template: '<ng-container libNgPaneRenderer></ng-container>',
+    styleUrls: ['./ng-pane-slot.component.scss'],
 })
-export class NgPaneBranchChildComponent {
+export class NgPaneSlotComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
-    @Input() internalHeader: boolean;
-    @Input() manager: NgPaneManagerComponent;
-    @Input() branch: BranchLayout;
-    @Input() index: number;
 
     @HostBinding('style.flex-grow') ratio: number;
     @HostBinding('class.hidden') isHidden: boolean;
+    @HostBinding('class.float') float: boolean;
+    @HostBinding('style.left.px') left: number;
+    @HostBinding('style.top.px') top: number;
+    @HostBinding('style.width.px') width: number;
+    @HostBinding('style.height.px') height: number;
 }

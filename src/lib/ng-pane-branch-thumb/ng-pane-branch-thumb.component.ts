@@ -20,9 +20,10 @@
 
 import {Component, ElementRef, HostBinding, HostListener, Input} from '@angular/core';
 
+import {beginMouseDrag} from '../begin-drag';
 import {BranchLayout, LayoutType} from '../pane-layout';
 
-interface MouseMoveState {
+interface DragState {
     scaleFactor: number;
     lastPos: number;
 }
@@ -49,31 +50,8 @@ export class NgPaneBranchThumbComponent {
 
     constructor(private el: ElementRef<HTMLElement>) {}
 
-    private onMouseMove(evt: MouseEvent, state: MouseMoveState) {
-        let delta: number;
-
-        switch (this.layout.type) {
-        case LayoutType.Horiz: {
-            delta         = (evt.clientX - state.lastPos) * state.scaleFactor;
-            state.lastPos = evt.clientX;
-            break;
-        }
-        case LayoutType.Vert: {
-            delta         = (evt.clientY - state.lastPos) * state.scaleFactor;
-            state.lastPos = evt.clientY;
-            break;
-        }
-        }
-
-        this.layout.moveSplit(this.index, delta);
-
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-
-    @HostListener('mousedown', ['$event'])
-    private onMouseDown(evt: MouseEvent) {
-        const state: MouseMoveState = {
+    private makeDragState(clientX: number, clientY: number): DragState {
+        const state: DragState = {
             scaleFactor: 0,
             lastPos: -1,
         };
@@ -87,30 +65,45 @@ export class NgPaneBranchThumbComponent {
                                 Math.max(1e-7,
                                          branchRect.width -
                                              selfRect.width * (this.layout.ratios.length - 1));
-            state.lastPos = evt.clientX;
+            state.lastPos = clientX;
             break;
         case LayoutType.Vert:
             state.scaleFactor = this.layout.ratioSum /
                                 Math.max(1e-7,
                                          branchRect.height -
                                              selfRect.height * (this.layout.ratios.length - 1));
-            state.lastPos = evt.clientY;
+            state.lastPos = clientY;
             break;
         }
 
-        const opts = {capture: true};
+        return state;
+    }
 
-        const listener = (evt: MouseEvent) => this.onMouseMove(evt, state);
-        const selectListener = (evt: Event) => evt.preventDefault();
-        const mouseUpListener = () => {
-            window.removeEventListener('mousemove', listener, opts);
-            window.removeEventListener('selectstart', selectListener, opts);
-            window.removeEventListener('mouseup', mouseUpListener, opts);
-        };
+    private onDragDelta(clientX: number, clientY: number, state: DragState) {
+        let delta: number;
 
-        window.addEventListener('mousemove', listener, opts);
-        window.addEventListener('selectstart', selectListener, opts);
-        window.addEventListener('mouseup', mouseUpListener, opts);
+        switch (this.layout.type) {
+        case LayoutType.Horiz: {
+            delta         = (clientX - state.lastPos) * state.scaleFactor;
+            state.lastPos = clientX;
+            break;
+        }
+        case LayoutType.Vert: {
+            delta         = (clientY - state.lastPos) * state.scaleFactor;
+            state.lastPos = clientY;
+            break;
+        }
+        }
+
+        this.layout.moveSplit(this.index, delta);
+    }
+
+    @HostListener('mousedown', ['$event'])
+    private onMouseDown(evt: MouseEvent) {
+        if (evt.buttons !== 1) return;
+
+        const state = this.makeDragState(evt.clientX, evt.clientY);
+        beginMouseDrag(evt, (x, y) => this.onDragDelta(x, y, state));
 
         // TODO: this won't work at all with touch
     }

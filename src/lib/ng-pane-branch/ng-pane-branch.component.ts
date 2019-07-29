@@ -30,8 +30,8 @@ import {
 import {Subscription} from 'rxjs';
 
 import {LayoutNodeFactory} from '../layout-node-factory';
-import {NgPaneBranchChildComponent} from '../ng-pane-branch-child/ng-pane-branch-child.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
+import {NgPaneSlotComponent} from '../ng-pane-slot/ng-pane-slot.component';
 import {BranchLayout, LayoutType} from '../pane-layout';
 
 @Component({
@@ -77,8 +77,7 @@ export class NgPaneBranchComponent implements OnDestroy {
             oldViews.push(this.renderer.viewContainer.detach());
 
         if (this._layout) {
-            const internalHeader                         = this._layout.type !== LayoutType.Tabbed;
-            const children: NgPaneBranchChildComponent[] = [];
+            const slots: NgPaneSlotComponent[] = [];
 
             if (this._layout.type === LayoutType.Tabbed) {
                 // I'm disappointed type inference didn't figure this one out, it's
@@ -94,13 +93,9 @@ export class NgPaneBranchComponent implements OnDestroy {
                                                   idx - 1,
                                                   this._layout);
 
-                children.push(this.factory.placeBranchChildForLayout(
-                    this.renderer.viewContainer,
-                    this._layout,
-                    idx,
-                    this._layout.ratios && this._layout.ratios[idx],
-                    this._layout.type === LayoutType.Tabbed && this._layout.currentTabIndex !== idx,
-                    internalHeader && child.type === LayoutType.Leaf));
+                slots.push(this.factory.placeSlotForLayout(this.renderer.viewContainer,
+                                                           this._layout,
+                                                           idx));
             });
 
             if (this._layout.type === LayoutType.Tabbed) {
@@ -109,15 +104,15 @@ export class NgPaneBranchComponent implements OnDestroy {
                 this.layoutSub = this._layout.$currentTabIndex.subscribe(idx => {
                     if (idx === lastIdx) return;
 
-                    children[lastIdx].isHidden = true;
-                    children[idx].isHidden     = false;
+                    slots[lastIdx].isHidden = true;
+                    slots[idx].isHidden     = false;
 
                     lastIdx = idx;
                 });
             }
             else {
                 this.layoutSub = this._layout.resizeEvents.subscribe(
-                    evt => children[evt.idx].ratio = evt.ratio);
+                    evt => slots[evt.idx].ratio = evt.ratio);
             }
         }
 

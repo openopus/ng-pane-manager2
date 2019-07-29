@@ -1,6 +1,6 @@
-/****************************************************************************************************
+/********************************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-branch-child.component.spec.ts)
+ * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (ng-pane-slot.component.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * ng-pane-manager2 is free software: you can redistribute it and/or modify
@@ -16,23 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
  *
- ***************************************************************************************************/
+ *******************************************************************************************/
 
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {NgPaneBranchChildComponent} from './ng-pane-branch-child.component';
+import {NgPaneSlotComponent} from './ng-pane-slot.component';
 
 describe('NgPaneBranchChildComponent', () => {
-    let component: NgPaneBranchChildComponent;
-    let fixture: ComponentFixture<NgPaneBranchChildComponent>;
+    let component: NgPaneSlotComponent;
+    let fixture: ComponentFixture<NgPaneSlotComponent>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneBranchChildComponent]})
-            .compileComponents();
+        TestBed.configureTestingModule({declarations: [NgPaneSlotComponent]}).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneBranchChildComponent);
+        fixture   = TestBed.createComponent(NgPaneSlotComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

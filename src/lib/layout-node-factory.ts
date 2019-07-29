@@ -27,11 +27,13 @@ import {
     ViewContainerRef
 } from '@angular/core';
 
-import {NgPaneBranchChildComponent} from './ng-pane-branch-child/ng-pane-branch-child.component';
+import {DropTarget, DropTargetType} from './drag-n-drop';
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
+import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
+import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
@@ -44,37 +46,35 @@ interface ComponentInst<C> {
 export class LayoutNodeFactory {
     private branchFactory: ComponentFactory<any>;
     private leafFactory: ComponentFactory<any>;
-    private childFactory: ComponentFactory<any>;
+    private headerFactory: ComponentFactory<any>;
+    private slotFactory: ComponentFactory<any>;
     private branchThumbFactory: ComponentFactory<any>;
     private tabRowFactory: ComponentFactory<any>;
 
+    // TODO: move the template dictionary into a global service
+
     private leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
     private templates: Map<string, TemplateRef<LeafNodeContext>>    = new Map();
-    private hitTargets: Map<ElementRef<Element>, PaneLayout>;
+    private dropTargets: Map<ElementRef<Element>, DropTarget>;
 
-    constructor(private manager: NgPaneManagerComponent, private cfr: ComponentFactoryResolver) {
+    constructor(private manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
         this.branchFactory      = cfr.resolveComponentFactory(NgPaneBranchComponent);
         this.leafFactory        = cfr.resolveComponentFactory(NgPaneLeafComponent);
-        this.childFactory       = cfr.resolveComponentFactory(NgPaneBranchChildComponent);
+        this.headerFactory      = cfr.resolveComponentFactory(NgPaneHeaderComponent);
+        this.slotFactory        = cfr.resolveComponentFactory(NgPaneSlotComponent);
         this.branchThumbFactory = cfr.resolveComponentFactory(NgPaneBranchThumbComponent);
         this.tabRowFactory      = cfr.resolveComponentFactory(NgPaneTabRowComponent);
     }
 
-    notifyLayoutChangeStart(hitTargets: Map<ElementRef<Element>, PaneLayout>) {
-        this.hitTargets = hitTargets;
+    notifyLayoutChangeStart(dropTargets: Map<ElementRef<Element>, DropTarget>) {
+        this.dropTargets = dropTargets;
     }
 
     notifyLayoutChangeEnd() {
         let remove = [];
 
-        // TODO: leaves are occasionally getting deleted and reconstructed
-        //       during drag'n'drop when they shouldn't be
-
         for (let [key, val] of this.leaves.entries()) {
-            if (val.component.hostView.destroyed) {
-                console.log(`leaf '${key}' destroyed`);
-                remove.push(key);
-            }
+            if (val.component.hostView.destroyed) remove.push(key);
         }
 
         remove.forEach(k => this.leaves.delete(k));
@@ -134,48 +134,77 @@ export class LayoutNodeFactory {
         case LayoutType.Leaf: el = this.placeLeafForLayout(container, layout); break;
         }
 
-        this.hitTargets.set(el, layout);
+        this.dropTargets.set(el, {type: DropTargetType.Pane, layout});
     }
 
-    placeBranchChildForLayout(container: ViewContainerRef,
-                              branch: BranchLayout,
-                              index: number,
-                              ratio: number,
-                              isHidden: boolean,
-                              internalHeader: boolean): NgPaneBranchChildComponent {
-        const component = container.createComponent(this.childFactory) as
-                          ComponentRef<NgPaneBranchChildComponent>;
+    // ONLY FOR USE INSIDE placeHeaderFor*, DO NOT USE ANYWHERE ELSE
+    private placeHeader(container: ViewContainerRef, branch: BranchLayout, index: number):
+        ElementRef<HTMLElement> {
+        const component = container.createComponent(this.headerFactory) as
+                          ComponentRef<NgPaneHeaderComponent>;
 
         const inst = component.instance;
 
-        inst.ratio          = ratio;
-        inst.isHidden       = isHidden;
-        inst.internalHeader = internalHeader;
-        inst.manager        = this.manager;
-        inst.branch         = branch;
-        inst.index          = index;
+        inst.manager = this.manager;
+        inst.branch  = branch;
+        inst.index   = index;
 
-        this.placeComponentForLayout(inst.renderer.viewContainer, branch.children[index]);
+        return inst.el;
+    }
+
+    private placeHeaderForLayout(container: ViewContainerRef,
+                                 layout: PaneLayout,
+                                 branch: BranchLayout,
+                                 index: number) {
+        const el = this.placeHeader(container, branch, index);
+
+        this.dropTargets.set(el, {type: DropTargetType.Header, layout});
+    }
+
+    private placeSlot(container: ViewContainerRef,
+                      internalHeader: boolean,
+                      layout: PaneLayout,
+                      branch?: BranchLayout,
+                      index?: number): ComponentRef<NgPaneSlotComponent> {
+        const component = container.createComponent(this.slotFactory) as
+                          ComponentRef<NgPaneSlotComponent>;
+
+        const inst = component.instance;
+
+        if (internalHeader)
+            this.placeHeaderForLayout(inst.renderer.viewContainer, layout, branch, index);
+
+        this.placeComponentForLayout(inst.renderer.viewContainer, layout);
+
+        return component;
+    }
+
+    placeSlotForLayout(container: ViewContainerRef, branch: BranchLayout, index: number):
+        NgPaneSlotComponent {
+        const component = this.placeSlot(container,
+                                         branch.type !== LayoutType.Tabbed &&
+                                             branch.children[index].type === LayoutType.Leaf,
+                                         branch.children[index],
+                                         branch,
+                                         index);
+
+        const inst = component.instance;
+
+        if (branch.ratios) inst.ratio = branch.ratios[index];
+        inst.isHidden = branch.type === LayoutType.Tabbed && branch.currentTabIndex !== index;
 
         return inst;
     }
 
-    placeBranchChildForRootLayout(container: ViewContainerRef,
-                                  root: PaneLayout): NgPaneBranchChildComponent {
-        const component = container.createComponent(this.childFactory) as
-                          ComponentRef<NgPaneBranchChildComponent>;
+    placeSlotForRootLayout(container: ViewContainerRef,
+                           root: PaneLayout): ComponentRef<NgPaneSlotComponent> {
+        const component = this.placeSlot(container, root.type === LayoutType.Leaf, root);
 
         const inst = component.instance;
 
-        delete inst.ratio;
-        inst.isHidden       = false;
-        inst.internalHeader = root.type === LayoutType.Leaf;
-        inst.manager        = this.manager;
-        inst.branch = inst.index = undefined;
+        inst.isHidden = false;
 
-        this.placeComponentForLayout(inst.renderer.viewContainer, root);
-
-        return inst;
+        return component;
     }
 
     placeBranchThumb(container: ViewContainerRef,
@@ -202,7 +231,7 @@ export class LayoutNodeFactory {
         inst.layout  = layout;
     }
 
-    private updateLeaveWithTemplate(name: string) {
+    private updateLeavesWithTemplate(name: string) {
         const template = this.templates.get(name);
 
         for (let leaf of this.leaves.values()) {
@@ -218,10 +247,10 @@ export class LayoutNodeFactory {
 
         this.templates.set(name, template);
 
-        this.updateLeaveWithTemplate(name);
+        this.updateLeavesWithTemplate(name);
     }
 
     unregisterTemplate(name: string) {
-        if (this.templates.delete(name)) this.updateLeaveWithTemplate(name);
+        if (this.templates.delete(name)) this.updateLeavesWithTemplate(name);
     }
 }

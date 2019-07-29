@@ -21,14 +21,17 @@
 import {
     Component,
     ComponentFactoryResolver,
+    ComponentRef,
     ElementRef,
     Input,
     TemplateRef,
     ViewChild,
 } from '@angular/core';
 
+import {DropTarget} from './drag-n-drop';
 import {LayoutNodeFactory, LeafNodeContext} from './layout-node-factory';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
+import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {PaneLayout} from './pane-layout';
 
 @Component({
@@ -37,11 +40,12 @@ import {PaneLayout} from './pane-layout';
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
 export class NgPaneManagerComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer: NgPaneRendererDirective;
 
     private _layout: PaneLayout;
-    private _hitTargets: Map<ElementRef<Element>, PaneLayout> = new Map();
-    private factory: LayoutNodeFactory;
+    private _hitTargets: Map<ElementRef<Element>, DropTarget> = new Map();
+    private rootSlot: ComponentRef<NgPaneSlotComponent>;
+    readonly factory: LayoutNodeFactory;
 
     @Input()
     set layout(val: PaneLayout) {
@@ -51,24 +55,19 @@ export class NgPaneManagerComponent {
 
         this._layout = val && (val.simplifyDeep() || val);
 
-        const oldView = this.renderer.viewContainer.detach();
+        const oldRoot = this.rootSlot;
 
-        this.factory.placeBranchChildForRootLayout(this.renderer.viewContainer, this._layout);
+        this.rootSlot = this.factory.placeSlotForRootLayout(this.renderer.viewContainer,
+                                                            this._layout);
 
-        if (oldView) oldView.destroy();
+        if (oldRoot) oldRoot.destroy();
 
         this.factory.notifyLayoutChangeEnd();
     }
 
     get layout(): PaneLayout { return this._layout; }
 
-    get hitTargets(): Map<Element, PaneLayout> {
-        const ret = new Map();
-
-        for (let [key, val] of this._hitTargets) ret.set(key.nativeElement, val);
-
-        return ret;
-    }
+    get hitTargets(): Readonly<Map<ElementRef<Element>, DropTarget>> { return this._hitTargets; }
 
     constructor(cfr: ComponentFactoryResolver, public el: ElementRef<HTMLElement>) {
         this.factory = new LayoutNodeFactory(this, cfr);
@@ -79,4 +78,13 @@ export class NgPaneManagerComponent {
     }
 
     unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }
+
+    // Not a property because it's an O(n) operation
+    getNativeHitTargets(): Map<Element, DropTarget> {
+        const ret = new Map();
+
+        for (let [key, val] of this._hitTargets) ret.set(key.nativeElement, val);
+
+        return ret;
+    }
 }
