@@ -42,9 +42,11 @@ import {BranchLayout, LayoutType} from '../pane-layout';
 export class NgPaneBranchComponent implements OnDestroy {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
-    private _layout?: BranchLayout;
-    private layoutSub?: Subscription;
+    private _layout: BranchLayout;
+    private layoutSub: Subscription;
     @Input() factory: LayoutNodeFactory;
+    @Input() branch: BranchLayout;
+    @Input() index: number;
 
     @HostBinding('class.horiz')
     get horiz() {
@@ -83,7 +85,9 @@ export class NgPaneBranchComponent implements OnDestroy {
                 // I'm disappointed type inference didn't figure this one out, it's
                 // done some impressive things before...
                 this.factory.placeTabRow(this.renderer.viewContainer,
-                                         this._layout as BranchLayout & {type: LayoutType.Tabbed});
+                                         this._layout as BranchLayout & {type: LayoutType.Tabbed},
+                                         this.branch,
+                                         this.index);
             }
 
             this._layout.children.forEach((child, idx) => {
@@ -123,5 +127,5 @@ export class NgPaneBranchComponent implements OnDestroy {
 
     constructor(public el: ElementRef<HTMLElement>) {}
 
-    ngOnDestroy() { this.layout = null; }
+    ngOnDestroy() { this.layout = undefined; }
 }

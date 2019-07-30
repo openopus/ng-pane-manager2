@@ -22,8 +22,6 @@ export type DragCancelFn = (isAbort: boolean) => void;
 export type DragDeltaHandler = (clientX: number, clientY: number, cancel: DragCancelFn) => void;
 export type DragEndHandler = (isAbort: boolean) => void;
 
-// TODO: hitting Esc during a drag should abort it
-
 export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end?: DragEndHandler) {
     const opts   = {capture: true};
     const button = downEvt.button;
@@ -51,6 +49,14 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
 
         cancel(false);
     };
+    const keyDown = (evt: KeyboardEvent) => {
+        if (evt.key === 'Escape') {
+            cancel(true);
+
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
+    };
     const cancel = (isAbort: boolean) => {
         try {
             if (end) end(isAbort);
@@ -60,6 +66,7 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
             window.removeEventListener('mousemove', mouseMove, opts);
             window.removeEventListener('selectstart', selectStart, opts);
             window.removeEventListener('mouseup', mouseUp, opts);
+            window.removeEventListener('keydown', keyDown, opts);
         }
     };
 
@@ -67,6 +74,7 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
     window.addEventListener('mousemove', mouseMove, opts);
     window.addEventListener('selectstart', selectStart, opts);
     window.addEventListener('mouseup', mouseUp, opts);
+    window.addEventListener('keydown', keyDown, opts);
 }
 
 export class MouseDragBehavior {

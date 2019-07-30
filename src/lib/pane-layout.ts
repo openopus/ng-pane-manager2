@@ -167,8 +167,8 @@ export class BranchLayout extends LayoutBase {
     // NB: changeTabTo should be an index within addChildren
     spliceChildren(start: number,
                    remove: number,
-                   addChildren?: PaneLayout[],
-                   addRatios?: number[],
+                   addChildren?: readonly PaneLayout[],
+                   addRatios?: readonly   number[],
                    changeTabTo?: number):
         {layout: PaneLayout, removed: PaneLayout[], removedRatios?: number[]} {
         const newChildren = this._children.slice();

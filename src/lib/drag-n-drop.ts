@@ -18,9 +18,9 @@
  *
  ***************************************************************************/
 
-import {ComponentRef} from '@angular/core';
+import {ComponentRef, HostListener, Input} from '@angular/core';
 
-import {beginMouseDrag, DragCancelFn, MouseDragBehavior} from './begin-drag';
+import {beginMouseDrag, DragCancelFn} from './begin-drag';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {BranchLayout, LayoutType, PaneLayout} from './pane-layout';
@@ -134,12 +134,38 @@ export class PaneDragContext {
                                              [1 - this.dropRatio, this.dropRatio]);
                 break;
             case DropOrientation.Tabbed:
-                replace = this.dropLayout.type === LayoutType.Tabbed
-                              ? this.dropLayout.withChild(this.floatingLayout,
-                                                          this.dropTabIndex,
-                                                          undefined,
-                                                          true)
-                              : BranchLayout.tabbed([this.dropLayout, this.floatingLayout], 1);
+                if (this.dropLayout.type === LayoutType.Tabbed) {
+                    if (this.floatingLayout.type === LayoutType.Tabbed) {
+                        const {layout} = this.dropLayout.spliceChildren(
+                            this.dropTabIndex,
+                            0,
+                            this.floatingLayout.children,
+                            undefined,
+                            this.floatingLayout.currentTabIndex);
+
+                        replace = layout;
+                    }
+                    else
+                        replace = this.dropLayout.withChild(this.floatingLayout,
+                                                            this.dropTabIndex,
+                                                            undefined,
+                                                            true);
+                }
+                else {
+                    if (this.floatingLayout.type === LayoutType.Tabbed) {
+                        const {layout} = BranchLayout.tabbed([this.dropLayout], 0)
+                                             .spliceChildren(1,
+                                                             0,
+                                                             this.floatingLayout.children,
+                                                             undefined,
+                                                             this.floatingLayout.currentTabIndex);
+
+                        replace = layout;
+                    }
+                    else
+                        replace = BranchLayout.tabbed([this.dropLayout, this.floatingLayout], 1);
+                }
+
                 break;
             }
 
@@ -191,7 +217,6 @@ export class PaneDragContext {
         return !!transposed;
     }
 
-    // TODO: tab rows don't act like headers
     // TODO: dropping on split pane thumbs should probably count as a split in
     //       the same orientation as the branch
     private computeDropParams(x: number, y: number) {
@@ -214,11 +239,29 @@ export class PaneDragContext {
 
             let startIdx = els.length - 1;
 
+            // Disallow creating branches within a tabbed container.
+            // TODO: it might be a good idea to make this configurable
             for (; startIdx > 0; --startIdx) {
                 let el = els[startIdx];
 
                 if (el[1].type === DropTargetType.Pane && el[1].layout.type === LayoutType.Tabbed)
                     break;
+            }
+
+            // If we're on top of a header or tab, we can disregard startIdx.
+            // This translates to allowing things to tabify correctly if we've
+            // somehow placed a branch inside a tab (which should not be doable
+            // with drag'n'drop)
+            // Note that this is also essential to allowing targeting of tabs,
+            // as they will always be before their parent container (and thus
+            // have an index < startIdx)
+            for (let i = 0; i < startIdx; ++i) {
+                let el = els[i];
+
+                if (el[1].type === DropTargetType.Header || el[1].type === DropTargetType.Tab) {
+                    startIdx = i;
+                    break;
+                }
             }
 
             const dropTarget = els[startIdx][1];
@@ -250,5 +293,33 @@ export class PaneDragContext {
             this.dropLayout      = this.manager.layout;
             this.dropOrientation = PaneDragContext.computeDropOrientation(x, y, outerRect);
         }
+    }
+}
+
+export abstract class DraggablePaneComponent {
+    @Input() manager: NgPaneManagerComponent;
+    @Input() branch: BranchLayout;
+    @Input() index: number;
+
+    @HostListener('mousedown', ['$event'])
+    protected onMouseDown(evt: MouseEvent) {
+        if (evt.buttons === 1) {
+            PaneDragContext.mouseDown(evt, this.manager, this.branch, this.index);
+
+            evt.stopPropagation();
+        }
+
+        if (evt.buttons === 4) {
+            const {layout} = this.branch.withoutChild(this.index);
+
+            const transposed = this.manager.layout.transposeDeep(this.branch, layout);
+
+            if (transposed)
+                this.manager.layout = transposed;
+            else
+                console.error('failed to remove closed panel from tree');
+        }
+
+        // TODO: middle-click on headers & tabs should close panes
     }
 }

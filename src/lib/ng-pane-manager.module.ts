@@ -29,6 +29,7 @@ import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
 import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
+import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
 import {NgPanelDirective} from './ng-panel.directive';
 
 @NgModule({
@@ -40,6 +41,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneRendererDirective,
         NgPaneSlotComponent,
         NgPaneBranchThumbComponent,
+        NgPaneTabComponent,
         NgPaneTabRowComponent,
         NgPaneHeaderComponent,
     ],
@@ -52,6 +54,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneSlotComponent,
         NgPaneBranchThumbComponent,
         NgPaneTabRowComponent,
+        NgPaneTabComponent,
     ],
 })
 export class NgPaneManagerModule {

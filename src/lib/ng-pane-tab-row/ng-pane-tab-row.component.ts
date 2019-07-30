@@ -18,41 +18,23 @@
  *
  *****************************************************************************************/
 
-import {Component, Input, TemplateRef, ViewChild} from '@angular/core';
-import {Observable} from 'rxjs';
+import {Component, ElementRef, Input, ViewChild, ViewRef} from '@angular/core';
 
-import {NgPaneManagerComponent} from '../ng-pane-manager.component';
+import {DraggablePaneComponent} from '../drag-n-drop';
+import {LayoutNodeFactory} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {BranchLayout, LayoutType} from '../pane-layout';
 
-interface TabContext {
-    idx: number;
-    curr: Observable<number>;
-}
-
-// TODO: tab rows should be draggable like headers
-// TODO: tabs aren't being registered as hit targets
-
 @Component({
     selector: 'lib-ng-pane-tab-row',
-    template: `<ng-template #tab let-idx="idx" let-curr="curr">
-    <lib-ng-pane-header
-        class="tab"
-        [class.active]="(curr | async) === idx"
-        [manager]="manager"
-        [branch]="_layout"
-        [index]="idx"
-        (mousedown)="selectTab(idx)"></lib-ng-pane-header>
-</ng-template>
-<ng-container libNgPaneRenderer></ng-container>`,
+    template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tab-row.component.scss']
 })
-export class NgPaneTabRowComponent {
-    @ViewChild('tab', {static: true}) private tabTemplate: TemplateRef<any>;
+export class NgPaneTabRowComponent extends DraggablePaneComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
 
-    @Input() manager: NgPaneManagerComponent;
     private _layout: BranchLayout&{type: LayoutType.Tabbed};
+    @Input() factory: LayoutNodeFactory;
 
     @Input()
     set layout(val: BranchLayout&{type: LayoutType.Tabbed}) {
@@ -60,13 +42,20 @@ export class NgPaneTabRowComponent {
 
         this._layout = val;
 
-        if (!this._layout) return;
+        const oldViews: ViewRef[] = [];
+        while (this.renderer.viewContainer.length)
+            oldViews.push(this.renderer.viewContainer.detach());
 
-        this._layout.children.forEach((child, idx) => {
-            this.renderer.viewContainer.createEmbeddedView(
-                this.tabTemplate, {idx, curr: this._layout.$currentTabIndex});
-        });
+        if (this._layout) {
+            this._layout.children.forEach((child, idx) => {
+                this.factory.placeTab(this.renderer.viewContainer, this._layout, idx);
+            });
+        }
+
+        oldViews.forEach(e => e.destroy());
     }
 
-    private selectTab(idx: number) { this._layout.currentTabIndex = idx; }
+    get layout(): BranchLayout&{type: LayoutType.Tabbed} { return this._layout; }
+
+    constructor(public el: ElementRef<HTMLElement>) { super(); }
 }
