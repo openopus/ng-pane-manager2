@@ -99,7 +99,7 @@ export class BranchLayout extends LayoutBase {
                         group?: string) {
         super(gravity, group);
 
-        if (_ratios != null) {
+        if (_ratios != undefined) {
             if (_ratios.length != _children.length)
                 throw new Error('mismatched child and split ratio counts');
 
@@ -115,7 +115,7 @@ export class BranchLayout extends LayoutBase {
             }
         }
 
-        if (_currentTabIndex != null) {
+        if (_currentTabIndex != undefined) {
             if (_currentTabIndex < 0 || _currentTabIndex >= Math.max(1, this._children.length))
                 throw new Error('current tab index is out of range');
 
@@ -171,6 +171,8 @@ export class BranchLayout extends LayoutBase {
                    addRatios?: readonly   number[],
                    changeTabTo?: number):
         {layout: PaneLayout, removed: PaneLayout[], removedRatios?: number[]} {
+        if (start == undefined) start = this._children.length;
+
         const newChildren = this._children.slice();
         const removed     = addChildren ? newChildren.splice(start, remove, ...addChildren)
                                     : newChildren.splice(start, remove);
@@ -188,7 +190,7 @@ export class BranchLayout extends LayoutBase {
                                       : newRatios.splice(start, remove);
         }
 
-        if (newCurrentTabIndex != null) {
+        if (newCurrentTabIndex != undefined) {
             if (changeTabTo != undefined) {
                 if (changeTabTo < 0 || changeTabTo >= addChildren.length)
                     throw new Error('invalid value for changeTabTo');
@@ -222,14 +224,12 @@ export class BranchLayout extends LayoutBase {
 
     withChild(child: PaneLayout, index?: number, ratio?: number, changeTabTo?: boolean):
         PaneLayout {
-        if (index == null) index = this._children.length;
-
         const {
             layout,
         } = this.spliceChildren(index,
                                 0,
                                 [child],
-                                ratio != null ? [ratio] : undefined,
+                                ratio != undefined ? [ratio] : undefined,
                                 changeTabTo ? 0 : undefined);
 
         return layout;
@@ -273,7 +273,7 @@ export class BranchLayout extends LayoutBase {
             let newRatio: number|number[]         = undefined;
 
             if (el.type !== LayoutType.Leaf && el._children.length === 0)
-                newChild = null;
+                newChild = undefined;
             else {
                 newChild = el.simplifyDeep();
 
@@ -393,7 +393,7 @@ export function loadLayout(template: LayoutTemplate): PaneLayout {
             }
         }
         else
-            ratios = null;
+            ratios = undefined;
 
         switch (type) {
         case LayoutType.Horiz:
@@ -420,7 +420,7 @@ export function loadLayout(template: LayoutTemplate): PaneLayout {
 export function saveLayout(layout: PaneLayout): any {
     let gravity: 'center'|'left'|'right'|'top'|'bottom';
 
-    if (layout.gravity != null) {
+    if (layout.gravity != undefined) {
         switch (layout.gravity) {
         case LayoutGravity.Center: gravity = 'center'; break;
         case LayoutGravity.Left: gravity = 'left'; break;

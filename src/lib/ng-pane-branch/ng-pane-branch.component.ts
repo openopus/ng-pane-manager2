@@ -69,7 +69,7 @@ export class NgPaneBranchComponent implements OnDestroy {
 
         if (this.layoutSub) {
             this.layoutSub.unsubscribe();
-            this.layoutSub = null;
+            this.layoutSub = undefined;
         }
 
         this._layout = val;

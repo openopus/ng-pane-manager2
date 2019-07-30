@@ -105,78 +105,8 @@ export class PaneDragContext {
     }
 
     private dragEnd(isAbort: boolean) {
-        if (!isAbort && this.floatingLayout && this.dropLayout) {
-            let replace: PaneLayout;
-
-            // TODO: should gravity/group be inherited?  Gravity probably
-            //       shouldn't, but should the group encapsulate the new
-            //       parent, or just the split child?
-
-            switch (this.dropOrientation) {
-            case DropOrientation.Left:
-                replace = BranchLayout.split(LayoutType.Horiz,
-                                             [this.floatingLayout, this.dropLayout],
-                                             [this.dropRatio, 1 - this.dropRatio]);
-                break;
-            case DropOrientation.Top:
-                replace = BranchLayout.split(LayoutType.Vert,
-                                             [this.floatingLayout, this.dropLayout],
-                                             [this.dropRatio, 1 - this.dropRatio]);
-                break;
-            case DropOrientation.Right:
-                replace = BranchLayout.split(LayoutType.Horiz,
-                                             [this.dropLayout, this.floatingLayout],
-                                             [1 - this.dropRatio, this.dropRatio]);
-                break;
-            case DropOrientation.Bottom:
-                replace = BranchLayout.split(LayoutType.Vert,
-                                             [this.dropLayout, this.floatingLayout],
-                                             [1 - this.dropRatio, this.dropRatio]);
-                break;
-            case DropOrientation.Tabbed:
-                if (this.dropLayout.type === LayoutType.Tabbed) {
-                    if (this.floatingLayout.type === LayoutType.Tabbed) {
-                        const {layout} = this.dropLayout.spliceChildren(
-                            this.dropTabIndex,
-                            0,
-                            this.floatingLayout.children,
-                            undefined,
-                            this.floatingLayout.currentTabIndex);
-
-                        replace = layout;
-                    }
-                    else
-                        replace = this.dropLayout.withChild(this.floatingLayout,
-                                                            this.dropTabIndex,
-                                                            undefined,
-                                                            true);
-                }
-                else {
-                    if (this.floatingLayout.type === LayoutType.Tabbed) {
-                        const {layout} = BranchLayout.tabbed([this.dropLayout], 0)
-                                             .spliceChildren(1,
-                                                             0,
-                                                             this.floatingLayout.children,
-                                                             undefined,
-                                                             this.floatingLayout.currentTabIndex);
-
-                        replace = layout;
-                    }
-                    else
-                        replace = BranchLayout.tabbed([this.dropLayout, this.floatingLayout], 1);
-                }
-
-                break;
-            }
-
-            const transposed = this.manager.layout.transposeDeep(this.dropLayout, replace);
-
-            if (transposed)
-                this.manager.layout = transposed;
-            else {
-                console.error('Failed to insert floating panel into drop target');
-            }
-        }
+        if (!isAbort && this.floatingLayout && this.dropLayout)
+            this.dropFloatingLayout();
         else
             this.manager.layout = this.origLayout;
 
@@ -292,6 +222,80 @@ export class PaneDragContext {
         else {
             this.dropLayout      = this.manager.layout;
             this.dropOrientation = PaneDragContext.computeDropOrientation(x, y, outerRect);
+        }
+    }
+
+    private dropFloatingLayout() {
+        let replace: PaneLayout;
+
+        // TODO: should gravity/group be inherited?  Gravity probably
+        //       shouldn't, but should the group encapsulate the new
+        //       parent, or just the split child?
+
+        switch (this.dropOrientation) {
+        case DropOrientation.Left:
+            replace = BranchLayout.split(LayoutType.Horiz,
+                                         [this.floatingLayout, this.dropLayout],
+                                         [this.dropRatio, 1 - this.dropRatio]);
+            break;
+        case DropOrientation.Top:
+            replace = BranchLayout.split(LayoutType.Vert,
+                                         [this.floatingLayout, this.dropLayout],
+                                         [this.dropRatio, 1 - this.dropRatio]);
+            break;
+        case DropOrientation.Right:
+            replace = BranchLayout.split(LayoutType.Horiz,
+                                         [this.dropLayout, this.floatingLayout],
+                                         [1 - this.dropRatio, this.dropRatio]);
+            break;
+        case DropOrientation.Bottom:
+            replace = BranchLayout.split(LayoutType.Vert,
+                                         [this.dropLayout, this.floatingLayout],
+                                         [1 - this.dropRatio, this.dropRatio]);
+            break;
+        case DropOrientation.Tabbed:
+            if (this.dropLayout.type === LayoutType.Tabbed) {
+                if (this.floatingLayout.type === LayoutType.Tabbed) {
+                    const {layout} = this.dropLayout.spliceChildren(
+                        this.dropTabIndex,
+                        0,
+                        this.floatingLayout.children,
+                        undefined,
+                        this.floatingLayout.currentTabIndex);
+
+                    replace = layout;
+                }
+                else
+                    replace = this.dropLayout.withChild(this.floatingLayout,
+                                                        this.dropTabIndex,
+                                                        undefined,
+                                                        true);
+            }
+            else {
+                if (this.floatingLayout.type === LayoutType.Tabbed) {
+                    const {layout} = BranchLayout.tabbed([this.dropLayout], 0)
+                                         .spliceChildren(1,
+                                                         0,
+                                                         this.floatingLayout.children,
+                                                         undefined,
+                                                         this.floatingLayout.currentTabIndex);
+
+                    replace = layout;
+                }
+                else
+                    replace = BranchLayout.tabbed([this.dropLayout, this.floatingLayout], 1);
+            }
+
+            break;
+        }
+
+        const transposed = this.manager.layout.transposeDeep(this.dropLayout, replace);
+
+        if (transposed)
+            this.manager.layout = transposed;
+        else {
+            console.error('failed to insert floating panel into drop target');
+            this.manager.layout = this.origLayout;
         }
     }
 }
