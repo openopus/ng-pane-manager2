@@ -30,6 +30,9 @@ import {
 import {DropTarget, DropTargetType} from './drag-n-drop';
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
+import {
+    NgPaneDropHighlightComponent
+} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
@@ -52,6 +55,7 @@ export class LayoutNodeFactory {
     private branchThumbFactory: ComponentFactory<any>;
     private tabRowFactory: ComponentFactory<any>;
     private tabFactory: ComponentFactory<any>;
+    private dropHighlightFactory: ComponentFactory<any>;
 
     // TODO: move the template dictionary into a global service
 
@@ -60,13 +64,14 @@ export class LayoutNodeFactory {
     private dropTargets: Map<ElementRef<Element>, DropTarget>;
 
     constructor(private manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
-        this.branchFactory      = cfr.resolveComponentFactory(NgPaneBranchComponent);
-        this.leafFactory        = cfr.resolveComponentFactory(NgPaneLeafComponent);
-        this.headerFactory      = cfr.resolveComponentFactory(NgPaneHeaderComponent);
-        this.slotFactory        = cfr.resolveComponentFactory(NgPaneSlotComponent);
-        this.branchThumbFactory = cfr.resolveComponentFactory(NgPaneBranchThumbComponent);
-        this.tabRowFactory      = cfr.resolveComponentFactory(NgPaneTabRowComponent);
-        this.tabFactory         = cfr.resolveComponentFactory(NgPaneTabComponent);
+        this.branchFactory        = cfr.resolveComponentFactory(NgPaneBranchComponent);
+        this.leafFactory          = cfr.resolveComponentFactory(NgPaneLeafComponent);
+        this.headerFactory        = cfr.resolveComponentFactory(NgPaneHeaderComponent);
+        this.slotFactory          = cfr.resolveComponentFactory(NgPaneSlotComponent);
+        this.branchThumbFactory   = cfr.resolveComponentFactory(NgPaneBranchThumbComponent);
+        this.tabRowFactory        = cfr.resolveComponentFactory(NgPaneTabRowComponent);
+        this.tabFactory           = cfr.resolveComponentFactory(NgPaneTabComponent);
+        this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
     }
 
     notifyLayoutChangeStart(dropTargets: Map<ElementRef<Element>, DropTarget>) {
@@ -266,6 +271,13 @@ export class LayoutNodeFactory {
         this.dropTargets.set(inst.el, {type: DropTargetType.Tab, branch, index});
 
         return inst;
+    }
+
+    placeDropHighlight(container: ViewContainerRef): ComponentRef<NgPaneDropHighlightComponent> {
+        const component = container.createComponent(this.dropHighlightFactory) as
+                          ComponentRef<NgPaneDropHighlightComponent>;
+
+        return component;
     }
 
     private updateLeavesWithTemplate(name: string) {

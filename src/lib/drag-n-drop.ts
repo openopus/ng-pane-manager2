@@ -21,6 +21,9 @@
 import {ComponentRef, HostListener, Input} from '@angular/core';
 
 import {beginMouseDrag, DragCancelFn} from './begin-drag';
+import {
+    NgPaneDropHighlightComponent
+} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {BranchLayout, LayoutType, PaneLayout} from './pane-layout';
@@ -56,8 +59,10 @@ export class PaneDragContext {
     origLayout: PaneLayout;
     floatingLayout: PaneLayout;
     floatingSlot: ComponentRef<NgPaneSlotComponent>;
+    dropHighlight: ComponentRef<NgPaneDropHighlightComponent>;
 
     dropLayout: PaneLayout;
+    dropElement: Element;
     dropOrientation: DropOrientation;
     dropRatio: number; // NB: unlike normal ratios, this is from 0 to 1
     dropTabIndex: number;
@@ -95,7 +100,10 @@ export class PaneDragContext {
     }
 
     private dragDelta(clientX: number, clientY: number, cancel: DragCancelFn) {
-        if (this.floatingSlot) this.moveFloatingSlot(clientX, clientY);
+        if (this.floatingSlot) {
+            this.moveFloatingSlot(clientX, clientY);
+            this.moveDropHighlight();
+        }
 
         if (this.floatingLayout)
             this.computeDropParams(clientX, clientY);
@@ -110,7 +118,10 @@ export class PaneDragContext {
         else
             this.manager.layout = this.origLayout;
 
-        if (this.floatingSlot) this.floatingSlot.destroy();
+        if (this.floatingSlot) {
+            this.floatingSlot.destroy();
+            this.dropHighlight.destroy();
+        }
     }
 
     private moveFloatingSlot(x: number, y: number) {
@@ -142,13 +153,62 @@ export class PaneDragContext {
 
         const transposed = this.manager.layout.transposeDeep(this.branch, withoutChild);
 
-        if (transposed) this.manager.layout = transposed;
+        if (!transposed) return false;
 
-        return !!transposed;
+        this.manager.layout = transposed;
+        this.dropHighlight  = this.manager.factory.placeDropHighlight(
+            this.manager.renderer.viewContainer);
+
+        return true;
+    }
+
+    private moveDropHighlight() {
+        const inst = this.dropHighlight.instance;
+
+        inst.active = !!this.dropElement;
+
+        if (inst.active) {
+            const rect = this.dropElement.getClientRects()[0];
+
+            switch (this.dropOrientation) {
+            case DropOrientation.Left:
+                inst.left   = rect.left;
+                inst.top    = rect.top;
+                inst.width  = rect.width * this.dropRatio;
+                inst.height = rect.height;
+                break;
+            case DropOrientation.Top:
+                inst.left   = rect.left;
+                inst.top    = rect.top;
+                inst.width  = rect.width;
+                inst.height = rect.height * this.dropRatio;
+                break;
+            case DropOrientation.Right:
+                inst.left   = rect.left + (1.0 - this.dropRatio) * rect.width;
+                inst.top    = rect.top;
+                inst.width  = rect.width * this.dropRatio;
+                inst.height = rect.height;
+                break;
+            case DropOrientation.Bottom:
+                inst.left   = rect.left;
+                inst.top    = rect.top + (1.0 - this.dropRatio) * rect.height;
+                inst.width  = rect.width;
+                inst.height = rect.height * this.dropRatio;
+                break;
+            case DropOrientation.Tabbed:
+                // TODO: this is incorrect, but complicated to fix.
+                inst.left   = rect.left;
+                inst.top    = rect.top;
+                inst.width  = rect.width;
+                inst.height = rect.height;
+                break;
+            }
+        }
     }
 
     // TODO: dropping on split pane thumbs should probably count as a split in
     //       the same orientation as the branch
+    // TODO: should holding over a tab switch to it?
     private computeDropParams(x: number, y: number) {
         const MARGIN = 8;
 
@@ -195,6 +255,7 @@ export class PaneDragContext {
             }
 
             const dropTarget = els[startIdx][1];
+            this.dropElement = els[startIdx][0];
 
             switch (dropTarget.type) {
             case DropTargetType.Pane:
@@ -221,6 +282,7 @@ export class PaneDragContext {
         }
         else {
             this.dropLayout      = this.manager.layout;
+            this.dropElement     = this.manager.el.nativeElement;
             this.dropOrientation = PaneDragContext.computeDropOrientation(x, y, outerRect);
         }
     }

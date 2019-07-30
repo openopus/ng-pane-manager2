@@ -23,6 +23,9 @@ import {BrowserModule} from '@angular/platform-browser';
 
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
+import {
+    NgPaneDropHighlightComponent
+} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
@@ -44,6 +47,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneTabComponent,
         NgPaneTabRowComponent,
         NgPaneHeaderComponent,
+        NgPaneDropHighlightComponent,
     ],
     imports: [BrowserModule],
     exports: [NgPaneManagerComponent, NgPanelDirective],
@@ -55,6 +59,7 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneBranchThumbComponent,
         NgPaneTabRowComponent,
         NgPaneTabComponent,
+        NgPaneDropHighlightComponent,
     ],
 })
 export class NgPaneManagerModule {
