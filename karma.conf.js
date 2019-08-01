@@ -1,22 +1,22 @@
-/***************************************************************************
+/*******************************************************************************
  *
- * ng-pane-manager2 - a port of ng-pane-manager to Angular 2+ (karma.conf.js)
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (karma.conf.js)
  * Copyright (C) 2019 Opus Logica
  *
- * ng-pane-manager2 is free software: you can redistribute it and/or modify
+ * angular-pane-manager is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ng-pane-manager2 is distributed in the hope that it will be useful,
+ * angular-pane-manager is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with ng-pane-manager2.  If not, see <https://www.gnu.org/licenses/>.
+ * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
  *
- **************************************************************************/
+ ******************************************************************************/
 
 // Karma configuration file, see link for more information
 // https://karma-runner.github.io/1.0/config/configuration-file.html
@@ -36,7 +36,7 @@ module.exports = function(config) {
             clearContext: false // leave Jasmine Spec Runner output visible in browser
         },
         coverageIstanbulReporter: {
-            dir: require('path').join(__dirname, '../../coverage/ng-pane-manager2'),
+            dir: require('path').join(__dirname, '../../coverage/angular-pane-manager'),
             reports: ['html', 'lcovonly', 'text-summary'],
             fixWebpackSourcePaths: true
         },
