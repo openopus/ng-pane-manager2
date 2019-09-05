@@ -31,12 +31,12 @@ interface DragState {
 @Component({
     selector: 'lib-ng-pane-branch-thumb',
     template: '',
-    styleUrls: ['./ng-pane-branch-thumb.component.scss']
+    styleUrls: ['./ng-pane-branch-thumb.component.scss'],
 })
 export class NgPaneBranchThumbComponent {
-    @Input() branchEl: ElementRef<HTMLElement>;
-    @Input() index: number;
-    @Input() layout: BranchLayout;
+    @Input() branchEl!: ElementRef<HTMLElement>;
+    @Input() index!: number;
+    @Input() layout!: BranchLayout;
 
     @HostBinding('class.horiz')
     get horiz() {
@@ -48,7 +48,7 @@ export class NgPaneBranchThumbComponent {
         return this.layout.type === LayoutType.Vert;
     }
 
-    constructor(private el: ElementRef<HTMLElement>) {}
+    constructor(private readonly el: ElementRef<HTMLElement>) {}
 
     private makeDragState(clientX: number, clientY: number): DragState {
         const state: DragState = {
@@ -58,6 +58,9 @@ export class NgPaneBranchThumbComponent {
 
         const branchRect = this.branchEl.nativeElement.getClientRects()[0];
         const selfRect   = this.el.nativeElement.getClientRects()[0];
+
+        if (this.layout.ratios === undefined || this.layout.ratioSum === undefined)
+            throw new Error('invalid layout');
 
         switch (this.layout.type) {
         case LayoutType.Horiz:
@@ -93,6 +96,7 @@ export class NgPaneBranchThumbComponent {
             state.lastPos = clientY;
             break;
         }
+        default: throw new Error('invalid layout type');
         }
 
         this.layout.moveSplit(this.index, delta);

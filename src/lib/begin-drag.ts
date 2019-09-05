@@ -22,10 +22,13 @@ export type DragCancelFn = (isAbort: boolean) => void;
 export type DragDeltaHandler = (clientX: number, clientY: number, cancel: DragCancelFn) => void;
 export type DragEndHandler = (isAbort: boolean) => void;
 
-export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end?: DragEndHandler) {
+export function beginMouseDrag(downEvt: MouseEvent,
+                               delta: DragDeltaHandler|undefined,
+                               end?: DragEndHandler) {
     const opts   = {capture: true};
     const button = downEvt.button;
 
+    let cancel: (isAbort: boolean) => void;
     const mouseDown = (evt: MouseEvent) => {
         evt.preventDefault();
         evt.stopImmediatePropagation();
@@ -33,7 +36,7 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
     const mouseMove = (evt: MouseEvent) => {
         // If no delta handler is specified, just perform a dummy drag
         try {
-            if (delta) delta(evt.clientX, evt.clientY, cancel);
+            if (delta !== undefined) delta(evt.clientX, evt.clientY, cancel);
         }
         catch (e) {
             console.error(e);
@@ -57,9 +60,9 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
             evt.stopPropagation();
         }
     };
-    const cancel = (isAbort: boolean) => {
+    cancel = (isAbort: boolean) => {
         try {
-            if (end) end(isAbort);
+            if (end !== undefined) end(isAbort);
         }
         finally {
             window.removeEventListener('mousedown', mouseDown, opts);
@@ -75,8 +78,4 @@ export function beginMouseDrag(downEvt: MouseEvent, delta: DragDeltaHandler, end
     window.addEventListener('selectstart', selectStart, opts);
     window.addEventListener('mouseup', mouseUp, opts);
     window.addEventListener('keydown', keyDown, opts);
-}
-
-export class MouseDragBehavior {
-    constructor(downEvt: MouseEvent) {}
 }

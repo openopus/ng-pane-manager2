@@ -22,14 +22,19 @@ import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
 export type PaneLayout = BranchLayout|LeafLayout;
 
-export enum LayoutType {
+export interface BranchChildId {
+    readonly branch: BranchLayout;
+    readonly index: number;
+}
+
+export const enum LayoutType {
     Horiz,
     Vert,
     Tabbed,
     Leaf,
 }
 
-export enum LayoutGravity {
+export const enum LayoutGravity {
     Center,
     Left,
     Right,
@@ -38,13 +43,13 @@ export enum LayoutGravity {
 }
 
 export abstract class LayoutBase {
-    constructor(public readonly gravity?: LayoutGravity, public readonly group?: string) {}
+    constructor(readonly gravity?: LayoutGravity, readonly group?: string) {}
 
     // NB: this function returns undefined if nothing changed
-    abstract transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout;
+    abstract transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout|undefined;
 
     // NB: this function returns undefined if nothing changed
-    abstract simplifyDeep(): PaneLayout;
+    abstract simplifyDeep(): PaneLayout|undefined;
 }
 
 export interface ResizeEvent {
@@ -53,26 +58,27 @@ export interface ResizeEvent {
 }
 
 export class BranchLayout extends LayoutBase {
-    private _resizeEvents: Subject<ResizeEvent>;
-    private _$currentTabIndex: BehaviorSubject<number>;
-    private _ratioSum: number;
+    private readonly _resizeEvents: Subject<ResizeEvent>|undefined;
+    private readonly _$currentTabIndex: BehaviorSubject<number>|undefined;
+    private _ratioSum: number|undefined;
 
-    get children(): Readonly<PaneLayout[]> { return this._children; }
-    get ratios(): Readonly<number[]> { return this._ratios; }
-    get currentTabIndex(): number { return this._currentTabIndex; }
-    get ratioSum(): number { return this._ratioSum; }
+    get children(): readonly PaneLayout[] { return this._children; }
+    get ratios(): readonly number[]|undefined { return this._ratios; }
+    get ratioSum(): number|undefined { return this._ratioSum; }
 
-    get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
-    get $currentTabIndex(): Observable<number> { return this._$currentTabIndex; }
+    get resizeEvents(): Observable<ResizeEvent>|undefined { return this._resizeEvents; }
+    get $currentTabIndex(): Observable<number>|undefined { return this._$currentTabIndex; }
 
-    set currentTabIndex(val: number) {
+    get currentTabIndex(): number|undefined { return this._currentTabIndex; }
+
+    set currentTabIndex(val: number|undefined) {
         if (this._currentTabIndex === val) return;
 
-        if (val < 0 || val >= Math.max(1, this._children.length))
+        if (val === undefined || val < 0 || val >= Math.max(1, this._children.length))
             throw new Error('current tab index is out of range');
 
         this._currentTabIndex = val;
-        this._$currentTabIndex.next(val);
+        if (this._$currentTabIndex !== undefined) this._$currentTabIndex.next(val);
     }
 
     static split(type: LayoutType.Horiz|LayoutType.Vert,
@@ -91,16 +97,16 @@ export class BranchLayout extends LayoutBase {
             LayoutType.Tabbed, children, undefined, currentIndex, gravity, group);
     }
 
-    private constructor(public readonly type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
-                        private _children: PaneLayout[],
-                        private _ratios?: number[],
+    private constructor(readonly         type: LayoutType.Horiz|LayoutType.Vert|LayoutType.Tabbed,
+                        private readonly _children: PaneLayout[],
+                        private readonly _ratios?: number[],
                         private _currentTabIndex?: number,
                         gravity?: LayoutGravity,
                         group?: string) {
         super(gravity, group);
 
-        if (_ratios != undefined) {
-            if (_ratios.length != _children.length)
+        if (_ratios !== undefined) {
+            if (_ratios.length !== _children.length)
                 throw new Error('mismatched child and split ratio counts');
 
             this._resizeEvents = new Subject();
@@ -110,12 +116,13 @@ export class BranchLayout extends LayoutBase {
             // properties is less than 1, they just don't span the entire
             // element anymore...
             if (this._ratioSum < 1.0) {
-                this._ratios   = _ratios.map(r => r / this._ratioSum);
+                const sum      = this._ratioSum;
+                this._ratios   = _ratios.map(r => r / sum);
                 this._ratioSum = 1.0;
             }
         }
 
-        if (_currentTabIndex != undefined) {
+        if (_currentTabIndex !== undefined) {
             if (_currentTabIndex < 0 || _currentTabIndex >= Math.max(1, this._children.length))
                 throw new Error('current tab index is out of range');
 
@@ -124,6 +131,9 @@ export class BranchLayout extends LayoutBase {
     }
 
     resizeChild(idx: number, ratio: number) {
+        if (this._ratios === undefined || this._resizeEvents === undefined)
+            throw new Error('branch is not resizable');
+
         this._ratios[idx] = ratio;
 
         this._ratioSum = this._ratios.reduce((s, e) => s + e, 0);
@@ -134,6 +144,9 @@ export class BranchLayout extends LayoutBase {
     }
 
     moveSplit(firstIdx: number, amount: number) {
+        if (this._ratios === undefined || this._resizeEvents === undefined)
+            throw new Error('branch is not resizable');
+
         const secondIdx = firstIdx + 1;
 
         if (secondIdx >= this._ratios.length)
@@ -165,34 +178,37 @@ export class BranchLayout extends LayoutBase {
     }
 
     // NB: changeTabTo should be an index within addChildren
-    spliceChildren(start: number,
+    spliceChildren(start: number|undefined,
                    remove: number,
                    addChildren?: readonly PaneLayout[],
                    addRatios?: readonly   number[],
                    changeTabTo?: number):
-        {layout: PaneLayout, removed: PaneLayout[], removedRatios?: number[]} {
-        if (start == undefined) start = this._children.length;
+        {layout: PaneLayout; removed: PaneLayout[]; removedRatios?: number[]} {
+        if (start === undefined) start = this._children.length;
 
         const newChildren = this._children.slice();
-        const removed     = addChildren ? newChildren.splice(start, remove, ...addChildren)
-                                    : newChildren.splice(start, remove);
+        const removed     = addChildren !== undefined
+                            ? newChildren.splice(start, remove, ...addChildren)
+                            : newChildren.splice(start, remove);
 
-        let newRatios: number[]     = undefined;
-        let removedRatios: number[] = undefined;
-        let newCurrentTabIndex      = this._currentTabIndex;
+        let newRatios: number[]|undefined;
+        let removedRatios: number[]|undefined;
+        let newCurrentTabIndex = this._currentTabIndex;
 
-        if (this._ratios) {
-            if ((addRatios ? addRatios.length : 0) !== (addChildren ? addChildren.length : 0))
+        if (this._ratios !== undefined) {
+            if ((addRatios !== undefined ? addRatios.length : 0) !==
+                (addChildren !== undefined ? addChildren.length : 0))
                 throw new Error('incorrect number of split ratios to add');
 
             newRatios     = this._ratios.slice();
-            removedRatios = addRatios ? newRatios.splice(start, remove, ...addRatios)
-                                      : newRatios.splice(start, remove);
+            removedRatios = addRatios !== undefined ? newRatios.splice(start, remove, ...addRatios)
+                                                    : newRatios.splice(start, remove);
         }
 
-        if (newCurrentTabIndex != undefined) {
-            if (changeTabTo != undefined) {
-                if (changeTabTo < 0 || changeTabTo >= addChildren.length)
+        if (newCurrentTabIndex !== undefined) {
+            if (changeTabTo !== undefined) {
+                if (changeTabTo < 0 ||
+                    (addChildren === undefined || changeTabTo >= addChildren.length))
                     throw new Error('invalid value for changeTabTo');
 
                 newCurrentTabIndex = start + changeTabTo;
@@ -201,7 +217,8 @@ export class BranchLayout extends LayoutBase {
                 newCurrentTabIndex = newCurrentTabIndex -
                                      Math.max(0, Math.min(remove, newCurrentTabIndex - start + 1));
 
-                if (newCurrentTabIndex >= start) newCurrentTabIndex += addChildren.length;
+                if (newCurrentTabIndex >= start && addChildren !== undefined)
+                    newCurrentTabIndex += addChildren.length;
 
                 newCurrentTabIndex = Math.max(0,
                                               Math.min(newChildren.length - 1, newCurrentTabIndex));
@@ -216,10 +233,14 @@ export class BranchLayout extends LayoutBase {
         };
     }
 
-    withoutChild(index: number): {layout: PaneLayout, removed: PaneLayout, removedRatio?: number} {
+    withoutChild(index: number): {layout: PaneLayout; removed: PaneLayout; removedRatio?: number} {
         const {layout, removed, removedRatios} = this.spliceChildren(index, 1);
 
-        return {layout, removed: removed[0], removedRatio: removedRatios && removedRatios[0]};
+        return {
+            layout,
+            removed: removed[0],
+            removedRatio: removedRatios !== undefined ? removedRatios[0] : undefined,
+        };
     }
 
     withChild(child: PaneLayout, index?: number, ratio?: number, changeTabTo?: boolean):
@@ -229,85 +250,91 @@ export class BranchLayout extends LayoutBase {
         } = this.spliceChildren(index,
                                 0,
                                 [child],
-                                ratio != undefined ? [ratio] : undefined,
-                                changeTabTo ? 0 : undefined);
+                                ratio !== undefined ? [ratio] : undefined,
+                                changeTabTo === true ? 0 : undefined);
+        // Look, before you laugh, changeTabTo can be undefined.
 
         return layout;
     }
 
-    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout {
+    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
         if (this === node) return replace;
 
-        let newChildren: PaneLayout[];
+        let newChildren: PaneLayout[]|undefined;
 
         this._children.forEach((el, idx) => {
             const transposed = el.transposeDeep(node, replace);
 
-            if (!transposed) return;
-            if (!newChildren) newChildren = this._children.slice();
+            if (transposed === undefined) return;
+            if (newChildren === undefined) newChildren = this._children.slice();
 
             newChildren[idx] = transposed;
         });
 
-        return newChildren ? new BranchLayout(this.type,
-                                              newChildren,
-                                              this._ratios,
-                                              this._currentTabIndex,
-                                              this.gravity,
-                                              this.group)
-                           : undefined;
+        return newChildren !== undefined ? new BranchLayout(this.type,
+                                                            newChildren,
+                                                            this._ratios,
+                                                            this._currentTabIndex,
+                                                            this.gravity,
+                                                            this.group)
+                                         : undefined;
     }
 
-    simplifyDeep(): PaneLayout {
+    simplifyDeep(): PaneLayout|undefined {
         if (this._children.length === 1) {
-            const child = this._children[0];
+            const child      = this._children[0];
+            const simplified = child.simplifyDeep();
 
-            return child.simplifyDeep() || child;
+            return simplified !== undefined ? simplified : child;
         }
 
-        let newChildren: (PaneLayout|PaneLayout[])[];
-        let newRatios: (number|number[])[];
+        let newChildren: (PaneLayout|PaneLayout[]|undefined)[]|undefined;
+        let newRatios: (number|number[]|undefined)[]|undefined;
 
         this._children.forEach((el, idx) => {
-            let newChild: PaneLayout|PaneLayout[] = undefined;
-            let newRatio: number|number[]         = undefined;
+            let newChild: PaneLayout|PaneLayout[]|undefined;
+            let newRatio: number|number[]|undefined;
 
-            if (el.type !== LayoutType.Leaf && el._children.length === 0)
-                newChild = undefined;
-            else {
-                newChild = el.simplifyDeep();
-
-                const child = newChild || el;
+            // Let branches with 0 children remain undefined - they will be pruned
+            if (el.type === LayoutType.Leaf || el._children.length !== 0) {
+                const simplified = el.simplifyDeep();
+                const child = newChild = simplified !== undefined ? simplified : el;
 
                 if (this.type !== LayoutType.Tabbed && child.type === this.type) {
                     newChild = child._children;
+
+                    const sum    = child.ratioSum;
+                    const ratios = this._ratios;
                     // TODO: this calculation is slightly incorrect due to the
                     //       fact that the gutters between panes throw off the
                     //       actual widths ever so slightly
-                    newRatio = child._ratios.map(r => (r / child.ratioSum) * this._ratios[idx]);
+                    newRatio = child._ratios !== undefined && sum !== undefined &&
+                                       ratios !== undefined
+                                   ? child._ratios.map(r => (r / sum) * ratios[idx])
+                                   : undefined;
                 }
             }
 
-            if (newChild !== undefined) {
-                if (!newChildren) newChildren = this._children.slice();
+            if (newChild !== el) {
+                if (newChildren === undefined) newChildren = this._children.slice();
 
                 newChildren[idx] = newChild;
-            }
 
-            if (newRatio !== undefined) {
-                if (!newRatios) newRatios = this._ratios.slice();
+                if (this._ratios !== undefined) {
+                    if (newRatios === undefined) newRatios = this._ratios.slice();
 
-                newRatios[idx] = newRatio;
+                    newRatios[idx] = newRatio;
+                }
             }
         });
 
-        if (newChildren) {
-            newChildren.filter(e => e);
+        if (newChildren !== undefined) {
+            newChildren.filter(e => e !== undefined);
 
             let ratios = this._ratios;
 
-            if (newRatios) {
-                newRatios.filter(e => e != undefined);
+            if (newRatios !== undefined) {
+                newRatios.filter(e => e !== undefined);
                 ratios = (newRatios as any).flat();
             }
 
@@ -327,18 +354,18 @@ export class LeafLayout extends LayoutBase {
     readonly type: LayoutType.Leaf = LayoutType.Leaf;
     // TODO: each pane should have control of title, icon, closeable, and alwaysTab
 
-    constructor(public readonly id: string,
-                public readonly template: string,
+    constructor(readonly id: string,
+                readonly template: string,
                 gravity?: LayoutGravity,
                 group?: string) {
         super(gravity, group);
     }
 
-    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout {
+    transposeDeep(node: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
         return this === node ? replace : undefined;
     }
 
-    simplifyDeep(): PaneLayout { return undefined; }
+    simplifyDeep(): PaneLayout|undefined { return undefined; }
 }
 
 export type LayoutTemplate = BranchLayoutTemplate|LeafLayoutTemplate;
@@ -361,9 +388,9 @@ export interface LeafLayoutTemplate extends LayoutTemplateBase {
 }
 
 export function loadLayout(template: LayoutTemplate): PaneLayout {
-    let gravity: LayoutGravity;
+    let gravity: LayoutGravity|undefined;
 
-    if (template.gravity) {
+    if (template.gravity !== undefined) {
         switch (template.gravity) {
         case 'center': gravity = LayoutGravity.Center; break;
         case 'left': gravity = LayoutGravity.Left; break;
@@ -382,32 +409,37 @@ export function loadLayout(template: LayoutTemplate): PaneLayout {
         case 'horiz': type = LayoutType.Horiz; break;
         case 'vert': type = LayoutType.Vert; break;
         case 'tab': type = LayoutType.Tabbed; break;
+        default: throw new Error(`invalid split type '${branch.split}'`);
         }
 
-        let ratios: number[];
+        let ratios: number[]|undefined;
 
-        if (branch.ratio) {
-            switch (typeof branch.ratio) {
-            case 'number': ratios = [branch.ratio]; break;
-            case 'object': ratios = branch.ratio; break;
-            }
+        switch (typeof branch.ratio) {
+        case 'undefined': ratios = undefined; break;
+        case 'number': ratios = [branch.ratio]; break;
+        case 'object': ratios = branch.ratio; break;
+        default:
+            throw new Error(
+                `invalid type '${typeof branch.ratio}': expected number, array, or nothing`);
         }
-        else
-            ratios = undefined;
 
         switch (type) {
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            return BranchLayout.split(type,
-                                      branch.children.map(child => loadLayout(child)),
-                                      ratios,
-                                      gravity,
-                                      branch.group);
+            if (ratios === undefined)
+                throw new Error(`missing ratios for '${branch.split}' branch`);
+
+            return BranchLayout.split(
+                type, branch.children.map(loadLayout), ratios, gravity, branch.group);
         case LayoutType.Tabbed:
-            return BranchLayout.tabbed(branch.children.map(child => loadLayout(child)),
+            if (branch.currentTab === undefined)
+                throw new Error(`missing currentTab for '${branch.split}' branch`);
+
+            return BranchLayout.tabbed(branch.children.map(loadLayout),
                                        branch.currentTab,
                                        gravity,
                                        branch.group);
+        default: throw new Error('unexpected branch layout type');
         }
     }
     else {
@@ -417,10 +449,10 @@ export function loadLayout(template: LayoutTemplate): PaneLayout {
     }
 }
 
-export function saveLayout(layout: PaneLayout): any {
-    let gravity: 'center'|'left'|'right'|'top'|'bottom';
+export function saveLayout(layout: PaneLayout): LayoutTemplate {
+    let gravity: 'center'|'left'|'right'|'top'|'bottom'|undefined;
 
-    if (layout.gravity != undefined) {
+    if (layout.gravity !== undefined) {
         switch (layout.gravity) {
         case LayoutGravity.Center: gravity = 'center'; break;
         case LayoutGravity.Left: gravity = 'left'; break;
@@ -440,27 +472,24 @@ export function saveLayout(layout: PaneLayout): any {
         case LayoutType.Horiz: split = 'horiz'; break;
         case LayoutType.Vert: split = 'vert'; break;
         case LayoutType.Tabbed: split = 'tab'; break;
+        default: throw new Error('unexpected layout type');
         }
 
-        return <BranchLayoutTemplate>{
+        return {
             split,
-            ratio: layout.ratios,
+            ratio: layout.ratios !== undefined ? layout.ratios.slice() : undefined,
             currentTab: layout.currentTabIndex,
-            children: layout.children.map(child => saveLayout(child)),
+            children: layout.children.map(saveLayout),
             gravity,
             group: layout.group,
         };
-
-        break;
     }
     case LayoutType.Leaf:
-        return <LeafLayoutTemplate>{
+        return {
             id: layout.id,
             template: layout.template,
             gravity,
             group: layout.group,
         };
-
-        break;
     }
 }

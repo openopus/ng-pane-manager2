@@ -30,13 +30,14 @@ import {LeafLayout} from '../pane-layout';
     styleUrls: ['./ng-pane-leaf.component.scss'],
 })
 export class NgPaneLeafComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    private readonly renderer!: NgPaneRendererDirective;
 
-    private _template?: TemplateRef<LeafNodeContext>;
-    @Input() layout: LeafLayout;
+    private _template: TemplateRef<LeafNodeContext>|undefined;
+    @Input() layout!: LeafLayout;
 
     @Input()
-    set template(val: TemplateRef<LeafNodeContext>) {
+    set template(val: TemplateRef<LeafNodeContext>|undefined) {
         if (this._template === val) return;
 
         this._template = val;
@@ -44,10 +45,15 @@ export class NgPaneLeafComponent {
         this.renderer.viewContainer.clear();
 
         // TODO: use the context to get data from the layout and/or the parent component
-        if (this._template) this.renderer.viewContainer.createEmbeddedView(this._template, {});
+        if (this._template !== undefined)
+            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(this._template, {
+                $implicit: {
+                    title: 'TODO',
+                },
+            });
     }
 
-    get template(): TemplateRef<LeafNodeContext> { return this._template; }
+    get template(): TemplateRef<LeafNodeContext>|undefined { return this._template; }
 
     constructor(public el: ElementRef<HTMLElement>) {}
 }

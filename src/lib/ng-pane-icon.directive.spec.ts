@@ -1,6 +1,6 @@
-/********************************************************************************************
+/************************************************************************************************
  *
- * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-panel.directive.spec.ts)
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-icon.directive.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * angular-pane-manager is free software: you can redistribute it and/or modify
@@ -16,13 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
  *
- *******************************************************************************************/
+ ***********************************************************************************************/
 
-import {NgPanelDirective} from './ng-panel.directive';
+import {NgPaneIconDirective} from './ng-pane-icon.directive';
 
-describe('NgPanelDirective', () => {
+describe('NgPaneIconDirective', () => {
     it('should create an instance', () => {
-        const directive = new NgPanelDirective();
+        const directive = new NgPaneIconDirective();
         expect(directive).toBeTruthy();
     });
 });

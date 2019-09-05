@@ -40,11 +40,11 @@ import {PaneLayout} from './pane-layout';
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
 export class NgPaneManagerComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
 
-    private _layout: PaneLayout;
+    private _layout!: PaneLayout;
     private _hitTargets: Map<ElementRef<Element>, DropTarget> = new Map();
-    private rootSlot: ComponentRef<NgPaneSlotComponent>;
+    private rootSlot: ComponentRef<NgPaneSlotComponent>|undefined;
     readonly factory: LayoutNodeFactory;
 
     @Input()
@@ -53,14 +53,18 @@ export class NgPaneManagerComponent {
 
         this.factory.notifyLayoutChangeStart(this._hitTargets = new Map());
 
-        this._layout = val && (val.simplifyDeep() || val);
+        const simplified = val.simplifyDeep();
+
+        if (simplified !== undefined) val = simplified;
+
+        this._layout = val;
 
         const oldRoot = this.rootSlot;
 
         this.rootSlot = this.factory.placeSlotForRootLayout(this.renderer.viewContainer,
                                                             this._layout);
 
-        if (oldRoot) oldRoot.destroy();
+        if (oldRoot !== undefined) oldRoot.destroy();
 
         this.factory.notifyLayoutChangeEnd();
     }
@@ -83,7 +87,7 @@ export class NgPaneManagerComponent {
     getNativeHitTargets(): Map<Element, DropTarget> {
         const ret = new Map();
 
-        for (let [key, val] of this._hitTargets) ret.set(key.nativeElement, val);
+        for (const [key, val] of this._hitTargets) ret.set(key.nativeElement, val);
 
         return ret;
     }

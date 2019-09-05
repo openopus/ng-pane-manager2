@@ -25,14 +25,14 @@ import {
     Input,
     OnDestroy,
     ViewChild,
-    ViewRef
+    ViewRef,
 } from '@angular/core';
 import {Subscription} from 'rxjs';
 
 import {LayoutNodeFactory} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneSlotComponent} from '../ng-pane-slot/ng-pane-slot.component';
-import {BranchLayout, LayoutType} from '../pane-layout';
+import {BranchChildId, BranchLayout, LayoutType} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-branch',
@@ -40,34 +40,34 @@ import {BranchLayout, LayoutType} from '../pane-layout';
     styleUrls: ['./ng-pane-branch.component.scss'],
 })
 export class NgPaneBranchComponent implements OnDestroy {
-    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    private readonly renderer!: NgPaneRendererDirective;
 
-    private _layout: BranchLayout;
-    private layoutSub: Subscription;
-    @Input() factory: LayoutNodeFactory;
-    @Input() branch: BranchLayout;
-    @Input() index: number;
+    private _layout: BranchLayout|undefined;
+    private layoutSub: Subscription|undefined;
+    @Input() factory!: LayoutNodeFactory;
+    @Input() childId: BranchChildId|undefined;
 
     @HostBinding('class.horiz')
     get horiz() {
-        return this._layout && this._layout.type === LayoutType.Horiz;
+        return this._layout !== undefined && this._layout.type === LayoutType.Horiz;
     }
 
     @HostBinding('class.vert')
     get vert() {
-        return this._layout && this._layout.type === LayoutType.Vert;
+        return this._layout !== undefined && this._layout.type === LayoutType.Vert;
     }
 
     @HostBinding('class.tab')
     get tab() {
-        return this._layout && this._layout.type === LayoutType.Tabbed;
+        return this._layout !== undefined && this._layout.type === LayoutType.Tabbed;
     }
 
     @Input()
-    set layout(val: BranchLayout) {
+    set layout(val: BranchLayout|undefined) {
         if (this._layout === val) return;
 
-        if (this.layoutSub) {
+        if (this.layoutSub !== undefined) {
             this.layoutSub.unsubscribe();
             this.layoutSub = undefined;
         }
@@ -75,55 +75,61 @@ export class NgPaneBranchComponent implements OnDestroy {
         this._layout = val;
 
         const oldViews: ViewRef[] = [];
-        while (this.renderer.viewContainer.length)
-            oldViews.push(this.renderer.viewContainer.detach());
+        while (true) {
+            const view = this.renderer.viewContainer.detach();
+            if (view === null) break;
+            oldViews.push(view);
+        }
 
-        if (this._layout) {
+        if (this._layout !== undefined) {
+            const layout                       = this._layout;
             const slots: NgPaneSlotComponent[] = [];
 
-            if (this._layout.type === LayoutType.Tabbed) {
+            if (layout.type === LayoutType.Tabbed) {
                 // I'm disappointed type inference didn't figure this one out, it's
                 // done some impressive things before...
                 this.factory.placeTabRow(this.renderer.viewContainer,
-                                         this._layout as BranchLayout & {type: LayoutType.Tabbed},
-                                         this.branch,
-                                         this.index);
+                                         layout as BranchLayout & {type: LayoutType.Tabbed},
+                                         this.childId);
             }
 
-            this._layout.children.forEach((child, idx) => {
-                if (idx && this._layout.type !== LayoutType.Tabbed)
+            layout.children.forEach((child, index) => {
+                if (index !== 0 && layout.type !== LayoutType.Tabbed)
                     this.factory.placeBranchThumb(this.renderer.viewContainer,
                                                   this.el,
-                                                  idx - 1,
-                                                  this._layout);
+                                                  index - 1,
+                                                  layout);
 
                 slots.push(this.factory.placeSlotForLayout(this.renderer.viewContainer,
-                                                           this._layout,
-                                                           idx));
+                                                           {branch: layout, index}));
             });
 
-            if (this._layout.type === LayoutType.Tabbed) {
-                let lastIdx = this._layout.currentTabIndex;
+            if (layout.type === LayoutType.Tabbed) {
+                let lastIdx = layout.currentTabIndex === undefined ? -1 : layout.currentTabIndex;
 
-                this.layoutSub = this._layout.$currentTabIndex.subscribe(idx => {
-                    if (idx === lastIdx) return;
+                this.layoutSub = layout.$currentTabIndex !== undefined
+                                     ? layout.$currentTabIndex.subscribe(idx => {
+                                           if (idx === lastIdx) return;
 
-                    slots[lastIdx].isHidden = true;
-                    slots[idx].isHidden     = false;
+                                           slots[lastIdx].isHidden = true;
+                                           slots[idx].isHidden     = false;
 
-                    lastIdx = idx;
-                });
+                                           lastIdx = idx;
+                                       })
+                                     : undefined;
             }
             else {
-                this.layoutSub = this._layout.resizeEvents.subscribe(
-                    evt => slots[evt.idx].ratio = evt.ratio);
+                this.layoutSub = layout.resizeEvents !== undefined
+                                     ? layout.resizeEvents.subscribe(
+                                           evt => slots[evt.idx].ratio = evt.ratio)
+                                     : undefined;
             }
         }
 
         oldViews.forEach(e => e.destroy());
     }
 
-    get layout(): BranchLayout { return this._layout; }
+    get layout(): BranchLayout|undefined { return this._layout; }
 
     constructor(public el: ElementRef<HTMLElement>) {}
 

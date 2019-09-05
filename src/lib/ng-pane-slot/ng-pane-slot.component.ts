@@ -28,13 +28,13 @@ import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
     styleUrls: ['./ng-pane-slot.component.scss'],
 })
 export class NgPaneSlotComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true}) renderer!: NgPaneRendererDirective;
 
-    @HostBinding('style.flex-grow') ratio: number;
-    @HostBinding('class.hidden') isHidden: boolean;
-    @HostBinding('class.float') float: boolean;
-    @HostBinding('style.left.px') left: number;
-    @HostBinding('style.top.px') top: number;
-    @HostBinding('style.width.px') width: number;
-    @HostBinding('style.height.px') height: number;
+    @HostBinding('style.flex-grow') ratio: number|undefined;
+    @HostBinding('class.hidden') isHidden = false;
+    @HostBinding('class.float') float     = false;
+    @HostBinding('style.left.px') left: number|undefined;
+    @HostBinding('style.top.px') top: number|undefined;
+    @HostBinding('style.width.px') width: number|undefined;
+    @HostBinding('style.height.px') height: number|undefined;
 }

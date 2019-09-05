@@ -23,12 +23,12 @@ import {Component, HostBinding} from '@angular/core';
 @Component({
     selector: 'lib-ng-pane-drop-highlight',
     template: '',
-    styleUrls: ['./ng-pane-drop-highlight.component.scss']
+    styleUrls: ['./ng-pane-drop-highlight.component.scss'],
 })
 export class NgPaneDropHighlightComponent {
-    @HostBinding('class.active') active: boolean;
-    @HostBinding('style.left.px') left: number;
-    @HostBinding('style.top.px') top: number;
-    @HostBinding('style.width.px') width: number;
-    @HostBinding('style.height.px') height: number;
+    @HostBinding('class.active') active    = false;
+    @HostBinding('style.left.px') left     = 0;
+    @HostBinding('style.top.px') top       = 0;
+    @HostBinding('style.width.px') width   = 0;
+    @HostBinding('style.height.px') height = 0;
 }

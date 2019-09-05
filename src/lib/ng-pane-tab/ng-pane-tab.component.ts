@@ -29,14 +29,16 @@ import {DraggablePaneComponent} from '../drag-n-drop';
 export class NgPaneTabComponent extends DraggablePaneComponent {
     @HostBinding('class.active')
     get active() {
-        return this.branch && this.branch.currentTabIndex === this.index;
+        return this.childId !== undefined &&
+               this.childId.branch.currentTabIndex === this.childId.index;
     }
 
     constructor(public el: ElementRef<HTMLElement>) { super(); }
 
     @HostListener('mousedown', ['$event'])
     protected onMouseDown(evt: MouseEvent) {
-        if (evt.buttons === 1) this.branch.currentTabIndex = this.index;
+        if (evt.buttons === 1 && this.childId !== undefined)
+            this.childId.branch.currentTabIndex = this.childId.index;
 
         super.onMouseDown(evt);
     }

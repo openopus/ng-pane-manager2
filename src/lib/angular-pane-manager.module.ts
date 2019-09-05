@@ -24,21 +24,22 @@ import {BrowserModule} from '@angular/platform-browser';
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
 import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
 import {
-    NgPaneDropHighlightComponent
+    NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
+import {NgPaneIconDirective} from './ng-pane-icon.directive';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
 import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
-import {NgPanelDirective} from './ng-panel.directive';
+import {NgPaneDirective} from './ng-pane.directive';
 
 @NgModule({
     declarations: [
         NgPaneManagerComponent,
-        NgPanelDirective,
+        NgPaneDirective,
         NgPaneLeafComponent,
         NgPaneBranchComponent,
         NgPaneRendererDirective,
@@ -48,9 +49,10 @@ import {NgPanelDirective} from './ng-panel.directive';
         NgPaneTabRowComponent,
         NgPaneHeaderComponent,
         NgPaneDropHighlightComponent,
+        NgPaneIconDirective,
     ],
     imports: [BrowserModule],
-    exports: [NgPaneManagerComponent, NgPanelDirective],
+    exports: [NgPaneManagerComponent, NgPaneDirective],
     entryComponents: [
         NgPaneLeafComponent,
         NgPaneBranchComponent,

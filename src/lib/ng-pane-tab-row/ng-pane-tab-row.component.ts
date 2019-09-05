@@ -28,34 +28,40 @@ import {BranchLayout, LayoutType} from '../pane-layout';
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: '<ng-container libNgPaneRenderer></ng-container>',
-    styleUrls: ['./ng-pane-tab-row.component.scss']
+    styleUrls: ['./ng-pane-tab-row.component.scss'],
 })
 export class NgPaneTabRowComponent extends DraggablePaneComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) private renderer: NgPaneRendererDirective;
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    private readonly renderer!: NgPaneRendererDirective;
 
-    private _layout: BranchLayout&{type: LayoutType.Tabbed};
-    @Input() factory: LayoutNodeFactory;
+    private _layout: BranchLayout&{type: LayoutType.Tabbed}|undefined;
+    @Input() factory!: LayoutNodeFactory;
 
     @Input()
-    set layout(val: BranchLayout&{type: LayoutType.Tabbed}) {
+    set layout(val: BranchLayout&{type: LayoutType.Tabbed}|undefined) {
         if (this._layout === val) return;
 
         this._layout = val;
 
         const oldViews: ViewRef[] = [];
-        while (this.renderer.viewContainer.length)
-            oldViews.push(this.renderer.viewContainer.detach());
+        while (true) {
+            const view = this.renderer.viewContainer.detach();
+            if (view === null) break;
+            oldViews.push(view);
+        }
 
-        if (this._layout) {
-            this._layout.children.forEach((child, idx) => {
-                this.factory.placeTab(this.renderer.viewContainer, this._layout, idx);
+        if (this._layout !== undefined) {
+            const layout = this._layout;
+
+            layout.children.forEach((child, index) => {
+                this.factory.placeTab(this.renderer.viewContainer, {branch: layout, index});
             });
         }
 
         oldViews.forEach(e => e.destroy());
     }
 
-    get layout(): BranchLayout&{type: LayoutType.Tabbed} { return this._layout; }
+    get layout(): BranchLayout&{type: LayoutType.Tabbed}|undefined { return this._layout; }
 
     constructor(public el: ElementRef<HTMLElement>) { super(); }
 }

@@ -1,15 +1,29 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    // Structure
     "outDir": "../../out-tsc/lib",
+    "moduleResolution": "node",
+    // Versioning & Types
+    "module": "esnext",
     "target": "es2015",
-    "declaration": true,
-    "inlineSources": true,
-    "types": [],
     "lib": [
       "dom",
       "es2018"
-    ]
+    ],
+    // Options
+    "declaration": true,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "inlineSources": true,
+    "sourceMap": true,
+    // Diagnostics
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "strict": true
   },
   "angularCompilerOptions": {
     "annotateForClosureCompiler": true,
