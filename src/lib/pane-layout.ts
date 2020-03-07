@@ -109,6 +109,12 @@ export class BranchLayout extends LayoutBase {
             if (_ratios.length !== _children.length)
                 throw new Error('mismatched child and split ratio counts');
 
+            if (type !== LayoutType.Tabbed && _children.length > 1) {
+                for (const ratio of _ratios) {
+                    if (!isFinite(ratio)) throw new Error(`invalid ratio ${ratio}`);
+                }
+            }
+
             this._resizeEvents = new Subject();
             this._ratioSum     = _ratios.reduce((s, e) => s + e, 0);
 
@@ -300,18 +306,23 @@ export class BranchLayout extends LayoutBase {
                 const simplified = el.simplifyDeep();
                 const child = newChild = simplified !== undefined ? simplified : el;
 
-                if (this.type !== LayoutType.Tabbed && child.type === this.type) {
-                    newChild = child._children;
+                if (this.type !== LayoutType.Tabbed) {
+                    if (child.type === this.type) {
+                        newChild = child._children;
 
-                    const sum    = child.ratioSum;
-                    const ratios = this._ratios;
-                    // TODO: this calculation is slightly incorrect due to the
-                    //       fact that the gutters between panes throw off the
-                    //       actual widths ever so slightly
-                    newRatio = child._ratios !== undefined && sum !== undefined &&
-                                       ratios !== undefined
-                                   ? child._ratios.map(r => (r / sum) * ratios[idx])
-                                   : undefined;
+                        const sum    = child.ratioSum;
+                        const ratios = this._ratios;
+                        // TODO: this calculation is slightly incorrect due to the
+                        //       fact that the gutters between panes throw off the
+                        //       actual widths ever so slightly
+                        newRatio = child._ratios !== undefined && sum !== undefined &&
+                                           ratios !== undefined
+                                       ? child._ratios.map(r => (r / sum) * ratios[idx])
+                                       : undefined;
+                    }
+                    else {
+                        newRatio = this._ratios !== undefined ? this._ratios[idx] : undefined;
+                    }
                 }
             }
 

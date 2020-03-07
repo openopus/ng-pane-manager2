@@ -154,8 +154,19 @@ export class PaneDragContext {
 
         if (transposed === undefined) return false;
 
-        this.manager.layout = transposed;
-        this.dropHighlight  = this.manager.factory.placeDropHighlight(
+        try {
+            this.manager.layout = transposed;
+        }
+        catch (e) {
+            this.manager.layout = this.origLayout;
+
+            this.floatingLayout = undefined;
+            this.floatingSlot.destroy();
+
+            throw e;
+        }
+
+        this.dropHighlight = this.manager.factory.placeDropHighlight(
             this.manager.renderer.viewContainer);
 
         return true;
@@ -271,10 +282,21 @@ export class PaneDragContext {
 
                 this.dropOrientation = PaneDragContext.computeDropOrientation(
                     x, y, els[orientTargetIdx][0].getClientRects()[0]);
+
+                if (this.dropOrientation === DropOrientation.Tabbed)
+                    this.dropTabIndex = dropTarget.layout.type === LayoutType.Leaf
+                                            ? 1
+                                            : dropTarget.layout.children.length;
+
                 break;
             case DropTargetType.Header:
                 this.dropLayout      = dropTarget.layout;
                 this.dropOrientation = DropOrientation.Tabbed;
+
+                this.dropTabIndex = dropTarget.layout.type === LayoutType.Leaf
+                                        ? 1
+                                        : dropTarget.layout.children.length;
+
                 break;
             case DropTargetType.Tab:
                 this.dropLayout      = dropTarget.id.branch;
@@ -294,7 +316,7 @@ export class PaneDragContext {
     private dropFloatingLayout() {
         if (this.dropLayout === undefined || this.floatingLayout === undefined) return;
 
-        let replace: PaneLayout;
+        let replace: PaneLayout|undefined;
 
         // TODO: should gravity/group be inherited?  Gravity probably
         //       shouldn't, but should the group encapsulate the new
@@ -322,6 +344,11 @@ export class PaneDragContext {
                                          [1 - this.dropRatio, this.dropRatio]);
             break;
         case DropOrientation.Tabbed:
+            if (this.dropTabIndex === -1) {
+                console.error('bad drop parameters (no tab index)');
+                break;
+            }
+
             if (this.dropLayout.type === LayoutType.Tabbed) {
                 if (this.floatingLayout.type === LayoutType.Tabbed) {
                     const {layout} = this.dropLayout.spliceChildren(
@@ -358,7 +385,9 @@ export class PaneDragContext {
         default: throw new Error('invalid drop layout');
         }
 
-        const transposed = this.manager.layout.transposeDeep(this.dropLayout, replace);
+        const transposed = replace === undefined
+                               ? undefined
+                               : this.manager.layout.transposeDeep(this.dropLayout, replace);
 
         if (transposed !== undefined)
             this.manager.layout = transposed;
