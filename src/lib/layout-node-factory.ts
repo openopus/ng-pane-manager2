@@ -65,10 +65,14 @@ export class LayoutNodeFactory {
     private readonly dropHighlightFactory: ComponentFactory<any>;
 
     // TODO: move the template dictionary into a global service
+    // TODO: run stress tests to check for possible leaks of undisposed resources
+    //       (e.g. leaves and leafHeaders)
 
-    private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>>            = new Map();
-    private readonly leafHeaders: Map<string, NgPaneHeaderComponent|NgPaneTabComponent> = new Map();
-    private readonly templates: Map<string, LeafTemplate>                               = new Map();
+    private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
+    private readonly leafHeaders:
+        Map<string,
+            ComponentRef<NgPaneHeaderComponent>|ComponentRef<NgPaneTabComponent>> = new Map();
+    private readonly templates: Map<string, LeafTemplate>                         = new Map();
     private dropTargets!: Map<ElementRef<Element>, DropTarget>;
 
     constructor(private readonly manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
@@ -87,13 +91,25 @@ export class LayoutNodeFactory {
     }
 
     notifyLayoutChangeEnd() {
-        const remove = [];
+        {
+            const remove = [];
 
-        for (const [key, val] of this.leaves.entries()) {
-            if (val.component.hostView.destroyed) remove.push(key);
+            for (const [key, val] of this.leaves.entries()) {
+                if (val.component.hostView.destroyed) remove.push(key);
+            }
+
+            remove.forEach(k => this.leaves.delete(k));
         }
 
-        remove.forEach(k => this.leaves.delete(k));
+        {
+            const remove = [];
+
+            for (const [key, val] of this.leafHeaders.entries()) {
+                if (val.hostView.destroyed) remove.push(key);
+            }
+
+            remove.forEach(k => this.leaves.delete(k));
+        }
     }
 
     // leafTemplate is provided to save a little time if we already have the
@@ -196,7 +212,7 @@ export class LayoutNodeFactory {
         const child = childId !== undefined ? childId.branch.children[childId.index] : undefined;
 
         if (child !== undefined) {
-            if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, inst);
+            if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, component);
 
             this.updatePaneHeader(inst, child, undefined);
         }
@@ -300,7 +316,7 @@ export class LayoutNodeFactory {
 
         const child = childId.branch.children[childId.index];
 
-        if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, inst);
+        if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, component);
 
         this.updatePaneHeader(inst, child, undefined);
 
@@ -325,7 +341,8 @@ export class LayoutNodeFactory {
 
                 const header = this.leafHeaders.get(inst.layout.id);
 
-                if (header !== undefined) this.updatePaneHeader(header, inst.layout, template);
+                if (header !== undefined)
+                    this.updatePaneHeader(header.instance, inst.layout, template);
             }
         }
     }
