@@ -52,6 +52,8 @@ interface ComponentInst<C> {
     index: number;
 }
 
+export type LeafTemplate = [TemplateRef<LeafNodeContext>, LeafNodeContext];
+
 export class LayoutNodeFactory {
     private readonly branchFactory: ComponentFactory<any>;
     private readonly leafFactory: ComponentFactory<any>;
@@ -66,8 +68,7 @@ export class LayoutNodeFactory {
 
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>>            = new Map();
     private readonly leafHeaders: Map<string, NgPaneHeaderComponent|NgPaneTabComponent> = new Map();
-    private readonly templates:
-        Map<string, [TemplateRef<LeafNodeContext>, LeafNodeContext]> = new Map();
+    private readonly templates: Map<string, LeafTemplate>                               = new Map();
     private dropTargets!: Map<ElementRef<Element>, DropTarget>;
 
     constructor(private readonly manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
@@ -93,6 +94,30 @@ export class LayoutNodeFactory {
         }
 
         remove.forEach(k => this.leaves.delete(k));
+    }
+
+    // leafTemplate is provided to save a little time if we already have the
+    // relevant template handy.
+    private updatePaneHeader(inst: NgPaneHeaderComponent|NgPaneTabComponent,
+                             layout: PaneLayout,
+                             leafTemplate: LeafTemplate|undefined) {
+        if (layout.type === LayoutType.Leaf) {
+            // Fetch the leaf template if one wasn't already given
+            if (leafTemplate === undefined) leafTemplate = this.templates.get(layout.template);
+
+            if (leafTemplate !== undefined) {
+                inst.title = leafTemplate[1].$implicit.title;
+                inst.icon  = leafTemplate[1].$implicit.icon;
+            }
+            else {
+                inst.title = new BehaviorSubject('???');
+                inst.icon  = new BehaviorSubject('');
+            }
+        }
+        else {
+            inst.title = new BehaviorSubject('HEADER');
+            inst.icon  = new BehaviorSubject('ICON');
+        }
     }
 
     // ONLY FOR USE INSIDE placeComponentForLayout, DO NOT USE ANYWHERE ELSE
@@ -165,14 +190,16 @@ export class LayoutNodeFactory {
 
         const inst = component.instance;
 
-        inst.title   = new BehaviorSubject('HEADER');
         inst.manager = this.manager;
         inst.childId = childId;
 
         const child = childId !== undefined ? childId.branch.children[childId.index] : undefined;
 
-        if (child !== undefined && child.type === LayoutType.Leaf)
-            this.leafHeaders.set(child.id, inst);
+        if (child !== undefined) {
+            if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, inst);
+
+            this.updatePaneHeader(inst, child, undefined);
+        }
 
         return inst.el;
     }
@@ -266,7 +293,6 @@ export class LayoutNodeFactory {
 
         const inst = component.instance;
 
-        inst.title   = new BehaviorSubject('TAB');
         inst.manager = this.manager;
         inst.childId = childId;
 
@@ -275,6 +301,8 @@ export class LayoutNodeFactory {
         const child = childId.branch.children[childId.index];
 
         if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, inst);
+
+        this.updatePaneHeader(inst, child, undefined);
 
         return inst;
     }
@@ -288,7 +316,6 @@ export class LayoutNodeFactory {
 
     private updateLeavesWithTemplate(name: string) {
         const template = this.templates.get(name);
-        const title    = template === undefined ? undefined : template[1].$implicit.title;
 
         for (const leaf of this.leaves.values()) {
             const inst = leaf.component.instance;
@@ -298,7 +325,7 @@ export class LayoutNodeFactory {
 
                 const header = this.leafHeaders.get(inst.layout.id);
 
-                if (header !== undefined) header.title = title;
+                if (header !== undefined) this.updatePaneHeader(header, inst.layout, template);
             }
         }
     }

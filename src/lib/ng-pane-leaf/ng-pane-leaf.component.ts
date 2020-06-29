@@ -26,7 +26,7 @@ import {
     ViewChild,
 } from '@angular/core';
 
-import {LeafNodeContext} from '../layout-node-factory';
+import {LeafNodeContext, LeafTemplate} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {LeafLayout} from '../pane-layout';
 
@@ -39,11 +39,11 @@ export class NgPaneLeafComponent {
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
-    private _template: [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined;
+    private _template: LeafTemplate|undefined;
     @Input() layout!: LeafLayout;
 
     @Input()
-    set template(val: [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined) {
+    set template(val: LeafTemplate|undefined) {
         if (this._template === val) return;
 
         this._template = val;
@@ -54,9 +54,7 @@ export class NgPaneLeafComponent {
             this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(...this._template);
     }
 
-    get template(): [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined {
-        return this._template;
-    }
+    get template(): LeafTemplate|undefined { return this._template; }
 
     constructor(public el: ElementRef<HTMLElement>) {}
 }

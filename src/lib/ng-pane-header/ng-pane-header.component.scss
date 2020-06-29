@@ -18,3 +18,11 @@
  *
  **********************************************************************************************/
 
+:host {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.lib-ng-pane-header-icon {
+    height: 1em;
+}

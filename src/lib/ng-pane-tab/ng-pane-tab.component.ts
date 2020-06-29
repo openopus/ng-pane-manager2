@@ -25,11 +25,12 @@ import {DraggablePaneComponent} from '../drag-n-drop';
 
 @Component({
     selector: 'lib-ng-pane-tab',
-    template: '{{title | async}}',
+    template: '<img class="lib-ng-pane-tab-icon" src="{{icon | async}}">{{title | async}}',
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
 export class NgPaneTabComponent extends DraggablePaneComponent {
     @Input() title: Observable<string>|undefined;
+    @Input() icon: Observable<string>|undefined;
 
     @HostBinding('class.active')
     get active() {
