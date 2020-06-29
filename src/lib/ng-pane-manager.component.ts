@@ -27,6 +27,7 @@ import {
     TemplateRef,
     ViewChild,
 } from '@angular/core';
+import {Observable} from 'rxjs';
 
 import {DropTarget} from './drag-n-drop';
 import {LayoutNodeFactory, LeafNodeContext} from './layout-node-factory';
@@ -77,8 +78,11 @@ export class NgPaneManagerComponent {
         this.factory = new LayoutNodeFactory(this, cfr);
     }
 
-    registerPanelTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
-        this.factory.registerTemplate(name, template);
+    registerPanelTemplate(name: string,
+                          title: Observable<string>,
+                          icon: Observable<string>,
+                          template: TemplateRef<LeafNodeContext>) {
+        this.factory.registerTemplate(name, template, {$implicit: {title, icon}});
     }
 
     unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }

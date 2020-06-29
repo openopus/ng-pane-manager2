@@ -26,6 +26,7 @@ import {
     TemplateRef,
     ViewContainerRef,
 } from '@angular/core';
+import {BehaviorSubject, Observable} from 'rxjs';
 
 import {DropTarget, DropTargetType} from './drag-n-drop';
 import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
@@ -42,7 +43,7 @@ import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
 import {BranchChildId, BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
 export interface LeafNodeContext {
-    $implicit: {title: string};
+    $implicit: {title: Observable<string>; icon: Observable<string>};
 }
 
 interface ComponentInst<C> {
@@ -63,8 +64,10 @@ export class LayoutNodeFactory {
 
     // TODO: move the template dictionary into a global service
 
-    private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
-    private readonly templates: Map<string, TemplateRef<LeafNodeContext>>    = new Map();
+    private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>>            = new Map();
+    private readonly leafHeaders: Map<string, NgPaneHeaderComponent|NgPaneTabComponent> = new Map();
+    private readonly templates:
+        Map<string, [TemplateRef<LeafNodeContext>, LeafNodeContext]> = new Map();
     private dropTargets!: Map<ElementRef<Element>, DropTarget>;
 
     constructor(private readonly manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
@@ -162,8 +165,14 @@ export class LayoutNodeFactory {
 
         const inst = component.instance;
 
+        inst.title   = new BehaviorSubject('HEADER');
         inst.manager = this.manager;
         inst.childId = childId;
+
+        const child = childId !== undefined ? childId.branch.children[childId.index] : undefined;
+
+        if (child !== undefined && child.type === LayoutType.Leaf)
+            this.leafHeaders.set(child.id, inst);
 
         return inst.el;
     }
@@ -257,10 +266,15 @@ export class LayoutNodeFactory {
 
         const inst = component.instance;
 
+        inst.title   = new BehaviorSubject('TAB');
         inst.manager = this.manager;
         inst.childId = childId;
 
         this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: childId});
+
+        const child = childId.branch.children[childId.index];
+
+        if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, inst);
 
         return inst;
     }
@@ -274,18 +288,27 @@ export class LayoutNodeFactory {
 
     private updateLeavesWithTemplate(name: string) {
         const template = this.templates.get(name);
+        const title    = template === undefined ? undefined : template[1].$implicit.title;
 
         for (const leaf of this.leaves.values()) {
             const inst = leaf.component.instance;
 
-            if (inst.layout.template === name) inst.template = template;
+            if (inst.layout.template === name) {
+                inst.template = template;
+
+                const header = this.leafHeaders.get(inst.layout.id);
+
+                if (header !== undefined) header.title = title;
+            }
         }
     }
 
-    registerTemplate(name: string, template: TemplateRef<LeafNodeContext>) {
+    registerTemplate(name: string,
+                     template: TemplateRef<LeafNodeContext>,
+                     context: LeafNodeContext) {
         if (this.templates.has(name)) throw new Error(`pane template '${name}' already registered`);
 
-        this.templates.set(name, template);
+        this.templates.set(name, [template, context]);
 
         this.updateLeavesWithTemplate(name);
     }

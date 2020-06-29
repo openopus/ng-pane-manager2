@@ -56,5 +56,7 @@ export class NgPaneDirective implements AfterContentInit {
 
     // TODO: send title and icon in the registration info
     // TODO: add other properties (closable, alwaysTab, etc.)
-    ngAfterContentInit() { this.paneManager.registerPanelTemplate(this.name, this.templateRef); }
+    ngAfterContentInit() {
+        this.paneManager.registerPanelTemplate(this.name, this.title, this.icon, this.templateRef);
+    }
 }

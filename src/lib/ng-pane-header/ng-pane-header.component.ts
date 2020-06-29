@@ -18,14 +18,18 @@
  *
  ********************************************************************************************/
 
-import {Component, ElementRef} from '@angular/core';
+import {Component, ElementRef, Input} from '@angular/core';
+import {Observable} from 'rxjs';
+
 import {DraggablePaneComponent} from '../drag-n-drop';
 
 @Component({
     selector: 'lib-ng-pane-header',
-    template: 'title',
+    template: '{{title | async}}',
     styleUrls: ['./ng-pane-header.component.scss'],
 })
 export class NgPaneHeaderComponent extends DraggablePaneComponent {
+    @Input() title: Observable<string>|undefined;
+
     constructor(public el: ElementRef<HTMLElement>) { super(); }
 }

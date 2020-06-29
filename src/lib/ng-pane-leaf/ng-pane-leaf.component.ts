@@ -18,7 +18,13 @@
  *
  ******************************************************************************************/
 
-import {Component, ElementRef, Input, TemplateRef, ViewChild} from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    Input,
+    TemplateRef,
+    ViewChild,
+} from '@angular/core';
 
 import {LeafNodeContext} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
@@ -33,27 +39,24 @@ export class NgPaneLeafComponent {
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
-    private _template: TemplateRef<LeafNodeContext>|undefined;
+    private _template: [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined;
     @Input() layout!: LeafLayout;
 
     @Input()
-    set template(val: TemplateRef<LeafNodeContext>|undefined) {
+    set template(val: [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined) {
         if (this._template === val) return;
 
         this._template = val;
 
         this.renderer.viewContainer.clear();
 
-        // TODO: use the context to get data from the layout and/or the parent component
         if (this._template !== undefined)
-            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(this._template, {
-                $implicit: {
-                    title: 'TODO',
-                },
-            });
+            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(...this._template);
     }
 
-    get template(): TemplateRef<LeafNodeContext>|undefined { return this._template; }
+    get template(): [TemplateRef<LeafNodeContext>, LeafNodeContext]|undefined {
+        return this._template;
+    }
 
     constructor(public el: ElementRef<HTMLElement>) {}
 }

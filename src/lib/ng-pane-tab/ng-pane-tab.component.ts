@@ -18,15 +18,19 @@
  *
  *****************************************************************************************/
 
-import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
+import {Component, ElementRef, HostBinding, HostListener, Input} from '@angular/core';
+import {Observable} from 'rxjs';
+
 import {DraggablePaneComponent} from '../drag-n-drop';
 
 @Component({
     selector: 'lib-ng-pane-tab',
-    template: 'tab',
+    template: '{{title | async}}',
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
 export class NgPaneTabComponent extends DraggablePaneComponent {
+    @Input() title: Observable<string>|undefined;
+
     @HostBinding('class.active')
     get active() {
         return this.childId !== undefined &&
