@@ -32,3 +32,4 @@ Run `ng test angular-pane-manager` to execute the unit tests via [Karma](https:/
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
 
 [`ng-pane-manager`]: https://github.com/opuslogica/ng-pane-manager
+[`angular-pane-manager-example`]: https://github.com/rookie1024/angular-pane-manager-example
