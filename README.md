@@ -1,7 +1,10 @@
-# TODO
+# `angular-pane-manager`
 
-**This README needs to be filled out with information regarding how to set this project up for
-development.**
+This project is a spiritual successor to [`ng-pane-manager`], ported for use with modern Angular.
+
+An example of how to use this project can be found at the repository [`angular-pane-manager-example`].  In addition, the repository contains the encapsulating Angular project used for developing this library.  If you would like to contribute to `angular-pane-manager`, the easiest way to get started is by checking it out.
+
+# TODO
 
 # angular-pane-manager
 
@@ -27,3 +30,5 @@ Run `ng test angular-pane-manager` to execute the unit tests via [Karma](https:/
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+
+[`ng-pane-manager`]: https://github.com/opuslogica/ng-pane-manager
