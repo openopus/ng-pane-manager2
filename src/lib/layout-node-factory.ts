@@ -43,7 +43,7 @@ import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
 import {BranchChildId, BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
 export interface LeafNodeContext {
-    $implicit: {title: Observable<string>; icon: Observable<string>};
+    $implicit: {title: Observable<string>; icon: Observable<string|undefined>};
 }
 
 interface ComponentInst<C> {
@@ -127,12 +127,12 @@ export class LayoutNodeFactory {
             }
             else {
                 inst.title = new BehaviorSubject('???');
-                inst.icon  = new BehaviorSubject('');
+                inst.icon  = new BehaviorSubject(undefined);
             }
         }
         else {
             inst.title = new BehaviorSubject('HEADER');
-            inst.icon  = new BehaviorSubject('ICON');
+            inst.icon  = new BehaviorSubject(undefined);
         }
     }
 

@@ -19,15 +19,7 @@
  *******************************************************************************************/
 
 :host {
-    padding: 0 5px;
     white-space: nowrap;
     text-overflow: ellipsis;
-    opacity: 0.5;
     cursor: pointer;
-
-    &.active { opacity: 1; }
-}
-
-.lib-ng-pane-tab-icon {
-    height: 1em;
 }
