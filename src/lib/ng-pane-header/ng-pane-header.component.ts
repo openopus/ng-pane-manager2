@@ -18,7 +18,7 @@
  *
  ********************************************************************************************/
 
-import {Component, ElementRef, Input} from '@angular/core';
+import {Component, ElementRef, HostListener, Input} from '@angular/core';
 import {Observable} from 'rxjs';
 
 import {DraggablePaneComponent} from '../drag-n-drop';
@@ -37,4 +37,9 @@ export class NgPaneHeaderComponent extends DraggablePaneComponent {
     @Input() icon: Observable<string|undefined>|undefined;
 
     constructor(public el: ElementRef<HTMLElement>) { super(); }
+
+    @HostListener('mousedown', ['$event'])
+    protected onMouseDown(evt: MouseEvent) {
+        super.onMouseDown(evt);
+    }
 }

@@ -200,6 +200,7 @@ export class LayoutNodeFactory {
 
     // ONLY FOR USE INSIDE placeHeaderFor*, DO NOT USE ANYWHERE ELSE
     private placeHeader(container: ViewContainerRef,
+                        layout: PaneLayout,
                         childId: BranchChildId|undefined): ElementRef<HTMLElement> {
         const component = container.createComponent(this.headerFactory) as
                           ComponentRef<NgPaneHeaderComponent>;
@@ -209,21 +210,19 @@ export class LayoutNodeFactory {
         inst.manager = this.manager;
         inst.childId = childId;
 
-        const child = childId !== undefined ? childId.branch.children[childId.index] : undefined;
+        if (layout.type === LayoutType.Leaf) this.leafHeaders.set(layout.id, component);
 
-        if (child !== undefined) {
-            if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, component);
-
-            this.updatePaneHeader(inst, child, undefined);
-        }
+        this.updatePaneHeader(inst, layout, undefined);
 
         return inst.el;
     }
 
+    // TODO: there's several instances of layout+childId as parameters.  This
+    //       seems redundant, can this be fixed?
     private placeHeaderForLayout(container: ViewContainerRef,
                                  layout: PaneLayout,
                                  childId: BranchChildId|undefined) {
-        const el = this.placeHeader(container, childId);
+        const el = this.placeHeader(container, layout, childId);
 
         this.dropTargets.set(el, {type: DropTargetType.Header, layout});
     }
@@ -298,8 +297,7 @@ export class LayoutNodeFactory {
         inst.childId = childId;
         inst.layout  = layout;
 
-        if (childId !== undefined)
-            this.dropTargets.set(inst.el, {type: DropTargetType.Header, layout});
+        this.dropTargets.set(inst.el, {type: DropTargetType.Header, layout});
     }
 
     placeTab(container: ViewContainerRef,

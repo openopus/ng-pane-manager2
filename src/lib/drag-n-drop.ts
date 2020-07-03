@@ -18,7 +18,7 @@
  *
  *******************************************************************************/
 
-import {ComponentRef, HostListener, Input} from '@angular/core';
+import {ComponentRef, Input} from '@angular/core';
 
 import {beginMouseDrag, DragCancelFn} from './begin-drag';
 import {
@@ -402,13 +402,13 @@ export abstract class DraggablePaneComponent {
     @Input() manager!: NgPaneManagerComponent;
     @Input() childId: BranchChildId|undefined;
 
-    @HostListener('mousedown', ['$event'])
     protected onMouseDown(evt: MouseEvent) {
         if (this.childId === undefined) return;
 
         if (evt.buttons === 1) {
             PaneDragContext.mouseDown(evt, this.manager, this.childId);
 
+            evt.preventDefault();
             evt.stopPropagation();
         }
 
