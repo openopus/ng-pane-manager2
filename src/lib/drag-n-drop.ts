@@ -299,10 +299,19 @@ export class PaneDragContext {
 
                 break;
             case DropTargetType.Tab:
-                this.dropLayout      = dropTarget.id.branch;
-                this.dropOrientation = DropOrientation.Tabbed;
-                // TODO: this is slightly incorrect
-                this.dropTabIndex = dropTarget.id.index;
+                if (dropTarget.id.branch.type === LayoutType.Tabbed) {
+                    this.dropLayout      = dropTarget.id.branch;
+                    this.dropOrientation = DropOrientation.Tabbed;
+                    // TODO: this is slightly incorrect
+                    this.dropTabIndex = dropTarget.id.index;
+                }
+                else {
+                    const child = dropTarget.id.branch.children[dropTarget.id.index];
+
+                    this.dropLayout      = child;
+                    this.dropOrientation = DropOrientation.Tabbed;
+                    this.dropTabIndex    = 0;
+                }
                 break;
             }
         }
@@ -369,7 +378,7 @@ export class PaneDragContext {
             else {
                 if (this.floatingLayout.type === LayoutType.Tabbed) {
                     const {layout} = BranchLayout.tabbed([this.dropLayout], 0)
-                                         .spliceChildren(1,
+                                         .spliceChildren(this.dropTabIndex,
                                                          0,
                                                          this.floatingLayout.children,
                                                          undefined,
@@ -377,8 +386,13 @@ export class PaneDragContext {
 
                     replace = layout;
                 }
-                else
-                    replace = BranchLayout.tabbed([this.dropLayout, this.floatingLayout], 1);
+                else {
+                    replace = BranchLayout.tabbed([this.dropLayout], 0)
+                                  .withChild(this.floatingLayout,
+                                             this.dropTabIndex,
+                                             undefined,
+                                             true);
+                }
             }
 
             break;

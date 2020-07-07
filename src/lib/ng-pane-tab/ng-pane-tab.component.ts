@@ -19,34 +19,38 @@
  *****************************************************************************************/
 
 import {Component, ElementRef, HostBinding, HostListener, Input} from '@angular/core';
-import {Observable} from 'rxjs';
 
 import {DraggablePaneComponent} from '../drag-n-drop';
+import {PaneProperties} from '../layout-node-factory';
+import {LayoutType} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-tab',
     template: `
-    <ng-container *ngIf="icon | async as icon">
-        <img class="lib-ng-pane-tab-icon" [src]="icon">
-    </ng-container>
-    <span class="lib-ng-pane-tab-title">{{title | async}}</span>`,
+    <ng-container *ngIf="paneProps as props">
+        <ng-container *ngIf="props.icon | async as icon">
+            <img class="lib-ng-pane-tab-icon" [src]="icon">
+        </ng-container>
+        <span class="lib-ng-pane-tab-title">{{props.title | async}}</span>
+    </ng-container>`,
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
 export class NgPaneTabComponent extends DraggablePaneComponent {
-    @Input() title: Observable<string>|undefined;
-    @Input() icon: Observable<string|undefined>|undefined;
+    @Input() paneProps: PaneProperties|undefined;
 
     @HostBinding('class.active')
     get active() {
         return this.childId !== undefined &&
-               this.childId.branch.currentTabIndex === this.childId.index;
+               (this.childId.branch.type !== LayoutType.Tabbed ||
+                this.childId.branch.currentTabIndex === this.childId.index);
     }
 
     constructor(public el: ElementRef<HTMLElement>) { super(); }
 
     @HostListener('mousedown', ['$event'])
     protected onMouseDown(evt: MouseEvent) {
-        if (evt.buttons === 1 && this.childId !== undefined)
+        if (evt.buttons === 1 && this.childId !== undefined &&
+            this.childId.branch.type === LayoutType.Tabbed)
             this.childId.branch.currentTabIndex = this.childId.index;
 
         super.onMouseDown(evt);

@@ -19,31 +19,24 @@
  *************************************************************************************/
 
 import {AfterContentInit, Directive, Input, TemplateRef, ViewContainerRef} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
 
-import {LeafNodeContext} from './layout-node-factory';
+import {LeafNodeContext, PaneProperties} from './layout-node-factory';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 
 @Directive({selector: '[ngPane]'})
 export class NgPaneDirective implements AfterContentInit {
-    private name!: string;
-    private title!: Observable<string>;
-    private icon!: Observable<string>;
+    private template !: string;
+    private props!: PaneProperties;
     private paneManager!: NgPaneManagerComponent;
 
     @Input()
-    set ngPaneNamed(name: string) {
-        this.name = name;
+    set ngPaneTemplate(template: string) {
+        this.template = template;
     }
 
     @Input()
-    set ngPaneWithTitle(title: string|Observable<string>) {
-        this.title = typeof title === 'string' ? new BehaviorSubject(title) : title;
-    }
-
-    @Input()
-    set ngPaneWithIcon(icon: string|Observable<string>) {
-        this.icon = typeof icon === 'string' ? new BehaviorSubject(icon) : icon;
+    set ngPaneWithProps(props: PaneProperties) {
+        this.props = props;
     }
 
     @Input()
@@ -54,9 +47,7 @@ export class NgPaneDirective implements AfterContentInit {
     constructor(private readonly templateRef: TemplateRef<LeafNodeContext>,
                 viewContainer: ViewContainerRef) {}
 
-    // TODO: send title and icon in the registration info
-    // TODO: add other properties (closable, alwaysTab, etc.)
     ngAfterContentInit() {
-        this.paneManager.registerPanelTemplate(this.name, this.title, this.icon, this.templateRef);
+        this.paneManager.registerPanelTemplate(this.template, this.props, this.templateRef);
     }
 }

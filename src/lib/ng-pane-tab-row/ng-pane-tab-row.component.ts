@@ -18,12 +18,12 @@
  *
  *********************************************************************************************/
 
-import {Component, ElementRef, Input, ViewChild, ViewRef} from '@angular/core';
+import {Component, ElementRef, HostListener, Input, ViewChild, ViewRef} from '@angular/core';
 
 import {DraggablePaneComponent} from '../drag-n-drop';
 import {LayoutNodeFactory} from '../layout-node-factory';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {BranchLayout, LayoutType} from '../pane-layout';
+import {LayoutType, PaneLayout} from '../pane-layout';
 
 @Component({
     selector: 'lib-ng-pane-tab-row',
@@ -34,11 +34,11 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
-    private _layout: BranchLayout&{type: LayoutType.Tabbed}|undefined;
+    private _layout: PaneLayout|undefined;
     @Input() factory!: LayoutNodeFactory;
 
     @Input()
-    set layout(val: BranchLayout&{type: LayoutType.Tabbed}|undefined) {
+    set layout(val: PaneLayout|undefined) {
         if (this._layout === val) return;
 
         this._layout = val;
@@ -53,15 +53,29 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
         if (this._layout !== undefined) {
             const layout = this._layout;
 
-            layout.children.forEach((child, index) => {
-                this.factory.placeTab(this.renderer.viewContainer, {branch: layout, index});
-            });
+            switch (layout.type) {
+            case LayoutType.Leaf:
+            case LayoutType.Horiz:
+            case LayoutType.Vert:
+                if (this.childId !== undefined)
+                    this.factory.placeTab(this.renderer.viewContainer, this.childId);
+                break;
+            case LayoutType.Tabbed:
+                for (let index = 0; index < layout.children.length; ++index)
+                    this.factory.placeTab(this.renderer.viewContainer, {branch: layout, index});
+                break;
+            }
         }
 
         oldViews.forEach(e => e.destroy());
     }
 
-    get layout(): BranchLayout&{type: LayoutType.Tabbed}|undefined { return this._layout; }
+    get layout(): PaneLayout|undefined { return this._layout; }
 
     constructor(public el: ElementRef<HTMLElement>) { super(); }
+
+    @HostListener('mousedown', ['$event'])
+    protected onMouseDown(evt: MouseEvent) {
+        super.onMouseDown(evt);
+    }
 }

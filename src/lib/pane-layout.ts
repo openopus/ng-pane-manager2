@@ -363,7 +363,7 @@ export class BranchLayout extends LayoutBase {
 
 export class LeafLayout extends LayoutBase {
     readonly type: LayoutType.Leaf = LayoutType.Leaf;
-    // TODO: each pane should have control of title, icon, closeable, and alwaysTab
+    // TODO?: possibly add overrides for template pane properties
 
     constructor(readonly id: string,
                 readonly template: string,

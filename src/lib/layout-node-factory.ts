@@ -42,8 +42,47 @@ import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component
 import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
 import {BranchChildId, BranchLayout, LayoutType, LeafLayout, PaneLayout} from './pane-layout';
 
+// TODO: add the ability to prevent tabifying panes (e.g. headerless toolbars)
+// TODO: add constraints/disable resizing?
+export const enum PaneHeaderMode {
+    Hidden,
+    Visible,
+    AlwaysTab,
+}
+
+export type StringHeaderMode = 'hidden'|'visible'|'alwaysTab';
+
+// TODO: make closable actually do something
+export interface PaneProperties {
+    headerMode: PaneHeaderMode;
+    title: Observable<string>;
+    icon: Observable<string|undefined>;
+    closable: boolean;
+}
+
+export function paneProps(headerMode: StringHeaderMode|PaneHeaderMode,
+                          title: string|Observable<string>,
+                          icon: string|Observable<string|undefined>|undefined,
+                          closable: boolean): PaneProperties {
+    if (typeof headerMode === 'string') {
+        switch (headerMode) {
+        case 'hidden': headerMode = PaneHeaderMode.Hidden; break;
+        case 'visible': headerMode = PaneHeaderMode.Visible; break;
+        case 'alwaysTab': headerMode = PaneHeaderMode.AlwaysTab; break;
+        }
+    }
+
+    return {
+        headerMode,
+        title: typeof                      title === 'string' ? new BehaviorSubject(title) : title,
+        icon: icon === undefined || typeof icon === 'string' ? new BehaviorSubject(icon) : icon,
+        closable,
+    };
+}
+
+// TODO: add support for passing parameters into the templates from the layout
 export interface LeafNodeContext {
-    $implicit: {title: Observable<string>; icon: Observable<string|undefined>};
+    $implicit: PaneProperties;
 }
 
 interface ComponentInst<C> {
@@ -112,28 +151,33 @@ export class LayoutNodeFactory {
         }
     }
 
-    // leafTemplate is provided to save a little time if we already have the
-    // relevant template handy.
-    private updatePaneHeader(inst: NgPaneHeaderComponent|NgPaneTabComponent,
-                             layout: PaneLayout,
-                             leafTemplate: LeafTemplate|undefined) {
+    private panePropsForLayout(layout: PaneLayout): PaneProperties {
         if (layout.type === LayoutType.Leaf) {
-            // Fetch the leaf template if one wasn't already given
-            if (leafTemplate === undefined) leafTemplate = this.templates.get(layout.template);
+            const template = this.templates.get(layout.template);
 
-            if (leafTemplate !== undefined) {
-                inst.title = leafTemplate[1].$implicit.title;
-                inst.icon  = leafTemplate[1].$implicit.icon;
+            if (template === undefined) {
+                return {
+                    headerMode: PaneHeaderMode.Visible,
+                    title: new BehaviorSubject('???'),
+                    icon: new BehaviorSubject(undefined),
+                    closable: true,
+                };
             }
-            else {
-                inst.title = new BehaviorSubject('???');
-                inst.icon  = new BehaviorSubject(undefined);
-            }
+
+            return template[1].$implicit;
         }
-        else {
-            inst.title = new BehaviorSubject('HEADER');
-            inst.icon  = new BehaviorSubject(undefined);
-        }
+
+        // TODO: calculate pane properties for branches
+        return {
+            headerMode: PaneHeaderMode.Visible,
+            title: new BehaviorSubject('BRANCH'),
+            icon: new BehaviorSubject(undefined),
+            closable: false,
+        };
+    }
+
+    private updatePaneHeader(inst: NgPaneHeaderComponent|NgPaneTabComponent, layout: PaneLayout) {
+        inst.paneProps = this.panePropsForLayout(layout);
     }
 
     // ONLY FOR USE INSIDE placeComponentForLayout, DO NOT USE ANYWHERE ELSE
@@ -212,7 +256,7 @@ export class LayoutNodeFactory {
 
         if (layout.type === LayoutType.Leaf) this.leafHeaders.set(layout.id, component);
 
-        this.updatePaneHeader(inst, layout, undefined);
+        this.updatePaneHeader(inst, layout);
 
         return inst.el;
     }
@@ -222,9 +266,16 @@ export class LayoutNodeFactory {
     private placeHeaderForLayout(container: ViewContainerRef,
                                  layout: PaneLayout,
                                  childId: BranchChildId|undefined) {
-        const el = this.placeHeader(container, layout, childId);
+        const props = this.panePropsForLayout(layout);
 
-        this.dropTargets.set(el, {type: DropTargetType.Header, layout});
+        switch (props.headerMode) {
+        case PaneHeaderMode.Hidden: break;
+        case PaneHeaderMode.Visible:
+            const el = this.placeHeader(container, layout, childId);
+            this.dropTargets.set(el, {type: DropTargetType.Header, layout});
+            break;
+        case PaneHeaderMode.AlwaysTab: this.placeTabRow(container, layout, childId); break;
+        }
     }
 
     private placeSlot(container: ViewContainerRef,
@@ -284,9 +335,7 @@ export class LayoutNodeFactory {
         inst.layout   = layout;
     }
 
-    placeTabRow(container: ViewContainerRef,
-                layout: BranchLayout&{type: LayoutType.Tabbed},
-                childId: BranchChildId|undefined) {
+    placeTabRow(container: ViewContainerRef, layout: PaneLayout, childId: BranchChildId|undefined) {
         const component = container.createComponent(this.tabRowFactory) as
                           ComponentRef<NgPaneTabRowComponent>;
 
@@ -300,8 +349,7 @@ export class LayoutNodeFactory {
         this.dropTargets.set(inst.el, {type: DropTargetType.Header, layout});
     }
 
-    placeTab(container: ViewContainerRef,
-             childId: BranchChildId&{branch: {type: LayoutType.Tabbed}}) {
+    placeTab(container: ViewContainerRef, childId: BranchChildId) {
         const component = container.createComponent(this.tabFactory) as
                           ComponentRef<NgPaneTabComponent>;
 
@@ -316,7 +364,7 @@ export class LayoutNodeFactory {
 
         if (child.type === LayoutType.Leaf) this.leafHeaders.set(child.id, component);
 
-        this.updatePaneHeader(inst, child, undefined);
+        this.updatePaneHeader(inst, child);
 
         return inst;
     }
@@ -328,6 +376,7 @@ export class LayoutNodeFactory {
         return component;
     }
 
+    // TODO: re-render headers if the header display type changed
     private updateLeavesWithTemplate(name: string) {
         const template = this.templates.get(name);
 
@@ -339,8 +388,7 @@ export class LayoutNodeFactory {
 
                 const header = this.leafHeaders.get(inst.layout.id);
 
-                if (header !== undefined)
-                    this.updatePaneHeader(header.instance, inst.layout, template);
+                if (header !== undefined) this.updatePaneHeader(header.instance, inst.layout);
             }
         }
     }

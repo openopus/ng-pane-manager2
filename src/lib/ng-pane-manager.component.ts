@@ -27,10 +27,9 @@ import {
     TemplateRef,
     ViewChild,
 } from '@angular/core';
-import {Observable} from 'rxjs';
 
 import {DropTarget} from './drag-n-drop';
-import {LayoutNodeFactory, LeafNodeContext} from './layout-node-factory';
+import {LayoutNodeFactory, LeafNodeContext, PaneProperties} from './layout-node-factory';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
 import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
 import {PaneLayout} from './pane-layout';
@@ -79,10 +78,9 @@ export class NgPaneManagerComponent {
     }
 
     registerPanelTemplate(name: string,
-                          title: Observable<string>,
-                          icon: Observable<string>,
+                          paneProps: PaneProperties,
                           template: TemplateRef<LeafNodeContext>) {
-        this.factory.registerTemplate(name, template, {$implicit: {title, icon}});
+        this.factory.registerTemplate(name, template, {$implicit: paneProps});
     }
 
     unregisterPanelTemplate(name: string) { this.factory.unregisterTemplate(name); }
