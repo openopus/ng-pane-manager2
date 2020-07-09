@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NgPaneLeafComponent } from './ng-pane-leaf.component';
+import { NgPaneManagerComponent } from './ng-pane-manager.component';
 
-describe('NgPaneLeafComponent', () => {
-  let component: NgPaneLeafComponent;
-  let fixture: ComponentFixture<NgPaneLeafComponent>;
+describe('NgPaneManagerComponent', () => {
+  let component: NgPaneManagerComponent;
+  let fixture: ComponentFixture<NgPaneManagerComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ NgPaneLeafComponent ]
+      declarations: [ NgPaneManagerComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(NgPaneLeafComponent);
+    fixture = TestBed.createComponent(NgPaneManagerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -21,48 +21,31 @@
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 
-import {NgPaneBranchThumbComponent} from './ng-pane-branch-thumb/ng-pane-branch-thumb.component';
-import {NgPaneBranchComponent} from './ng-pane-branch/ng-pane-branch.component';
-import {
-    NgPaneDropHighlightComponent,
-} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
-import {NgPaneIconDirective} from './ng-pane-icon.directive';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
-import {NgPaneManagerComponent} from './ng-pane-manager.component';
+import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
 import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
-import {NgPaneSlotComponent} from './ng-pane-slot/ng-pane-slot.component';
+import {NgPaneSplitComponent} from './ng-pane-split/ng-pane-split.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
 import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
-import {NgPaneDirective} from './ng-pane.directive';
+import {NgPaneTitleComponent} from './ng-pane-title/ng-pane-title.component';
+import {NgPaneComponent} from './ng-pane/ng-pane.component';
 
 @NgModule({
     declarations: [
-        NgPaneManagerComponent,
-        NgPaneDirective,
+        NgPaneComponent,
+        NgPaneHeaderComponent,
         NgPaneLeafComponent,
-        NgPaneBranchComponent,
-        NgPaneRendererDirective,
-        NgPaneSlotComponent,
-        NgPaneBranchThumbComponent,
+        NgPaneManagerComponent,
+        NgPaneSplitComponent,
         NgPaneTabComponent,
         NgPaneTabRowComponent,
-        NgPaneHeaderComponent,
-        NgPaneDropHighlightComponent,
-        NgPaneIconDirective,
+        NgPaneTitleComponent,
+        NgPaneRendererDirective,
     ],
     imports: [BrowserModule],
-    exports: [NgPaneManagerComponent, NgPaneDirective],
-    entryComponents: [
-        NgPaneLeafComponent,
-        NgPaneBranchComponent,
-        NgPaneHeaderComponent,
-        NgPaneSlotComponent,
-        NgPaneBranchThumbComponent,
-        NgPaneTabRowComponent,
-        NgPaneTabComponent,
-        NgPaneDropHighlightComponent,
-    ],
+    exports: [NgPaneManagerComponent],
+    entryComponents: [],
 })
 export class AngularPaneManagerModule {
 }
