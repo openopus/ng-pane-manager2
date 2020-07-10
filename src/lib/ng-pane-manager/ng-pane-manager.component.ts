@@ -1,9 +1,17 @@
-import {Component, ComponentFactoryResolver, ComponentRef, Input, ViewChild} from '@angular/core';
+import {
+    Component,
+    ComponentFactoryResolver,
+    ComponentRef,
+    Input,
+    TemplateRef,
+    ViewChild,
+} from '@angular/core';
 
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {PaneFactory} from '../pane-factory';
 import {LayoutType, RootLayout} from '../pane-layout/module';
+import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
 
 @Component({
     selector: 'ng-pane-manager',
@@ -57,4 +65,12 @@ export class NgPaneManagerComponent {
     }
 
     constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(cfr); }
+
+    registerLeafTemplate(name: string,
+                         header: PaneHeaderStyle,
+                         template: TemplateRef<LeafNodeContext>) {
+        this.factory.registerLeafTemplate(name, header, template);
+    }
+
+    unregisterLeafTemplate(name: string) { this.factory.unregisterLeafTemplate(name); }
 }
