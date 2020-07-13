@@ -1,6 +1,6 @@
-/*************************************************************************************************
+/**************************************************************************************************
  *
- * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-split.component.spec.ts)
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-tabbed.component.spec.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * angular-pane-manager is free software: you can redistribute it and/or modify
@@ -16,22 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
  *
- ************************************************************************************************/
+ *************************************************************************************************/
 
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {NgPaneSplitComponent} from './ng-pane-split.component';
+import {NgPaneTabbedComponent} from './ng-pane-tabbed.component';
 
-describe('NgPaneSplitComponent', () => {
-    let component: NgPaneSplitComponent;
-    let fixture: ComponentFixture<NgPaneSplitComponent>;
+describe('NgPaneTabbedComponent', () => {
+    let component: NgPaneTabbedComponent;
+    let fixture: ComponentFixture<NgPaneTabbedComponent>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneSplitComponent]}).compileComponents();
+        TestBed.configureTestingModule({declarations: [NgPaneTabbedComponent]}).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneSplitComponent);
+        fixture   = TestBed.createComponent(NgPaneTabbedComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

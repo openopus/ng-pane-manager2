@@ -1,3 +1,23 @@
+/**********************************************************************************
+ *
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (branch-layout.ts)
+ * Copyright (C) 2019 Opus Logica
+ *
+ * angular-pane-manager is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * angular-pane-manager is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *********************************************************************************/
+
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
 import {LayoutBase} from './layout-base';
@@ -65,6 +85,7 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
     private _ratioSum: number;
 
     get ratios(): readonly number[] { return this._ratios; }
+    get ratioSum(): number { return this._ratioSum; }
 
     get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
 
@@ -135,6 +156,9 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
 
         this._ratios[firstIdx] += clampedAmount;
         this._ratios[secondIdx] -= clampedAmount;
+
+        this._resizeEvents.next({index: firstIdx, ratio: this._ratios[firstIdx]});
+        this._resizeEvents.next({index: secondIdx, ratio: this._ratios[secondIdx]});
     }
 
     spliceChildren(start: number|undefined,
@@ -331,7 +355,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
 
             // Branches with no children will skip this block, leaving newChild
             // to be undefined.
-            if (child.type === LayoutType.Leaf || child.children.length === 0) {
+            if (child.type === LayoutType.Leaf || child.children.length !== 0) {
                 const simplified = child.simplifyDeep();
 
                 if (simplified !== undefined && simplified.type === LayoutType.Root)

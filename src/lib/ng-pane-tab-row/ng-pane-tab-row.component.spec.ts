@@ -1,25 +1,40 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+/***************************************************************************************************
+ *
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-tab-row.component.spec.ts)
+ * Copyright (C) 2019 Opus Logica
+ *
+ * angular-pane-manager is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * angular-pane-manager is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ **************************************************************************************************/
 
-import { NgPaneTabRowComponent } from './ng-pane-tab-row.component';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+
+import {NgPaneTabRowComponent} from './ng-pane-tab-row.component';
 
 describe('NgPaneTabRowComponent', () => {
-  let component: NgPaneTabRowComponent;
-  let fixture: ComponentFixture<NgPaneTabRowComponent>;
+    let component: NgPaneTabRowComponent;
+    let fixture: ComponentFixture<NgPaneTabRowComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ NgPaneTabRowComponent ]
-    })
-    .compileComponents();
-  }));
+    beforeEach(async(() => {
+        TestBed.configureTestingModule({declarations: [NgPaneTabRowComponent]}).compileComponents();
+    }));
 
-  beforeEach(() => {
-    fixture = TestBed.createComponent(NgPaneTabRowComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+    beforeEach(() => {
+        fixture   = TestBed.createComponent(NgPaneTabRowComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+    it('should create', () => { expect(component).toBeTruthy(); });
 });

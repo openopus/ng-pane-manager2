@@ -22,5 +22,8 @@
  * Public API Surface of angular-pane-manager
  */
 
+export * from './lib/ng-pane-manager/ng-pane-manager.component';
 export * from './lib/pane-layout/module';
 export * from './lib/angular-pane-manager.module';
+export * from './lib/ng-pane-template.directive';
+export * from './lib/pane-template';

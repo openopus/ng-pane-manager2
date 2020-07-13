@@ -1,6 +1,6 @@
-/********************************************************************************************
+/*********************************************************************************************
  *
- * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-split.component.ts)
+ * angular-pane-manager - a port of ng-pane-manager to Angular 2+ (ng-pane-tabbed.component.ts)
  * Copyright (C) 2019 Opus Logica
  *
  * angular-pane-manager is free software: you can redistribute it and/or modify
@@ -16,39 +16,35 @@
  * You should have received a copy of the GNU General Public License
  * along with angular-pane-manager.  If not, see <https://www.gnu.org/licenses/>.
  *
- *******************************************************************************************/
+ ********************************************************************************************/
 
-import {Component, ElementRef, HostBinding, ViewChild} from '@angular/core';
+import {Component, ViewChild} from '@angular/core';
 import {Observable, Subscription} from 'rxjs';
 
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
-import {ResizeEvent} from '../pane-layout/module';
 
 @Component({
-    selector: 'lib-ng-pane-split',
+    selector: 'lib-ng-pane-tabbed',
     template: '<ng-container libNgPaneRenderer></ng-container>',
-    styleUrls: ['./ng-pane-split.component.scss'],
+    styleUrls: ['./ng-pane-tabbed.component.scss'],
 })
-export class NgPaneSplitComponent {
+export class NgPaneTabbedComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
 
     private subscription: Subscription|undefined;
+    private current: number|undefined;
     children: NgPaneComponent[] = [];
 
-    @HostBinding('class.lib-ng-pane-vert') vert = false;
-
-    set resizeEvents(val: Observable<ResizeEvent>) {
+    set $currentTab(val: Observable<number>) {
         if (this.subscription !== undefined) this.subscription.unsubscribe();
 
-        this.subscription = val.subscribe(
-            ({index, ratio}) => { this.children[index].ratio = ratio; });
-    }
+        this.subscription = val.subscribe(tab => {
+            if (this.current !== undefined) this.children[this.current].hidden = true;
 
-    @HostBinding('class.lib-ng-pane-horiz')
-    get horiz() {
-        return !this.vert;
-    }
+            this.current = tab;
 
-    constructor(readonly el: ElementRef<HTMLElement>) {}
+            this.children[tab].hidden = false;
+        });
+    }
 }
