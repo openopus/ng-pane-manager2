@@ -22,11 +22,13 @@ import {
     Component,
     ComponentFactoryResolver,
     ComponentRef,
+    ElementRef,
     Input,
     TemplateRef,
     ViewChild,
 } from '@angular/core';
 
+import {DropTarget} from '../drag-and-drop';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {PaneFactory} from '../pane-factory';
@@ -41,50 +43,50 @@ import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
 export class NgPaneManagerComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
 
-    private _layout: RootLayout|undefined;
+    private _layout: RootLayout                                = new RootLayout(undefined);
+    private _dropTargets: Map<ElementRef<Element>, DropTarget> = new Map();
     private pane: ComponentRef<NgPaneComponent>|undefined;
-    readonly factory: PaneFactory;
+    private readonly factory: PaneFactory;
 
     @Input()
-    get layout(): RootLayout|undefined {
+    get layout(): RootLayout {
         return this._layout;
     }
 
-    set layout(val: RootLayout|undefined) {
+    set layout(val: RootLayout) {
         if (val === this._layout) return;
 
-        if (val !== undefined) {
-            if (val.type !== LayoutType.Root)
-                throw new Error('invalid layout type for pane manager - must be a root layout');
+        if (val.type !== LayoutType.Root)
+            throw new Error('invalid layout type for pane manager - must be a root layout');
 
-            const simplified = val.simplifyDeep();
+        const simplified = val.simplifyDeep();
 
-            if (simplified !== undefined) {
-                if (simplified.type !== LayoutType.Root)
-                    throw new Error('invalid simplification - root layout collapsed into child');
+        if (simplified !== undefined) {
+            if (simplified.type !== LayoutType.Root)
+                throw new Error('invalid simplification - root layout collapsed into child');
 
-                val = simplified;
-            }
+            val = simplified;
         }
 
         this._layout = val;
 
         const oldPane = this.pane;
 
-        // TODO: notify layout change start
+        this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
 
         try {
-            this.pane = val !== undefined
-                            ? this.factory.placePane(this.renderer.viewContainer, val.childId())
-                            : undefined;
+            this.pane = this.factory.placePane(this.renderer.viewContainer, val.childId());
         }
         finally {
-            // TODO: notify layout change end
+            this.factory.notifyLayoutChangeEnd();
+
             if (oldPane !== undefined) oldPane.destroy();
         }
     }
 
-    constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(cfr); }
+    get dropTargets(): Readonly<Map<ElementRef<Element>, DropTarget>> { return this._dropTargets; }
+
+    constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(this, cfr); }
 
     registerLeafTemplate(name: string,
                          header: PaneHeaderStyle,
@@ -93,4 +95,12 @@ export class NgPaneManagerComponent {
     }
 
     unregisterLeafTemplate(name: string) { this.factory.unregisterLeafTemplate(name); }
+
+    collectNativeDropTargets(): Map<Element, DropTarget> {
+        const ret = new Map();
+
+        for (const [key, val] of this._dropTargets) ret.set(key.nativeElement, val);
+
+        return ret;
+    }
 }

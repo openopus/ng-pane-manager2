@@ -46,13 +46,16 @@ export interface ChildLayoutId {
     index: number;
 }
 
-export interface ChildWithId {
-    child: ChildLayout;
-    id: ChildLayoutId;
+export class ChildWithId<T extends ChildLayout = ChildLayout> {
+    static fromId(id: ChildLayoutId): ChildWithId { return new ChildWithId(childFromId(id), id); }
+
+    private constructor(readonly child: T, readonly id: ChildLayoutId) {}
 }
 
 export function childFromId({stem, index}: ChildLayoutId): ChildLayout {
     if (stem.type === LayoutType.Root) {
+        if (stem.layout === undefined) throw new Error('root layout is empty');
+
         if (index !== 0) throw new Error(`invalid root child index ${index} - must be 0`);
 
         return stem.layout;
@@ -61,19 +64,29 @@ export function childFromId({stem, index}: ChildLayoutId): ChildLayout {
     return stem.children[index];
 }
 
-export function childWithId(id: ChildLayoutId): ChildWithId { return {child: childFromId(id), id}; }
-
 export class RootLayout extends LayoutBase {
     readonly type: LayoutType.Root = LayoutType.Root;
 
-    constructor(readonly layout: ChildLayout) { super(undefined, undefined); }
+    constructor(readonly layout: ChildLayout|undefined) { super(undefined, undefined); }
 
     childId(): ChildLayoutId { return {stem: this, index: 0}; }
+
+    intoRoot(): RootLayout { return this; }
+
+    withoutChild(index: number|undefined): {layout: RootLayout; removed: ChildLayout} {
+        if (this.layout === undefined) throw new Error('cannot remove child of empty root layout');
+
+        if (index !== undefined && index !== 0)
+            throw new Error(`invalid root child index ${index} - must be 0`);
+
+        return {layout: new RootLayout(undefined), removed: this.layout};
+    }
 
     transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
         if (this === find) return replace;
 
-        const newLayout = this.layout.transposeDeep(find, replace);
+        const newLayout = this.layout !== undefined ? this.layout.transposeDeep(find, replace)
+                                                    : undefined;
 
         if (newLayout === undefined) return undefined;
 
@@ -84,7 +97,7 @@ export class RootLayout extends LayoutBase {
     }
 
     simplifyDeep(): PaneLayout|undefined {
-        const newLayout = this.layout.simplifyDeep();
+        const newLayout = this.layout !== undefined ? this.layout.simplifyDeep() : undefined;
 
         if (newLayout === undefined) return undefined;
 

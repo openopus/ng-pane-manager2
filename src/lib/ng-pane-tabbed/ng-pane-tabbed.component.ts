@@ -18,7 +18,7 @@
  *
  ********************************************************************************************/
 
-import {Component, ViewChild} from '@angular/core';
+import {Component, ElementRef, ViewChild} from '@angular/core';
 import {Observable, Subscription} from 'rxjs';
 
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
@@ -47,4 +47,6 @@ export class NgPaneTabbedComponent {
             this.children[tab].hidden = false;
         });
     }
+
+    constructor(readonly el: ElementRef<HTMLElement>) {}
 }

@@ -18,7 +18,7 @@
  *
  ******************************************************************************************/
 
-import {Component, ViewChild} from '@angular/core';
+import {Component, ElementRef, ViewChild} from '@angular/core';
 
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
@@ -50,4 +50,6 @@ export class NgPaneLeafComponent {
         if (val !== undefined)
             this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(...val);
     }
+
+    constructor(readonly el: ElementRef<HTMLElement>) {}
 }

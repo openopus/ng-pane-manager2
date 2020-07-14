@@ -18,9 +18,9 @@
  *
  ********************************************************************************************/
 
-import {Component, HostListener} from '@angular/core';
+import {Component, ElementRef} from '@angular/core';
 
-import {ChildLayoutId} from '../pane-layout/module';
+import {DraggablePaneComponent} from '../drag-and-drop';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
 @Component({
@@ -34,14 +34,8 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
     </ng-container>`,
     styleUrls: ['./ng-pane-header.component.scss'],
 })
-export class NgPaneHeaderComponent {
-    childId!: ChildLayoutId;
+export class NgPaneHeaderComponent extends DraggablePaneComponent {
     style!: PaneHeaderStyle&{headerMode: PaneHeaderMode.Visible};
 
-    @HostListener('mousedown', ['$event'])
-    protected onMouseDown(evt: MouseEvent) {
-        if (evt.buttons !== 1) return;
-
-        // TODO: dragon drop
-    }
+    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
 }

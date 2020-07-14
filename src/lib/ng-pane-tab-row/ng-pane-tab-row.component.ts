@@ -18,12 +18,12 @@
  *
  *********************************************************************************************/
 
-import {Component, HostListener, ViewChild} from '@angular/core';
+import {Component, ElementRef, ViewChild} from '@angular/core';
 import {Observable, Subscription} from 'rxjs';
 
+import {DraggablePaneComponent} from '../drag-and-drop';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneTabComponent} from '../ng-pane-tab/ng-pane-tab.component';
-import {ChildLayoutId} from '../pane-layout/module';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
 interface SimpleExtra {
@@ -43,11 +43,10 @@ interface TabbedExtra {
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tab-row.component.scss'],
 })
-export class NgPaneTabRowComponent {
+export class NgPaneTabRowComponent extends DraggablePaneComponent {
     @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
 
     private extra!: SimpleExtra|TabbedExtra|undefined;
-    childId!: ChildLayoutId;
 
     get style(): PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab} {
         if (this.extra === undefined) throw new Error('tab row in invalid state');
@@ -97,6 +96,8 @@ export class NgPaneTabRowComponent {
         });
     }
 
+    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
+
     private setupTabbedExtra(): TabbedExtra|undefined {
         if (this.extra === undefined) {
             this.extra = {
@@ -110,12 +111,5 @@ export class NgPaneTabRowComponent {
         }
 
         return this.extra.tab !== undefined ? undefined : this.extra;
-    }
-
-    @HostListener('mousedown', ['$event'])
-    protected onMouseDown(evt: MouseEvent) {
-        if (evt.buttons !== 1) return;
-
-        // TODO: dragon drop
     }
 }

@@ -28,8 +28,10 @@ import {
 } from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
+import {DropTarget, DropTargetType} from './drag-and-drop';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
+import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
 import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb/ng-pane-split-thumb.component';
 import {NgPaneSplitComponent} from './ng-pane-split/ng-pane-split.component';
 import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
@@ -41,7 +43,6 @@ import {
     ChildLayout,
     ChildLayoutId,
     ChildWithId,
-    childWithId,
     LayoutType,
     LeafLayout,
     SplitLayout,
@@ -94,7 +95,6 @@ function headerTypeForMode(mode: PaneHeaderMode) {
 export interface ComponentInst<C> {
     component: ComponentRef<C>;
     container: ViewContainerRef;
-    index: number;
 }
 
 // TODO: try to recycle as many components as possible, rather than just leaves
@@ -113,8 +113,9 @@ export class PaneFactory {
     private readonly templates: Map<string, LeafTemplateInfo>                = new Map();
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
     private readonly panes: Map<ChildLayout, ComponentRef<NgPaneComponent>>  = new Map();
+    private dropTargets!: Map<ElementRef<Element>, DropTarget>;
 
-    constructor(cfr: ComponentFactoryResolver) {
+    constructor(private readonly manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
         this.headerFactory     = cfr.resolveComponentFactory(NgPaneHeaderComponent);
         this.leafFactory       = cfr.resolveComponentFactory(NgPaneLeafComponent);
         this.paneFactory       = cfr.resolveComponentFactory(NgPaneComponent);
@@ -170,36 +171,43 @@ export class PaneFactory {
         }
     }
 
-    private placeLeaf(container: ViewContainerRef, layout: LeafLayout, pane: NgPaneComponent) {
-        const leaf = this.leaves.get(layout.id);
+    private placeLeaf(container: ViewContainerRef,
+                      withId: ChildWithId<LeafLayout>,
+                      pane: NgPaneComponent) {
+        const {child: layout, id} = withId;
+        const leaf                = this.leaves.get(layout.id);
 
-        let component: ComponentRef<NgPaneLeafComponent>;
+        let component: ComponentRef<NgPaneLeafComponent>|undefined;
 
         if (leaf !== undefined) {
-            const view     = leaf.container.detach(leaf.index);
-            const newIndex = container.length;
+            if (!leaf.component.hostView.destroyed) {
+                const view = leaf.container.detach(leaf.container.indexOf(leaf.component.hostView));
 
-            if (view !== null) container.insert(view);
+                if (view !== null) {
+                    container.insert(view);
 
-            leaf.container = container;
-            leaf.index     = newIndex;
-
-            // TODO: if view === null, then is inst.component valid?
-            component = leaf.component;
+                    component = leaf.component;
+                }
+                else {
+                    console.warn(`failed to detach view for leaf '${layout.id}'`);
+                }
+            }
+            else {
+                console.warn(`leaf '${layout.id}' destroyed during layout change`);
+            }
         }
-        else {
-            const index = container.length;
 
-            component = container.createComponent(this.leafFactory);
+        if (component === undefined) component = container.createComponent(this.leafFactory);
 
-            this.leaves.set(layout.id, {component, container, index});
-        }
+        this.leaves.set(layout.id, {component, container});
 
         const inst = component.instance;
 
         inst.pane     = pane;
         inst.layout   = layout;
         inst.template = this.renderLeafTemplate(layout.template);
+
+        this.dropTargets.set(inst.el, {type: DropTargetType.Leaf, id});
 
         return component;
     }
@@ -212,13 +220,15 @@ export class PaneFactory {
 
         inst.splitEl = splitEl;
         inst.childId = childId;
+        inst.vert    = childId.stem.type === LayoutType.Vert;
 
         return component;
     }
 
-    private placeSplit(container: ViewContainerRef, layout: SplitLayout) {
-        const component = container.createComponent(this.splitFactory);
-        const inst      = component.instance;
+    private placeSplit(container: ViewContainerRef, withId: ChildWithId<SplitLayout>) {
+        const {child: layout, id} = withId;
+        const component           = container.createComponent(this.splitFactory);
+        const inst                = component.instance;
 
         inst.vert = layout.type === LayoutType.Vert;
 
@@ -237,12 +247,15 @@ export class PaneFactory {
 
         inst.resizeEvents = layout.resizeEvents;
 
+        this.dropTargets.set(inst.el, {type: DropTargetType.Split, id});
+
         return component;
     }
 
-    private placeTabbed(container: ViewContainerRef, layout: TabbedLayout) {
-        const component = container.createComponent(this.tabbedFactory);
-        const inst      = component.instance;
+    private placeTabbed(container: ViewContainerRef, withId: ChildWithId<TabbedLayout>) {
+        const {child: layout, id} = withId;
+        const component           = container.createComponent(this.tabbedFactory);
+        const inst                = component.instance;
 
         for (let i = 0; i < layout.children.length; ++i) {
             const pane = this.placePane(inst.renderer.viewContainer, layout.childId(i), true);
@@ -254,44 +267,50 @@ export class PaneFactory {
 
         inst.$currentTab = layout.$currentTab;
 
+        this.dropTargets.set(inst.el, {type: DropTargetType.Tabbed, id});
+
         return component;
     }
 
     private placeHeader(container: ViewContainerRef,
-                        child: ChildWithId,
+                        withId: ChildWithId,
                         style: PaneHeaderStyle&{headerMode: PaneHeaderMode.Visible}) {
-        const index     = 0;
-        const component = container.createComponent(this.headerFactory, index);
+        const component = container.createComponent(this.headerFactory, 0);
         const inst      = component.instance;
 
-        inst.childId = child.id;
+        inst.manager = this.manager;
+        inst.childId = withId.id;
         inst.style   = style;
 
-        return {component, container, index};
+        this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
+
+        return {component, container};
     }
 
     // NOTE: does not set inst.style, which is assumed to be defined. inst.style
     //       must be set by the caller.
-    private placeTab(container: ViewContainerRef, child: ChildWithId) {
-        const index     = container.length;
-        const component = container.createComponent(this.tabFactory, index);
+    private placeTab(container: ViewContainerRef, withId: ChildWithId) {
+        const component = container.createComponent(this.tabFactory);
         const inst      = component.instance;
 
-        inst.childId = child.id;
+        inst.manager = this.manager;
+        inst.childId = withId.id;
 
-        return {component, container, index};
+        this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: withId.id});
+
+        return {component, container};
     }
 
     private placeTabRow(container: ViewContainerRef,
-                        child: ChildWithId,
+                        withId: ChildWithId,
                         style: PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab}) {
-        const index     = 0;
-        const component = container.createComponent(this.tabRowFactory, index);
+        const component = container.createComponent(this.tabRowFactory, 0);
         const inst      = component.instance;
 
-        inst.childId = child.id;
+        inst.manager = this.manager;
+        inst.childId = withId.id;
 
-        const layout = child.child;
+        const layout = withId.child;
 
         if (layout.type === LayoutType.Tabbed) {
             layout.children.forEach((subchild, childIndex) => {
@@ -312,7 +331,7 @@ export class PaneFactory {
             inst.$currentTab = layout.$currentTab;
         }
         else {
-            const tab = this.placeTab(component.instance.renderer.viewContainer, child);
+            const tab = this.placeTab(component.instance.renderer.viewContainer, withId);
             inst.tab  = tab.component.instance as NgPaneTabComponent &
                        {style: {headerMode: PaneHeaderMode.AlwaysTab}};
             inst.style = style;
@@ -320,13 +339,15 @@ export class PaneFactory {
             tab.component.instance.active = true;
         }
 
-        return {component, container, index};
+        this.dropTargets.set(inst.el, {type: DropTargetType.TabRow, id: withId.id});
+
+        return {component, container};
     }
 
     private updatePaneHeader(pane: NgPaneComponent) {
         if (pane.header.type === PaneHeaderType.Skip) return;
 
-        const withId = childWithId(pane.childId);
+        const withId = ChildWithId.fromId(pane.childId);
         const style  = this.headerStyleForLayout(withId.child);
 
         const newType = pane.header.type === PaneHeaderType.Tab
@@ -335,12 +356,9 @@ export class PaneFactory {
 
         if (pane.header.type !== newType) {
             if (pane.header.type !== PaneHeaderType.None) {
-                const {component, container, index} = pane.header.header;
+                const {component, container} = pane.header.header;
 
-                const view = container.detach(index);
-
-                if (view !== null) view.destroy();
-                component.destroy();
+                container.remove(container.indexOf(component.hostView));
             }
 
             switch (newType) {
@@ -397,6 +415,28 @@ export class PaneFactory {
         if (this.templates.delete(name)) this.updateLeavesWithTemplate(name);
     }
 
+    notifyLayoutChangeStart(dropTargets: Map<ElementRef<HTMLElement>, DropTarget>) {
+        this.dropTargets = dropTargets;
+
+        this.panes.clear();
+    }
+
+    notifyLayoutChangeEnd() {
+        {
+            const remove = [];
+
+            // TODO: pretty sure this isn't actually doing anything.
+            for (const [key, val] of this.leaves.entries()) {
+                if (val.component.hostView.destroyed) {
+                    val.component.destroy();
+                    remove.push(key);
+                }
+            }
+
+            remove.forEach(k => this.leaves.delete(k));
+        }
+    }
+
     placePane(container: ViewContainerRef, childId: ChildLayoutId, skipHeader?: boolean):
         ComponentRef<NgPaneComponent> {
         const component = container.createComponent(this.paneFactory);
@@ -413,14 +453,14 @@ export class PaneFactory {
 
         switch (child.type) {
         case LayoutType.Leaf:
-            inst.content = this.placeLeaf(inst.renderer.viewContainer, child, inst);
+            inst.content = this.placeLeaf(inst.renderer.viewContainer, {child, id: childId}, inst);
             break;
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            inst.content = this.placeSplit(inst.renderer.viewContainer, child);
+            inst.content = this.placeSplit(inst.renderer.viewContainer, {child, id: childId});
             break;
         case LayoutType.Tabbed:
-            inst.content = this.placeTabbed(inst.renderer.viewContainer, child);
+            inst.content = this.placeTabbed(inst.renderer.viewContainer, {child, id: childId});
             break;
         }
 

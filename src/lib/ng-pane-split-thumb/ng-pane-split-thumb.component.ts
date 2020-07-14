@@ -18,7 +18,7 @@
  *
  *************************************************************************************************/
 
-import {Component, ElementRef, HostListener} from '@angular/core';
+import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
 
 import {beginMouseDrag} from '../begin-drag';
 import {ChildLayoutId, LayoutType, StemLayout} from '../pane-layout/module';
@@ -38,6 +38,13 @@ export class NgPaneSplitThumbComponent {
     childId!: ChildLayoutId&{stem: StemLayout};
 
     constructor(private readonly el: ElementRef<HTMLElement>) {}
+
+    @HostBinding('class.lib-ng-pane-vert') vert = false;
+
+    @HostBinding('class.lib-ng-pane-horiz')
+    get horiz() {
+        return !this.vert;
+    }
 
     private makeDragState(clientX: number, clientY: number): DragState {
         const state: DragState = {

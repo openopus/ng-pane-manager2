@@ -18,9 +18,10 @@
  *
  *****************************************************************************************/
 
-import {Component, HostBinding, HostListener} from '@angular/core';
+import {Component, ElementRef, HostBinding} from '@angular/core';
 
-import {ChildLayoutId, LayoutType} from '../pane-layout/module';
+import {DraggablePaneComponent} from '../drag-and-drop';
+import {LayoutType} from '../pane-layout/module';
 import {PaneHeaderStyle} from '../pane-template';
 
 @Component({
@@ -34,19 +35,17 @@ import {PaneHeaderStyle} from '../pane-template';
     </ng-container>`,
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
-export class NgPaneTabComponent {
-    childId!: ChildLayoutId;
+export class NgPaneTabComponent extends DraggablePaneComponent {
     style!: PaneHeaderStyle;
 
     @HostBinding('class.lib-ng-pane-tab-active') active = false;
 
-    @HostListener('mousedown', ['$event'])
+    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
+
     protected onMouseDown(evt: MouseEvent) {
-        if (evt.buttons !== 1) return;
+        super.onMouseDown(evt);
 
-        if (this.childId.stem.type === LayoutType.Tabbed)
+        if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed)
             this.childId.stem.currentTab = this.childId.index;
-
-        // TODO: dragon drop
     }
 }

@@ -20,4 +20,12 @@
 
 :host {
     flex: 0 0 8px;
+
+    &.lib-ng-pane-horiz {
+        cursor: ew-resize;
+    }
+
+    &.lib-ng-pane-vert {
+        cursor: ns-resize;
+    }
 }

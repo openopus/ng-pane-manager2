@@ -101,7 +101,10 @@ function saveGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefine
 
 export function saveLayout(layout: PaneLayout): LayoutTemplate {
     switch (layout.type) {
-    case LayoutType.Root: return saveLayout(layout.layout);
+    case LayoutType.Root:
+        if (layout.layout === undefined) throw new Error('root layout is empty');
+
+        return saveLayout(layout.layout);
     case LayoutType.Leaf:
         return {
             id: layout.id,
