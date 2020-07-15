@@ -24,23 +24,33 @@ import {Observable, Subscription} from 'rxjs';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 
+/**
+ * A tabbed branch pane, keeping only one of its children visible at once.
+ */
 @Component({
     selector: 'lib-ng-pane-tabbed',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tabbed.component.scss'],
 })
 export class NgPaneTabbedComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
-
+    /** Subscription for current tab events */
     private subscription: Subscription|undefined;
+    /** The pane currently rendered as visible */
     private current: number|undefined;
-    children: NgPaneComponent[] = [];
 
-    set $currentTab(val: Observable<number>) {
-        if (this.subscription !== undefined) this.subscription.unsubscribe();
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    public readonly renderer!: NgPaneRendererDirective;
+
+    /** The child panes rendered into this one */
+    public children: NgPaneComponent[] = [];
+
+    /** Binds an event handler to the given stream of current tab events */
+    public set $currentTab(val: Observable<number>) {
+        if (this.subscription !== undefined) { this.subscription.unsubscribe(); }
 
         this.subscription = val.subscribe(tab => {
-            if (this.current !== undefined) this.children[this.current].hidden = true;
+            if (this.current !== undefined) { this.children[this.current].hidden = true; }
 
             this.current = tab;
 
@@ -48,5 +58,9 @@ export class NgPaneTabbedComponent {
         });
     }
 
-    constructor(readonly el: ElementRef<HTMLElement>) {}
+    /**
+     * Construct a new tabbed pane.
+     * @param el injected for use in computing drag-and-drop hit targets
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) {}
 }

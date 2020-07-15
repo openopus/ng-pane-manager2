@@ -23,6 +23,9 @@ import {Component, ElementRef} from '@angular/core';
 import {DraggablePaneComponent} from '../drag-and-drop';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
+/**
+ * A non-tabbed pane header.
+ */
 @Component({
     selector: 'lib-ng-pane-header',
     template: `
@@ -35,7 +38,12 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
     styleUrls: ['./ng-pane-header.component.scss'],
 })
 export class NgPaneHeaderComponent extends DraggablePaneComponent {
-    style!: PaneHeaderStyle&{headerMode: PaneHeaderMode.Visible};
+    /** The header style information for this header */
+    public style!: PaneHeaderStyle<PaneHeaderMode.Visible>;
 
-    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
+    /**
+     * Construct a new pane header.
+     * @param el injected for use in computing drag-and-drop hit targets
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
 }

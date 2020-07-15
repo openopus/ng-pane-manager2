@@ -27,18 +27,29 @@ import {NgPaneTabbedComponent} from '../ng-pane-tabbed/ng-pane-tabbed.component'
 import {PaneHeader, PaneHeaderType} from '../pane-factory';
 import {ChildLayoutId} from '../pane-layout/module';
 
+/**
+ * The outer container for a pane, containing the pane contents and a header.
+ */
 @Component({
     selector: 'lib-ng-pane',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane.component.scss'],
 })
 export class NgPaneComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) renderer!: NgPaneRendererDirective;
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    public readonly renderer!: NgPaneRendererDirective;
 
-    @HostBinding('style.flex-grow') ratio: number|undefined;
-    @HostBinding('class.lib-ng-pane-hidden') hidden = false;
+    /** The ratio to use if this is a child of a split branch */
+    @HostBinding('style.flex-grow') public ratio: number|undefined;
+    /** The pane visibility if this is a child of a tabbed branch */
+    @HostBinding('class.lib-ng-pane-hidden') public hidden: boolean = false;
 
-    childId!: ChildLayoutId;
-    header: PaneHeader = {type: PaneHeaderType.None};
-    content: ComponentRef<NgPaneSplitComponent|NgPaneLeafComponent|NgPaneTabbedComponent>|undefined;
+    /** The ID of the pane associated with this component */
+    public childId!: ChildLayoutId;
+    /** The header for this pane */
+    public header: PaneHeader = {type: PaneHeaderType.None};
+    /** The content of this pane */
+    public content: ComponentRef<NgPaneSplitComponent|NgPaneLeafComponent|NgPaneTabbedComponent>|
+        undefined;
 }

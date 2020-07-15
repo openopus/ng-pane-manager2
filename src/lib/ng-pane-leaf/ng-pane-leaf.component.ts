@@ -25,31 +25,47 @@ import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {LeafLayout} from '../pane-layout/module';
 import {LeafNodeContext, LeafNodeTemplate} from '../pane-template';
 
+/**
+ * A leaf pane node, containing only a rendered template.
+ */
 @Component({
     selector: 'lib-ng-pane-leaf',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-leaf.component.scss'],
 })
 export class NgPaneLeafComponent {
+    /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
+    /** See `template`. */
     private _template: LeafNodeTemplate|undefined;
-    pane!: NgPaneComponent;
-    layout!: LeafLayout;
+    /**
+     * The pane containing this leaf node.\
+     * Used by `PaneFactory`.
+     */
+    public pane!: NgPaneComponent;
+    /** The layout node corresponding to this pane */
+    public layout!: LeafLayout;
 
-    get template(): LeafNodeTemplate|undefined { return this._template; }
+    /** The leaf pane template to render */
+    public get template(): LeafNodeTemplate|undefined { return this._template; }
 
-    set template(val: LeafNodeTemplate|undefined) {
-        if (val === this._template) return;
+    public set template(val: LeafNodeTemplate|undefined) {
+        if (val === this._template) { return; }
 
         this._template = val;
 
         this.renderer.viewContainer.clear();
 
-        if (val !== undefined)
+        if (val !== undefined) {
             this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(...val);
+        }
     }
 
-    constructor(readonly el: ElementRef<HTMLElement>) {}
+    /**
+     * Construct a new leaf pane.
+     * @param el injected for use in computing drag-and-drop hit targets
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) {}
 }

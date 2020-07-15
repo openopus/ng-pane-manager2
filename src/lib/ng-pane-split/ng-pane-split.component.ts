@@ -25,30 +25,46 @@ import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {ResizeEvent} from '../pane-layout/module';
 
+/**
+ * A split branch pane, stacking its elements either horizontally or vertically.
+ */
 @Component({
     selector: 'lib-ng-pane-split',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-split.component.scss'],
 })
 export class NgPaneSplitComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
-
+    /** Subscription for child resize events */
     private subscription: Subscription|undefined;
-    children: NgPaneComponent[] = [];
 
-    @HostBinding('class.lib-ng-pane-vert') vert = false;
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    public readonly renderer!: NgPaneRendererDirective;
 
-    set resizeEvents(val: Observable<ResizeEvent>) {
-        if (this.subscription !== undefined) this.subscription.unsubscribe();
+    /** The child panes rendered into this one */
+    public children: NgPaneComponent[] = [];
+
+    /** Indicates this pane renders as a vertical split */
+    @HostBinding('class.lib-ng-pane-vert') public vert: boolean = false;
+
+    /** Indicates this pane renders as a horizontal split */
+    @HostBinding('class.lib-ng-pane-horiz')
+    public get horiz(): boolean {
+        return !this.vert;
+    }
+
+    /** Binds an event handler to the given stream of child resize events */
+    public set resizeEvents(val: Observable<ResizeEvent>) {
+        if (this.subscription !== undefined) { this.subscription.unsubscribe(); }
 
         this.subscription = val.subscribe(
             ({index, ratio}) => { this.children[index].ratio = ratio; });
     }
 
-    @HostBinding('class.lib-ng-pane-horiz')
-    get horiz() {
-        return !this.vert;
-    }
-
-    constructor(readonly el: ElementRef<HTMLElement>) {}
+    /**
+     * Construct a new split pane.
+     * @param el injected for use in computing drag-and-drop hit targets and
+     *           child resizing
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) {}
 }

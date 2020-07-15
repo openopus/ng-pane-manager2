@@ -1,5 +1,5 @@
 {
-  "extends": "../../tslint.json",
+  "extends": "tslint:recommended",
   "rules": {
     "array-type": [
       true,
@@ -9,16 +9,49 @@
     "arrow-return-shorthand": true,
     "await-promise": true,
     "ban-comma-operator": true,
-    "completed-docs": false,
-    "curly": false,
+    "binary-expression-operand-order": true,
+    "callable-types": true,
+    "class-name": true,
+    "comment-format": true,
+    "completed-docs": [
+      true,
+      "classes",
+      "constructors",
+      "enums",
+      "functions",
+      "interfaces",
+      "methods",
+      "properties",
+      "types",
+      {
+        "enum-members": {
+          "visibilities": [
+            "exported"
+          ]
+        },
+        "variables": {
+          "visibilities": [
+            "exported"
+          ]
+        }
+      }
+    ],
+    "curly": true,
     "deprecation": {
       "severity": "warning"
     },
     "encoding": true,
     "eofline": true,
+    "file-name-casing": [
+      true,
+      "kebab-case"
+    ],
+    "function-constructor": true,
+    "increment-decrement": true,
     "interface-name": false,
     "interface-over-type-literal": true,
     "invalid-void": true,
+    "label-position": true,
     "max-classes-per-file": false,
     "max-line-length": [
       true,
@@ -29,17 +62,45 @@
     ],
     "member-access": [
       true,
-      "no-public"
+      "check-accessor",
+      "check-constructor",
+      "check-parameter-property"
     ],
     "member-ordering": [
       true,
-      "fields-first"
+      {
+        "order": [
+          "private-static-field",
+          "protected-static-field",
+          "public-static-field",
+          "private-instance-field",
+          "protected-instance-field",
+          "public-instance-field",
+          "private-static-accessor",
+          "protected-static-accessor",
+          "public-static-accessor",
+          "private-instance-accessor",
+          "protected-instance-accessor",
+          "public-instance-accessor",
+          "private-static-method",
+          "protected-static-method",
+          "public-static-method",
+          "private-constructor",
+          "protected-constructor",
+          "public-constructor",
+          "private-instance-method",
+          "protected-instance-method",
+          "public-instance-method"
+        ]
+      }
     ],
     "new-parens": true,
     "newline-before-return": true,
     "no-angle-bracket-type-assertion": true,
+    "no-arg": true,
     "no-async-without-await": true,
     "no-boolean-literal-compare": true,
+    "no-conditional-assignment": true,
     "no-consecutive-blank-lines": false,
     "no-console": [
       true,
@@ -51,22 +112,35 @@
       "trace"
     ],
     "no-debugger": true,
+    "no-duplicate-imports": true,
     "no-duplicate-super": true,
     "no-duplicate-switch-case": true,
     "no-duplicate-variable": true,
+    "no-dynamic-delete": true,
     "no-empty": false,
+    "no-empty-interface": true,
     "no-eval": true,
+    "no-floating-promises": true,
     "no-for-in": true,
+    "no-import-side-effect": true,
+    "no-implicit-dependencies": true,
     "no-inferrable-types": [
       true,
-      "ignore-params"
+      "ignore-params",
+      "ignore-properties"
     ],
+    "no-internal-module": true,
     "no-invalid-template-strings": true,
     "no-invalid-this": true,
+    "no-irregular-whitespace": true,
+    "no-magic-numbers": true,
+    "no-mergeable-namespace": true,
     "no-misused-new": true,
     "no-non-null-assertion": true,
     "no-null-keyword": true,
     "no-null-undefined-union": true,
+    "no-object-literal-type-assertion": true,
+    "no-parameter-reassignment": true,
     "no-promise-as-boolean": true,
     "no-redundant-jsdoc": true,
     "no-return-await": true,
@@ -80,16 +154,30 @@
     "no-trailing-whitespace": true,
     "no-unbound-method": true,
     "no-unnecessary-callback-wrapper": true,
+    "no-unnecessary-class": [
+      true,
+      "allow-empty-class"
+    ],
     "no-unnecessary-initializer": true,
+    "no-unnecessary-qualifier": true,
     "no-unnecessary-type-assertion": true,
+    "no-unsafe-finally": true,
+    "no-unused-expression": true,
     "no-var-keyword": true,
-    "no-var-requires": false,
+    "no-var-requires": true,
+    "number-literal-format": true,
     "object-literal-key-quotes": [
       true,
       "as-needed"
     ],
+    "object-literal-shorthand": true,
     "object-literal-sort-keys": false,
     "one-line": false,
+    "one-variable-per-declaration": true,
+    "only-arrow-functions": [
+      true,
+      "allow-named-functions"
+    ],
     "ordered-imports": true,
     "prefer-conditional-expression": true,
     "prefer-const": true,
@@ -109,6 +197,12 @@
     "semicolon": true,
     "static-this": true,
     "strict-boolean-expressions": true,
+    "strict-comparisons": [
+      true,
+      {
+        "allow-object-equal-comparison": true
+      }
+    ],
     "strict-string-expressions": true,
     "strict-type-predicates": true,
     "switch-final-break": [
@@ -126,6 +220,14 @@
     ],
     "triple-equals": true,
     "type-literal-delimiter": true,
+    "typedef": [
+      true,
+      "call-signature",
+      "member-variable-declaration",
+      "parameter",
+      "property-declaration"
+    ],
+    "unified-signatures": true,
     "unnecessary-bind": true,
     "unnecessary-constructor": true,
     "unnecessary-else": true,
@@ -138,12 +240,10 @@
       "check-format",
       "require-const-for-all-caps"
     ],
-
     "import-blacklist": [
       true,
       "rxjs/Rx"
     ],
-
     "component-class-suffix": true,
     "component-selector": [
       true,

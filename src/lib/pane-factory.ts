@@ -50,41 +50,72 @@ import {
 } from './pane-layout/module';
 import {LeafNodeContext, LeafNodeTemplate, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
 
+/**
+ * A leaf template and any extra information associated with it.
+ */
 interface LeafTemplateInfo {
+    /** The content of the leaf template */
     template: TemplateRef<LeafNodeContext>;
+    /** The default header information for the leaf template */
     header: PaneHeaderStyle;
 }
 
-// Used to identify different values of NgPaneComponent.header
+/**
+ * Used to identify different values of `NgPaneComponent.header`
+ */
 export const enum PaneHeaderType {
+    /** No header is currently rendered */
     None,
+    /** No header is currently rendered, nor should ever be rendered */
     Skip,
+    /** A simple header is currently rendered */
     Header,
+    /** A (real or mock) tab row is currently rendered */
     TabRow,
+    /**
+     * A tab from another tab row is associated with this pane\
+     * **NOTE:** This indicates no additional header should be rendered.
+     */
     Tab,
 }
 
 // NOTE: using {type: PaneHeaderType.None|PaneHeaderType.Skip} breaks the
 //       refinement type system.
+/**
+ * The header attached to a pane component.
+ * See `PaneHeaderType` for additional information.
+ */
 export type PaneHeader = {
+    /** The pane is headerless */
     type: PaneHeaderType.None;
 }|{
+    /** The pane should not attempt to render a header */
     type: PaneHeaderType.Skip;
 }
 |{
+    /** The pane has a simple header */
     type: PaneHeaderType.Header;
+    /** The header of the pane */
     header: ComponentInst<NgPaneHeaderComponent>;
 }
 |{
+    /** The pane has a (real or mock) tab row header */
     type: PaneHeaderType.TabRow;
+    /** The tab row of the pane */
     header: ComponentInst<NgPaneTabRowComponent>;
 }
 |{
+    /** The pane is associated with a tab from another pane */
     type: PaneHeaderType.Tab;
+    /** The tab associated with this pane */
     header: ComponentInst<NgPaneTabComponent>;
 };
 
-function headerTypeForMode(mode: PaneHeaderMode) {
+/**
+ * Converts `PaneHeaderMode` values to a corresponding `PaneHeaderType`.
+ * @param mode a pane header mode
+ */
+function headerTypeForMode(mode: PaneHeaderMode): PaneHeaderType {
     switch (mode) {
     case PaneHeaderMode.Hidden: return PaneHeaderType.None;
     case PaneHeaderMode.Visible: return PaneHeaderType.Header;
@@ -92,30 +123,60 @@ function headerTypeForMode(mode: PaneHeaderMode) {
     }
 }
 
+/**
+ * A component and the container it resides in.
+ */
 export interface ComponentInst<C> {
+    /** The component */
     component: ComponentRef<C>;
+    /** The container holding it */
     container: ViewContainerRef;
 }
 
 // TODO: try to recycle as many components as possible, rather than just leaves
 // TODO: add close buttons to the headers and tabs
+/**
+ * Business logic for constructing and tracking components used to render the
+ * layout of a pane manager.
+ */
 export class PaneFactory {
+    /** Factory for pane headers */
     private readonly headerFactory: ComponentFactory<NgPaneHeaderComponent>;
+    /** Factory for leaf panes */
     private readonly leafFactory: ComponentFactory<NgPaneLeafComponent>;
+    /** Factory for pane containers */
     private readonly paneFactory: ComponentFactory<NgPaneComponent>;
+    /** Factory for split branch panes */
     private readonly splitFactory: ComponentFactory<NgPaneSplitComponent>;
+    /** Factory for split branch thumbs */
     private readonly splitThumbFactory: ComponentFactory<NgPaneSplitThumbComponent>;
+    /** Factory for pane tabs */
     private readonly tabFactory: ComponentFactory<NgPaneTabComponent>;
+    /** Factory for pane tab rows */
     private readonly tabRowFactory: ComponentFactory<NgPaneTabRowComponent>;
+    /** Factory for tabbed branch panes */
     private readonly tabbedFactory: ComponentFactory<NgPaneTabbedComponent>;
 
     // TODO: clean out old data from these maps on layout changes
-    private readonly templates: Map<string, LeafTemplateInfo>                = new Map();
+    /** Registered leaf templates, stored by name */
+    private readonly templates: Map<string, LeafTemplateInfo> = new Map();
+    /** All currently rendered leaves, stored by leaf pane id (_not_ template) */
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
-    private readonly panes: Map<ChildLayout, ComponentRef<NgPaneComponent>>  = new Map();
+    /**
+     * All currently rendered panes, stored by their associated layout node.
+     * **NOTE:** Object map keys are _only_ comparable by reference!
+     */
+    private readonly panes: Map<ChildLayout, ComponentRef<NgPaneComponent>> = new Map();
+    /** All hit testing information for the currently rendered components */
     private dropTargets!: Map<ElementRef<Element>, DropTarget>;
 
-    constructor(private readonly manager: NgPaneManagerComponent, cfr: ComponentFactoryResolver) {
+    /**
+     * Construct a new pane factory.
+     * @param manager the pane manager this renderer was created for
+     * @param cfr needed to resolve inner component factories
+     */
+    public constructor(private readonly manager: NgPaneManagerComponent,
+                       cfr: ComponentFactoryResolver) {
         this.headerFactory     = cfr.resolveComponentFactory(NgPaneHeaderComponent);
         this.leafFactory       = cfr.resolveComponentFactory(NgPaneLeafComponent);
         this.paneFactory       = cfr.resolveComponentFactory(NgPaneComponent);
@@ -126,17 +187,27 @@ export class PaneFactory {
         this.tabbedFactory     = cfr.resolveComponentFactory(NgPaneTabbedComponent);
     }
 
+    // TODO: allow passing in extra data from layout nodes
+    /**
+     * Collect all the necessary information to render the contents of a leaf
+     * pane.
+     * @param name the name of the template to produce
+     */
     private renderLeafTemplate(name: string): LeafNodeTemplate|undefined {
         const info = this.templates.get(name);
 
-        if (info === undefined) return undefined;
+        if (info === undefined) { return undefined; }
 
         const {template, header} = info;
 
         return [template, {header}];
     }
 
-    private headerStyleForLayout(layout: ChildLayout) {
+    /**
+     * Compute header information for a given layout.
+     * @param layout the layout the header is intended for
+     */
+    private headerStyleForLayout(layout: ChildLayout): PaneHeaderStyle {
         // TODO: correctly calculate branch header style
         switch (layout.type) {
         case LayoutType.Leaf:
@@ -171,9 +242,15 @@ export class PaneFactory {
         }
     }
 
+    /**
+     * Render a leaf pane.
+     * @param container the container to render the leaf in
+     * @param withId the layout node corresponding to the leaf
+     * @param pane the pane container containing the leaf
+     */
     private placeLeaf(container: ViewContainerRef,
                       withId: ChildWithId<LeafLayout>,
-                      pane: NgPaneComponent) {
+                      pane: NgPaneComponent): ComponentRef<NgPaneLeafComponent> {
         const {child: layout, id} = withId;
         const leaf                = this.leaves.get(layout.id);
 
@@ -197,7 +274,7 @@ export class PaneFactory {
             }
         }
 
-        if (component === undefined) component = container.createComponent(this.leafFactory);
+        if (component === undefined) { component = container.createComponent(this.leafFactory); }
 
         this.leaves.set(layout.id, {component, container});
 
@@ -212,9 +289,16 @@ export class PaneFactory {
         return component;
     }
 
+    /**
+     * Render a split branch thumb.
+     * @param container the container to render the thumb in
+     * @param splitEl the element associated with the parent split branch node
+     * @param childId the layout node ID corresponding to the neighboring child
+     */
     private placeSplitThumb(container: ViewContainerRef,
                             splitEl: ElementRef<HTMLElement>,
-                            childId: ChildLayoutId&{stem: SplitLayout}) {
+                            childId: ChildLayoutId<SplitLayout>):
+        ComponentRef<NgPaneSplitThumbComponent> {
         const component = container.createComponent(this.splitThumbFactory);
         const inst      = component.instance;
 
@@ -225,18 +309,25 @@ export class PaneFactory {
         return component;
     }
 
-    private placeSplit(container: ViewContainerRef, withId: ChildWithId<SplitLayout>) {
+    /**
+     * Render a split branch pane.
+     * @param container the container to render the split branch in
+     * @param withId the layout node corresponding to the split branch
+     */
+    private placeSplit(container: ViewContainerRef,
+                       withId: ChildWithId<SplitLayout>): ComponentRef<NgPaneSplitComponent> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.splitFactory);
         const inst                = component.instance;
 
         inst.vert = layout.type === LayoutType.Vert;
 
-        for (let i = 0; i < layout.children.length; ++i) {
-            if (i !== 0)
+        for (let i = 0; i < layout.children.length; i += 1) {
+            if (i !== 0) {
                 this.placeSplitThumb(inst.renderer.viewContainer,
                                      inst.el,
                                      {stem: layout, index: i - 1});
+            }
 
             const pane = this.placePane(inst.renderer.viewContainer, layout.childId(i));
 
@@ -252,12 +343,18 @@ export class PaneFactory {
         return component;
     }
 
-    private placeTabbed(container: ViewContainerRef, withId: ChildWithId<TabbedLayout>) {
+    /**
+     * Render a tabbed branch pane.
+     * @param container the container to render the tabbed branch in
+     * @param withId the layout node associated with the tabbed branch
+     */
+    private placeTabbed(container: ViewContainerRef,
+                        withId: ChildWithId<TabbedLayout>): ComponentRef<NgPaneTabbedComponent> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.tabbedFactory);
         const inst                = component.instance;
 
-        for (let i = 0; i < layout.children.length; ++i) {
+        for (let i = 0; i < layout.children.length; i += 1) {
             const pane = this.placePane(inst.renderer.viewContainer, layout.childId(i), true);
 
             pane.instance.hidden = true;
@@ -272,9 +369,17 @@ export class PaneFactory {
         return component;
     }
 
-    private placeHeader(container: ViewContainerRef,
-                        withId: ChildWithId,
-                        style: PaneHeaderStyle&{headerMode: PaneHeaderMode.Visible}) {
+    /**
+     * Render a pane header.
+     * @param container the container to render the header in
+     * @param withId the layout node corresponding to the header
+     * @param style the style information for the header
+     */
+    private placeHeader(
+        container: ViewContainerRef,
+        withId: ChildWithId,
+        style: PaneHeaderStyle<PaneHeaderMode.Visible>,
+        ): ComponentInst<NgPaneHeaderComponent> {
         const component = container.createComponent(this.headerFactory, 0);
         const inst      = component.instance;
 
@@ -287,9 +392,17 @@ export class PaneFactory {
         return {component, container};
     }
 
-    // NOTE: does not set inst.style, which is assumed to be defined. inst.style
-    //       must be set by the caller.
-    private placeTab(container: ViewContainerRef, withId: ChildWithId) {
+    /**
+     * Render a pane tab.
+     *
+     * **NOTE:** this does _not_ set `NgPaneTabComponent.style`, which is marked
+     *           with a non-null assertion on its declaration. `.style` _must_
+     *           be set by the caller.
+     * @param container the container to render the tab in
+     * @param withId the layout node corresponding to the tab
+     */
+    private placeTab(container: ViewContainerRef,
+                     withId: ChildWithId): ComponentInst<NgPaneTabComponent> {
         const component = container.createComponent(this.tabFactory);
         const inst      = component.instance;
 
@@ -301,9 +414,18 @@ export class PaneFactory {
         return {component, container};
     }
 
-    private placeTabRow(container: ViewContainerRef,
-                        withId: ChildWithId,
-                        style: PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab}) {
+    /**
+     * Render a pane tab row.\
+     * This will automatically render the necessary tabs.
+     * @param container the container to render the tab row in
+     * @param withId the layout node corresponding to the tab row
+     * @param style the header style information for the tab row
+     */
+    private placeTabRow(
+        container: ViewContainerRef,
+        withId: ChildWithId,
+        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
+        ): ComponentInst<NgPaneTabRowComponent> {
         const component = container.createComponent(this.tabRowFactory, 0);
         const inst      = component.instance;
 
@@ -318,7 +440,7 @@ export class PaneFactory {
                                           {child: subchild, id: layout.childId(childIndex)});
                 const pane = this.panes.get(subchild);
 
-                if (pane === undefined) throw new Error('no pane found to match tab');
+                if (pane === undefined) { throw new Error('no pane found to match tab'); }
 
                 pane.instance.header = {type: PaneHeaderType.Tab, header: tab};
 
@@ -331,9 +453,8 @@ export class PaneFactory {
             inst.$currentTab = layout.$currentTab;
         }
         else {
-            const tab = this.placeTab(component.instance.renderer.viewContainer, withId);
-            inst.tab  = tab.component.instance as NgPaneTabComponent &
-                       {style: {headerMode: PaneHeaderMode.AlwaysTab}};
+            const tab  = this.placeTab(component.instance.renderer.viewContainer, withId);
+            inst.tab   = tab.component.instance as NgPaneTabComponent<PaneHeaderMode.AlwaysTab>;
             inst.style = style;
 
             tab.component.instance.active = true;
@@ -344,8 +465,12 @@ export class PaneFactory {
         return {component, container};
     }
 
-    private updatePaneHeader(pane: NgPaneComponent) {
-        if (pane.header.type === PaneHeaderType.Skip) return;
+    /**
+     * Update the header of a pane, re-rendering it if necessary.
+     * @param pane the pane to update the header for
+     */
+    private updatePaneHeader(pane: NgPaneComponent): void {
+        if (pane.header.type === PaneHeaderType.Skip) { return; }
 
         const withId = ChildWithId.fromId(pane.childId);
         const style  = this.headerStyleForLayout(withId.child);
@@ -368,8 +493,7 @@ export class PaneFactory {
                     type: PaneHeaderType.Header,
                     header: this.placeHeader(pane.renderer.viewContainer,
                                              withId,
-                                             style as PaneHeaderStyle &
-                                                 {headerMode: PaneHeaderMode.Visible}),
+                                             style as PaneHeaderStyle<PaneHeaderMode.Visible>),
                 };
                 break;
             case PaneHeaderType.TabRow:
@@ -377,18 +501,23 @@ export class PaneFactory {
                     type: PaneHeaderType.TabRow,
                     header: this.placeTabRow(pane.renderer.viewContainer,
                                              withId,
-                                             style as PaneHeaderStyle &
-                                                 {headerMode: PaneHeaderMode.AlwaysTab}),
+                                             style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>),
                 };
                 break;
             case PaneHeaderType.Tab: throw new Error('unreachable');
             }
         }
-        else if (pane.header.type !== PaneHeaderType.None)
+        else if (pane.header.type !== PaneHeaderType.None) {
             pane.header.header.component.instance.style = style;
+        }
     }
 
-    private updateLeavesWithTemplate(name: string) {
+    /**
+     * Update all leaf panes using a given template, re-rendering their contents
+     * and refreshing their style information.
+     * @param name the name of the leaf template
+     */
+    private updateLeavesWithTemplate(name: string): void {
         for (const leaf of this.leaves.values()) {
             const inst = leaf.component.instance;
 
@@ -399,29 +528,48 @@ export class PaneFactory {
         }
     }
 
-    registerLeafTemplate(name: string,
-                         header: PaneHeaderStyle,
-                         template: TemplateRef<LeafNodeContext>,
-                         force?: boolean) {
-        if (this.templates.has(name) && force !== true)
+    /**
+     * Registers a leaf template with the given name and information.
+     * @param name the name of the template
+     * @param header the header style information for the template
+     * @param template the content to render for the template
+     * @param force set to true to override an existing template with this name
+     */
+    public registerLeafTemplate(name: string,
+                                header: PaneHeaderStyle,
+                                template: TemplateRef<LeafNodeContext>,
+                                force?: boolean): void {
+        if (this.templates.has(name) && force !== true) {
             throw new Error(`pane template '${name}' already registered`);
+        }
 
         this.templates.set(name, {template, header});
 
         this.updateLeavesWithTemplate(name);
     }
 
-    unregisterLeafTemplate(name: string) {
-        if (this.templates.delete(name)) this.updateLeavesWithTemplate(name);
+    /**
+     * Removes the leaf template with the given name
+     * @param name the name of the template to remove
+     */
+    public unregisterLeafTemplate(name: string): void {
+        if (this.templates.delete(name)) { this.updateLeavesWithTemplate(name); }
     }
 
-    notifyLayoutChangeStart(dropTargets: Map<ElementRef<HTMLElement>, DropTarget>) {
+    /**
+     * Initialize the pane factory for rendering a layout.
+     * @param dropTargets empty map of drag-and-drop hit targets to populate
+     */
+    public notifyLayoutChangeStart(dropTargets: Map<ElementRef<HTMLElement>, DropTarget>): void {
         this.dropTargets = dropTargets;
 
         this.panes.clear();
     }
 
-    notifyLayoutChangeEnd() {
+    /**
+     * Finalize layout rendering, cleaning up any extra resources.
+     */
+    public notifyLayoutChangeEnd(): void {
         {
             const remove = [];
 
@@ -437,7 +585,13 @@ export class PaneFactory {
         }
     }
 
-    placePane(container: ViewContainerRef, childId: ChildLayoutId, skipHeader?: boolean):
+    /**
+     * Render a pane container.
+     * @param container the container to render the pane in
+     * @param childId the layout node ID corresponding to the pane
+     * @param skipHeader disable rendering the header of this pane
+     */
+    public placePane(container: ViewContainerRef, childId: ChildLayoutId, skipHeader?: boolean):
         ComponentRef<NgPaneComponent> {
         const component = container.createComponent(this.paneFactory);
 
@@ -449,7 +603,7 @@ export class PaneFactory {
 
         inst.childId = childId;
 
-        if (skipHeader === true) inst.header = {type: PaneHeaderType.Skip};
+        if (skipHeader === true) { inst.header = {type: PaneHeaderType.Skip}; }
 
         switch (child.type) {
         case LayoutType.Leaf:

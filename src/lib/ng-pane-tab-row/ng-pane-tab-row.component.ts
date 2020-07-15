@@ -26,69 +26,99 @@ import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneTabComponent} from '../ng-pane-tab/ng-pane-tab.component';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
+/**
+ * Extra information for a mock tab row with a single tab.
+ */
 interface SimpleExtra {
-    tab: NgPaneTabComponent&{style: {headerMode: PaneHeaderMode.AlwaysTab}};
+    /** The tab owned by this tab row */
+    tab: NgPaneTabComponent<PaneHeaderMode.AlwaysTab>;
 }
 
+/**
+ * Extra information for a real tab row with multiple tabs.
+ */
 interface TabbedExtra {
+    /** Mut be undefined, used for type checking */
     tab?: undefined;
-    style: PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab}|undefined;
+    /** The style information for this pane */
+    style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>|undefined;
+    /** Subscription for current tab changes */
     subscription: Subscription|undefined;
+    /** The tabs rendered into this tab row */
     tabs: NgPaneTabComponent[];
+    /** The tab currently rendered as selected */
     current: number|undefined;
 }
 
+/**
+ * A row of tabs, corresponding to either a pane with a header mode of
+ * `AlwaysTab` or the children of a tabbed branch pane.
+ */
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tab-row.component.scss'],
 })
 export class NgPaneTabRowComponent extends DraggablePaneComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
-
+    /** Extra information.  See `SimpleExtra` and `TabbedExtra` */
     private extra!: SimpleExtra|TabbedExtra|undefined;
 
-    get style(): PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab} {
-        if (this.extra === undefined) throw new Error('tab row in invalid state');
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    public readonly renderer!: NgPaneRendererDirective;
 
-        if (this.extra.tab !== undefined) return this.extra.tab.style;
+    /**
+     * The header style information for this tab row.\
+     * For a mock tab row, this information is passed on to the contained tab.
+     */
+    public get style(): PaneHeaderStyle<PaneHeaderMode.AlwaysTab> {
+        if (this.extra === undefined) { throw new Error('tab row in invalid state'); }
 
-        if (this.extra.style === undefined) throw new Error('tab row in invalid state');
+        if (this.extra.tab !== undefined) { return this.extra.tab.style; }
+
+        if (this.extra.style === undefined) { throw new Error('tab row in invalid state'); }
 
         return this.extra.style;
     }
 
-    set style(style: PaneHeaderStyle&{headerMode: PaneHeaderMode.AlwaysTab}) {
-        if (this.extra === undefined)
-            this.setupTabbedExtra();
-        else if (this.extra.tab !== undefined)
+    public set style(style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>) {
+        if (this.extra === undefined) { this.setupTabbedExtra(); }
+        else if (this.extra.tab !== undefined) {
             this.extra.tab.style = style;
-        else
+        }
+        else {
             this.extra.style = style;
+        }
     }
 
-    set tab(tab: NgPaneTabComponent&{style: {headerMode: PaneHeaderMode.AlwaysTab}}) {
+    /** Convert this to a mock tab row using the given tab. */
+    public set tab(tab: NgPaneTabComponent<PaneHeaderMode.AlwaysTab>) {
         const style = this.extra !== undefined ? this.style : undefined;
 
         this.extra = {tab};
-        if (style !== undefined) this.style = style;
+        if (style !== undefined) { this.style = style; }
     }
 
-    get tabs(): NgPaneTabComponent[] {
+    /** If this is a real tab row, return the child tabs. */
+    public get tabs(): NgPaneTabComponent[] {
         const extra = this.setupTabbedExtra();
-        if (extra === undefined) throw new Error('tab row in invalid state');
+        if (extra === undefined) { throw new Error('tab row in invalid state'); }
 
         return extra.tabs;
     }
 
-    set $currentTab(val: Observable<number>) {
+    /**
+     * If this is a real tab row, binds and event handler to the given stream of
+     * current tab events.
+     */
+    public set $currentTab(val: Observable<number>) {
         const extra = this.setupTabbedExtra();
-        if (extra === undefined) throw new Error('tab row in invalid state');
+        if (extra === undefined) { throw new Error('tab row in invalid state'); }
 
-        if (extra.subscription !== undefined) extra.subscription.unsubscribe();
+        if (extra.subscription !== undefined) { extra.subscription.unsubscribe(); }
 
         extra.subscription = val.subscribe(tab => {
-            if (extra.current !== undefined) extra.tabs[extra.current].active = false;
+            if (extra.current !== undefined) { extra.tabs[extra.current].active = false; }
 
             extra.current = tab;
 
@@ -96,8 +126,15 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
         });
     }
 
-    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
+    /**
+     * Construct a new tab row.
+     * @param el injected for use in computing drag-and-drop hit targets
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
 
+    /**
+     * Set up default information for a real tab row.
+     */
     private setupTabbedExtra(): TabbedExtra|undefined {
         if (this.extra === undefined) {
             this.extra = {

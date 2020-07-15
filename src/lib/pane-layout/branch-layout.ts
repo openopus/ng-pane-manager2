@@ -30,37 +30,68 @@ import {
     RootLayout,
 } from './layout-core';
 
+/**
+ * Base class for all branch layouts
+ */
 export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase {
-    constructor(readonly children: readonly ChildLayout[],
-                gravity: LayoutGravity|undefined,
-                group: string|undefined) {
+    /**
+     * Construct a new branch layout node.
+     * @param children the children of this layout node
+     * @param gravity the gravity of this layout node
+     * @param group the group of this layout node
+     */
+    public constructor(public readonly children: readonly ChildLayout[],
+                       gravity: LayoutGravity|undefined,
+                       group: string|undefined) {
         super(gravity, group);
     }
 
+    /**
+     * Construct a clone of the current node with a new list of children
+     * @param newChildren the children to construct the clone with
+     */
     protected abstract withChildren(newChildren: ChildLayout[]): T;
 
-    mapChildren(func: (value: ChildLayout, index: number) => ChildLayout): T {
+    /**
+     * Map the children of the current node to a new node using the given
+     * function.
+     * @param func function to map each child with
+     */
+    public mapChildren(func: (value: ChildLayout, index: number) => ChildLayout): T {
         return this.withChildren(this.children.map(func));
     }
 
-    mapChild(index: number, func: (value: ChildLayout) => ChildLayout): T {
+    /**
+     * Map a single child of the current node to a new node using the given
+     * function.
+     * @param index index of the child to map
+     * @param func function to map the child with
+     */
+    public mapChild(index: number, func: (value: ChildLayout) => ChildLayout): T {
         return this.mapChildren((e, i) => i === index ? func(e) : e);
     }
 
-    transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
-        if (this as any === find) return replace;
+    /**
+     * Find any occurrences (by reference) of a node in the current tree and
+     * replace them with another node.
+     * @param find the node to search for
+     * @param replace the note to replace the search node with
+     */
+    public transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
+        if (this as any === find) { return replace; }
 
         let newChildren: ChildLayout[]|undefined;
 
         this.children.forEach((child, idx) => {
             const newChild = child.transposeDeep(find, replace);
 
-            if (newChild === undefined) return;
+            if (newChild === undefined) { return; }
 
-            if (newChild.type === LayoutType.Root)
+            if (newChild.type === LayoutType.Root) {
                 throw new Error('invalid transposition - child attempted to become root');
+            }
 
-            if (newChildren === undefined) newChildren = this.children.slice();
+            if (newChildren === undefined) { newChildren = this.children.slice(); }
 
             newChildren[idx] = newChild;
         });
@@ -69,69 +100,108 @@ export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase 
     }
 }
 
+/** A `ChildLayout` that can contain children */
 export type BranchLayout = SplitLayout|TabbedLayout;
 
 // TODO: there's some pretty heavy code duplication between the two
 //       implementations below, but I can't think of a clean way to abstract the
 //       repeated part.
 
+/** A resize event for a split branch node. */
 export interface ResizeEvent {
+    /** The index of the resized child */
     readonly index: number;
+    /** The ratio of the resized child */
     readonly ratio: number;
 }
 
+/**
+ * A layout with its children stacked horizontally or vertically
+ */
 export class SplitLayout extends BranchLayoutBase<SplitLayout> {
+    /** See `resizeEvents` */
     private readonly _resizeEvents: Subject<ResizeEvent> = new Subject();
+    /** See `ratioSum` */
     private _ratioSum: number;
 
-    get ratios(): readonly number[] { return this._ratios; }
-    get ratioSum(): number { return this._ratioSum; }
+    /** The ratios of the widths of the child nodes */
+    public get ratios(): readonly number[] { return this._ratios; }
+    /** The sum of all child width ratios */
+    public get ratioSum(): number { return this._ratioSum; }
 
-    get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
+    /** A stream of resize events, notifying when the ratio of a child changes */
+    public get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
 
     // NOTE: TypeScript hates this, edit with caution.
+    /**
+     * Flatten an array non-recursively.  Used below.
+     * @param arr the array to flatten
+     */
     private static flatten<T>(arr: (T|readonly T[]|undefined)[]): T[] {
         return arr.filter(e => e !== undefined)
                    .reduce((l, r) => (l as T[]).concat(r as T | readonly T[]), []) as T[];
     }
 
-    constructor(readonly           type: LayoutType.Horiz|LayoutType.Vert,
-                children: readonly ChildLayout[],
-                private readonly   _ratios: number[],
-                gravity?: LayoutGravity,
-                group?: string) {
+    /**
+     * Construct a new split branch node.
+     * @param type the type of the split
+     * @param children the children of the node
+     * @param _ratios the ratio of each child node
+     * @param gravity the gravity of the split node
+     * @param group the group of the split node
+     */
+    public constructor(public readonly    type: LayoutType.Horiz|LayoutType.Vert,
+                       children: readonly ChildLayout[],
+                       private readonly   _ratios: number[],
+                       gravity?: LayoutGravity,
+                       group?: string) {
         super(children, gravity, group);
 
-        if (_ratios.length !== children.length)
+        if (_ratios.length !== children.length) {
             throw new Error(`mismatched child and split ratio counts (${children.length} vs ${
                 _ratios.length})`);
+        }
 
         for (const ratio of _ratios) {
-            if (!isFinite(ratio)) throw new Error(`invalid ratio ${ratio}`);
+            if (!isFinite(ratio)) { throw new Error(`invalid ratio ${ratio}`); }
         }
 
         this._ratioSum = _ratios.reduce((s, e) => s + e, 0);
 
         // This fixes a quirk with the flex layout system where a sum weight
         // less than 1.0 causes elements not to fill all available space.
-        if (this._ratioSum < 1.0) {
+        if (this._ratioSum < 1) {
             const sum      = this._ratioSum;
             this._ratios   = _ratios.map(r => r / sum);
-            this._ratioSum = 1.0;
+            this._ratioSum = 1;
         }
     }
 
+    /** See `BranchLayoutBase.withChildren` */
     protected withChildren(newChildren: ChildLayout[]): SplitLayout {
         return new SplitLayout(this.type, newChildren, this._ratios, this.gravity, this.group);
     }
 
-    childId(index: number): ChildLayoutId { return {stem: this, index}; }
+    /**
+     * Construct a child ID referencing a child of this node.
+     * @param index the index of the child ID
+     */
+    public childId(index: number): ChildLayoutId { return {stem: this, index}; }
 
-    intoRoot(): RootLayout { return new RootLayout(this); }
+    /**
+     * Convert this node into a root node.
+     */
+    public intoRoot(): RootLayout { return new RootLayout(this); }
 
-    resizeChild(index: number, ratio: number) {
-        if (index >= this._ratios.length)
+    /**
+     * Change the ratio of a single child.
+     * @param index the index of the child to resize
+     * @param ratio the ratio to resize the child to
+     */
+    public resizeChild(index: number, ratio: number): void {
+        if (index >= this._ratios.length) {
             throw new Error(`index must be less than ${this._ratios.length}`);
+        }
 
         const oldRatio      = this._ratios[index];
         this._ratios[index] = ratio;
@@ -144,12 +214,19 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
         this._resizeEvents.next({index, ratio});
     }
 
-    moveSplit(firstIdx: number, amount: number) {
+    /**
+     * Move the split between two children, adjusting both their ratios
+     * accordingly.
+     * @param firstIdx the index of the first child neighborind this split
+     * @param amount the quantity to shift the child ratios by
+     */
+    public moveSplit(firstIdx: number, amount: number): void {
         const secondIdx = firstIdx + 1;
 
 
-        if (secondIdx >= this._ratios.length)
+        if (secondIdx >= this._ratios.length) {
             throw new Error(`firstIdx must be less than ${this._ratios.length - 1}`);
+        }
 
         const clampedAmount = Math.max(-this._ratios[firstIdx],
                                        Math.min(this._ratios[secondIdx], amount));
@@ -161,26 +238,39 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
         this._resizeEvents.next({index: secondIdx, ratio: this._ratios[secondIdx]});
     }
 
-    spliceChildren(start: number|undefined,
-                   remove: number,
-                   addChildren?: readonly ChildLayout[],
-                   addRatios?: readonly   number[]):
-        {layout: SplitLayout; removed: ChildLayout[]; removedRatios: number[]} {
-        if (start === undefined) start = this.children.length;
+    /**
+     * Splice the list of children.  See `Array.prototype.splice` for more
+     * information.
+     * @param start the index to begin at, or `undefined` for the end of the list
+     * @param remove the number of children to remove
+     * @param addChildren the list of children to add
+     * @param addRatios the list of ratios to add
+     */
+    public spliceChildren(start: number|undefined,
+                          remove: number,
+                          addChildren?: readonly ChildLayout[],
+                          addRatios?: readonly   number[]): {
+        /** The resulting layout */
+        layout: SplitLayout;
+        /** The removed children */
+        removed: ChildLayout[];
+        /** The ratios of the removed children */
+        removedRatios: number[];
+    } {
+        const idx = start === undefined ? this.children.length : start;
 
         const newChildren = this.children.slice();
-        const removed     = addChildren !== undefined
-                            ? newChildren.splice(start, remove, ...addChildren)
-                            : newChildren.splice(start, remove);
+        const removed = addChildren !== undefined ? newChildren.splice(idx, remove, ...addChildren)
+                                                  : newChildren.splice(idx, remove);
 
         if ((addRatios !== undefined ? addRatios.length : 0) !==
-            (addChildren !== undefined ? addChildren.length : 0))
+            (addChildren !== undefined ? addChildren.length : 0)) {
             throw new Error('mismatched lengths of addChildren and addRatios');
+        }
 
         const newRatios     = this._ratios.slice();
-        const removedRatios = addRatios !== undefined
-                                  ? newRatios.splice(start, remove, ...addRatios)
-                                  : newRatios.splice(start, remove);
+        const removedRatios = addRatios !== undefined ? newRatios.splice(idx, remove, ...addRatios)
+                                                      : newRatios.splice(idx, remove);
 
         return {
             layout: new SplitLayout(this.type, newChildren, newRatios, this.gravity, this.group),
@@ -189,20 +279,41 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
         };
     }
 
-    withoutChild(index: number|
-                 undefined): {layout: SplitLayout; removed: ChildLayout; removedRatio: number} {
+    /**
+     * Remove the child at the given index from the list of children.
+     * @param index the index of the child to remove, or `undefined` for the end
+     *              of the list
+     */
+    public withoutChild(index: number|undefined): {
+        /** The resulting layout */
+        layout: SplitLayout;
+        /** The removed child */
+        removed: ChildLayout;
+        /** The ratio of the removed child */
+        removedRatio: number;
+    } {
         const {layout, removed, removedRatios} = this.spliceChildren(index, 1);
 
         return {layout, removed: removed[0], removedRatio: removedRatios[0]};
     }
 
-    withChild(index: number|undefined, child: ChildLayout, ratio: number): SplitLayout {
+    /**
+     * Insert a child at the given index.
+     * @param index the index to insert the child at, or `undefined` for the end
+     *              of the list
+     * @param child the child to add
+     * @param ratio the ratio of the child
+     */
+    public withChild(index: number|undefined, child: ChildLayout, ratio: number): SplitLayout {
         const {layout} = this.spliceChildren(index, 0, [child], [ratio]);
 
         return layout;
     }
 
-    simplifyDeep(): PaneLayout|undefined {
+    /**
+     * Recursively simplify this node tree.
+     */
+    public simplifyDeep(): PaneLayout|undefined {
         if (this.children.length === 1) {
             const child      = this.children[0];
             const simplified = child.simplifyDeep();
@@ -222,8 +333,9 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
             if (child.type === LayoutType.Leaf || child.children.length !== 0) {
                 const simplified = child.simplifyDeep();
 
-                if (simplified !== undefined && simplified.type === LayoutType.Root)
+                if (simplified !== undefined && simplified.type === LayoutType.Root) {
                     throw new Error('invalid simplification - child attempted to become root');
+                }
 
                 const next = newChild = simplified !== undefined ? simplified : child;
 
@@ -241,8 +353,8 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
             }
 
             if (newChild !== child) {
-                if (newChildren === undefined) newChildren = this.children.slice();
-                if (newRatios === undefined) newRatios = this._ratios.slice();
+                if (newChildren === undefined) { newChildren = this.children.slice(); }
+                if (newRatios === undefined) { newRatios = this._ratios.slice(); }
 
                 newChildren[idx] = newChild;
                 newRatios[idx]   = newRatio;
@@ -260,63 +372,104 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
     }
 }
 
+/**
+ * A layout with its children placed in tabs
+ */
 export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
-    readonly         type: LayoutType.Tabbed               = LayoutType.Tabbed;
+    /** See `$currentTab` */
     private readonly _$currentTab: BehaviorSubject<number> = new BehaviorSubject(-1);
 
-    get $currentTab(): Observable<number> { return this._$currentTab; }
-    get currentTab(): number { return this._$currentTab.value; }
+    /** The type of the layout.  Used for type checking. */
+    public readonly type: LayoutType.Tabbed = LayoutType.Tabbed;
 
-    set currentTab(val: number) {
-        if (this._$currentTab.value === val) return;
+    /** A stream of current tab events, notifying when the selected tab changes */
+    public get $currentTab(): Observable<number> { return this._$currentTab; }
+    /** The current value of `$currentTab` */
+    public get currentTab(): number { return this._$currentTab.value; }
 
-        if (val < 0 || val >= Math.max(1, this.children.length))
+    /** Change the current tab, sending an update event */
+    public set currentTab(val: number) {
+        if (this._$currentTab.value === val) { return; }
+
+        if (val < 0 || val >= Math.max(1, this.children.length)) {
             throw new Error(`currentTab index ${val} is out of range`);
+        }
 
         this._$currentTab.next(val);
     }
 
-    constructor(children: readonly ChildLayout[],
-                currentTab: number,
-                gravity?: LayoutGravity,
-                group?: string) {
+    /**
+     * Construct a new tabbed branch node.
+     * @param children the children of the node
+     * @param currentTab the currently selected child
+     * @param gravity the gravity of the tabbed node
+     * @param group the group of the tabbed node
+     */
+    public constructor(children: readonly ChildLayout[],
+                       currentTab: number,
+                       gravity?: LayoutGravity,
+                       group?: string) {
         super(children, gravity, group);
 
         this.currentTab = currentTab;
     }
 
+
+    /** See `BranchLayoutBase.withChildren` */
     protected withChildren(newChildren: ChildLayout[]): TabbedLayout {
         return new TabbedLayout(newChildren, this.currentTab, this.gravity, this.group);
     }
 
-    childId(index: number): ChildLayoutId { return {stem: this, index}; }
+    /**
+     * Construct a child ID referencing a child of this node.
+     * @param index the index of the child ID
+     */
+    public childId(index: number): ChildLayoutId { return {stem: this, index}; }
 
-    intoRoot(): RootLayout { return new RootLayout(this); }
+    /**
+     * convert this node into a root node.
+     */
+    public intoRoot(): RootLayout { return new RootLayout(this); }
 
-    spliceChildren(start: number|undefined,
-                   remove: number,
-                   addChildren?: readonly ChildLayout[],
-                   changeTabTo?: number): {layout: TabbedLayout; removed: ChildLayout[]} {
-        if (start === undefined) start = this.children.length;
+    /**
+     * Splice the list of children.  See `Array.prototype.splice` for more
+     * information.
+     * @param start the index to begin at, or `undefined` for the end of the list
+     * @param remove the number of children to remove
+     * @param addChildren the list of children to add
+     * @param changeTabTo the index of an added child to switch to
+     */
+    public spliceChildren(start: number|undefined,
+                          remove: number,
+                          addChildren?: readonly ChildLayout[],
+                          changeTabTo?: number): {
+        /** The resulting layout */
+        layout: TabbedLayout;
+        /** The removed children */
+        removed: ChildLayout[];
+    } {
+        const idx = start === undefined ? this.children.length : start;
 
         const newChildren = this.children.slice();
-        const removed     = addChildren !== undefined
-                            ? newChildren.splice(start, remove, ...addChildren)
-                            : newChildren.splice(start, remove);
+        const removed = addChildren !== undefined ? newChildren.splice(idx, remove, ...addChildren)
+                                                  : newChildren.splice(idx, remove);
 
         let newCurrentTab = this.currentTab;
 
         if (changeTabTo !== undefined) {
-            if (changeTabTo < 0 || (addChildren === undefined || changeTabTo >= addChildren.length))
+            if (changeTabTo < 0 ||
+                (addChildren === undefined || changeTabTo >= addChildren.length)) {
                 throw new Error('invalid value for changeTabTo');
+            }
 
-            newCurrentTab = start + changeTabTo;
+            newCurrentTab = idx + changeTabTo;
         }
         else {
-            newCurrentTab -= Math.max(0, Math.min(remove, newCurrentTab - start + 1));
+            newCurrentTab -= Math.max(0, Math.min(remove, newCurrentTab - idx + 1));
 
-            if (newCurrentTab >= start && addChildren !== undefined)
+            if (newCurrentTab >= idx && addChildren !== undefined) {
                 newCurrentTab += addChildren.length;
+            }
         }
 
         return {
@@ -325,7 +478,17 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
         };
     }
 
-    withoutChild(index: number|undefined): {layout: TabbedLayout; removed: ChildLayout} {
+    /**
+     * Remove the child at the given index from the list of children.
+     * @param index the index of the child to remove, or `undefined` for the end
+     *              of the list
+     */
+    public withoutChild(index: number|undefined): {
+        /** The resulting layout */
+        layout: TabbedLayout;
+        /** The removed child */
+        removed: ChildLayout;
+    } {
         const {layout, removed} = this.spliceChildren(index, 1);
 
         return {
@@ -334,13 +497,24 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
         };
     }
 
-    withChild(index: number|undefined, child: ChildLayout, changeTabTo: boolean): TabbedLayout {
+    /**
+     * Insert a child at the given index.
+     * @param index the index to insert the child at, or `undefined` for the end
+     *              of the list
+     * @param child the child to add
+     * @param changeTabTo change the current tab to the added child
+     */
+    public withChild(index: number|undefined, child: ChildLayout, changeTabTo: boolean):
+        TabbedLayout {
         const {layout} = this.spliceChildren(index, 0, [child], changeTabTo ? 0 : undefined);
 
         return layout;
     }
 
-    simplifyDeep(): PaneLayout|undefined {
+    /**
+     * Recursively simplify this node tree.
+     */
+    public simplifyDeep(): PaneLayout|undefined {
         if (this.children.length === 1) {
             const child      = this.children[0];
             const simplified = child.simplifyDeep();
@@ -358,14 +532,15 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
             if (child.type === LayoutType.Leaf || child.children.length !== 0) {
                 const simplified = child.simplifyDeep();
 
-                if (simplified !== undefined && simplified.type === LayoutType.Root)
+                if (simplified !== undefined && simplified.type === LayoutType.Root) {
                     throw new Error('invalid simplification - child attempted to become root');
+                }
 
                 newChild = simplified !== undefined ? simplified : child;
             }
 
             if (newChild !== child) {
-                if (newChildren === undefined) newChildren = this.children.slice();
+                if (newChildren === undefined) { newChildren = this.children.slice(); }
 
                 newChildren[idx] = newChild;
             }

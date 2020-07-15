@@ -33,6 +33,11 @@ import {NgPaneTabbedComponent} from './ng-pane-tabbed/ng-pane-tabbed.component';
 import {NgPaneTemplateDirective} from './ng-pane-template.directive';
 import {NgPaneComponent} from './ng-pane/ng-pane.component';
 
+/**
+ * The root Angular module for `angular-pane-manager`, providing the
+ * `ng-pane-manager` tag, the `*ngPaneTemplate` directive, and all other
+ * internal components used by `angular-pane-manager`.
+ */
 @NgModule({
     declarations: [
         NgPaneComponent,

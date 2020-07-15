@@ -21,33 +21,62 @@
 import {SplitLayout, TabbedLayout} from './branch-layout';
 import {ChildLayout, LayoutGravity, LayoutType, LeafLayout, PaneLayout} from './layout-core';
 
+/** A template for any kind of layout */
 export type LayoutTemplate = SplitLayoutTemplate|TabLayoutTemplate|LeafLayoutTemplate;
 
+/** Stringified versions of the layout gravities */
 export type GravityTemplate = 'top'|'left'|'center'|'right'|'bottom';
 
+/**
+ * Base interface for all layout node templates.
+ */
 export interface LayoutTemplateBase {
+    /** The gravity of this template */
     gravity?: GravityTemplate;
+    /** The group of this template */
     group?: string;
 }
 
+/**
+ * Template for a leaf layout node.
+ */
 export interface LeafLayoutTemplate extends LayoutTemplateBase {
+    /** Split mode.  Must be undefined, used for type checking. */
     split?: undefined;
+    /** The unique identifier of this node */
     id: string;
+    /** The template name of this node */
     template: string;
 }
 
+/**
+ * Template for a split branch layout node.
+ */
 export interface SplitLayoutTemplate extends LayoutTemplateBase {
+    /** Split mode.  Can be `'horiz'` or `'vert'`. */
     split: 'horiz'|'vert';
+    /** The ratios of this node's children.  Must match the length of `children`. */
     ratio: number[];
+    /** The children of this node */
     children: LayoutTemplate[];
 }
 
+/**
+ * Template for a tabbed branch layout node.
+ */
 export interface TabLayoutTemplate extends LayoutTemplateBase {
+    /** Split mode.  Must be `'tab'`, used for type checking. */
     split: 'tab';
+    /** The currently visible child */
     currentTab: number;
+    /** The children of this node */
     children: LayoutTemplate[];
 }
 
+/**
+ * Convert a string gravity value to a numeric gravity value.
+ * @param gravity the string gravity value, or `undefined`
+ */
 function loadGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefined {
     switch (gravity) {
     case undefined: return undefined;
@@ -60,6 +89,10 @@ function loadGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefine
     }
 }
 
+/**
+ * Load a child layout from a layout template.
+ * @param template the layout template to load
+ */
 export function loadLayout(template: LayoutTemplate): ChildLayout {
     switch (template.split) {
     case undefined:
@@ -88,6 +121,10 @@ export function loadLayout(template: LayoutTemplate): ChildLayout {
     }
 }
 
+/**
+ * Convert a numeric gravity value to a string gravity value.
+ * @param gravity the numeric gravity value, or `undefined`
+ */
 function saveGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefined {
     switch (gravity) {
     case undefined: return undefined;
@@ -99,10 +136,14 @@ function saveGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefine
     }
 }
 
+/**
+ * Save a layout node to a layout template.
+ * @param layout the layout node to save
+ */
 export function saveLayout(layout: PaneLayout): LayoutTemplate {
     switch (layout.type) {
     case LayoutType.Root:
-        if (layout.layout === undefined) throw new Error('root layout is empty');
+        if (layout.layout === undefined) { throw new Error('root layout is empty'); }
 
         return saveLayout(layout.layout);
     case LayoutType.Leaf:

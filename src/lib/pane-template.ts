@@ -23,31 +23,53 @@ import {BehaviorSubject, Observable} from 'rxjs';
 
 // TODO: prevent tabifying headerless panes
 // TODO: add size constraints/no-resize mode?
+/** The display format of a pane header */
 export const enum PaneHeaderMode {
+    /** Don't display a header for this pane */
     Hidden,
+    /** Display a basic header for this pane */
     Visible,
+    /** Always display a tab bar for this pane, even if it's not tabbed */
     AlwaysTab,
 }
 
+/** Stringified versions of the header modes */
 export type StringHeaderMode = 'hidden'|'visible'|'alwaysTab';
 
-export interface PaneHeaderStyle {
-    headerMode: PaneHeaderMode;
+/**
+ * Style information for a pane header.
+ */
+export interface PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
+    /** The display mode for this header */
+    headerMode: T;
+    /** The title for this header */
     title: Observable<string>;
+    /** The icon for this header, or `undefined` for no icon */
     icon: Observable<string|undefined>;
+    /** Whether this pane can be closed */
     closable: boolean;
 }
 
+/**
+ * Construct a pane header style object.
+ * @param header the display mode for the header
+ * @param title the title for the header
+ * @param icon the icon for the header, or `undefined` for no icon
+ * @param closable whether this pane can be closed
+ */
 export function headerStyle(
-    headerMode: StringHeaderMode|PaneHeaderMode,
+    header: StringHeaderMode|PaneHeaderMode,
     title: string|Observable<string>,
     icon: string|undefined|Observable<string|undefined>,
     closable: boolean,
     ): PaneHeaderStyle {
-    switch (headerMode) {
+    let headerMode;
+
+    switch (header) {
     case 'hidden': headerMode = PaneHeaderMode.Hidden; break;
     case 'visible': headerMode = PaneHeaderMode.Visible; break;
     case 'alwaysTab': headerMode = PaneHeaderMode.AlwaysTab; break;
+    default: headerMode = header; break;
     }
 
     return {
@@ -59,8 +81,13 @@ export function headerStyle(
 }
 
 // TODO: add support for passing parameters into the templates from the layout
+/**
+ * Context passed to the `TemplateRef` of a leaf node.
+ */
 export interface LeafNodeContext {
+    /** The header style of this node */
     header: PaneHeaderStyle;
 }
 
+/** The information needed to render the contents of a leaf node. */
 export type LeafNodeTemplate = [TemplateRef<LeafNodeContext>, LeafNodeContext];

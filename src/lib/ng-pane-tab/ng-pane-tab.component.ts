@@ -22,8 +22,12 @@ import {Component, ElementRef, HostBinding} from '@angular/core';
 
 import {DraggablePaneComponent} from '../drag-and-drop';
 import {LayoutType} from '../pane-layout/module';
-import {PaneHeaderStyle} from '../pane-template';
+import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
+/**
+ * A tab, representing a pane that either has an `AlwaysTab` header mode or
+ * belongs to a tabbed branch pane.
+ */
 @Component({
     selector: 'lib-ng-pane-tab',
     template: `
@@ -35,17 +39,28 @@ import {PaneHeaderStyle} from '../pane-template';
     </ng-container>`,
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
-export class NgPaneTabComponent extends DraggablePaneComponent {
-    style!: PaneHeaderStyle;
+export class NgPaneTabComponent<T extends PaneHeaderMode = PaneHeaderMode> extends
+    DraggablePaneComponent {
+    /** The style information for this tab */
+    public style!: PaneHeaderStyle<T>;
 
-    @HostBinding('class.lib-ng-pane-tab-active') active = false;
+    /** Indicates the current tab is selected and its pane is visible */
+    @HostBinding('class.lib-ng-pane-tab-active') public active: boolean = false;
 
-    constructor(readonly el: ElementRef<HTMLElement>) { super(); }
+    /**
+     * Construct a new tab.
+     * @param el injected for use in computing drag-and-drop hit targets
+     */
+    public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
 
-    protected onMouseDown(evt: MouseEvent) {
+    /**
+     * Selects the current tab and initiates a drag of the associated pane.
+     */
+    protected onMouseDown(evt: MouseEvent): void {
         super.onMouseDown(evt);
 
-        if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed)
+        if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed) {
             this.childId.stem.currentTab = this.childId.index;
+        }
     }
 }

@@ -23,31 +23,47 @@ import {AfterContentInit, Directive, Input, TemplateRef, ViewContainerRef} from 
 import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
 import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
 
+/**
+ * Stores the attached content as a named template for leaf panes.
+ */
+// tslint:disable-next-line directive-selector
 @Directive({selector: '[ngPaneTemplate]'})
 export class NgPaneTemplateDirective implements AfterContentInit {
+    /** See `ngPaneTemplateNamed` */
     private name!: string;
+    /** See `ngPaneTemplateWithHeader` */
     private headerStyle!: PaneHeaderStyle;
+    /** See `ngPaneTamplateFor` */
     private manager!: NgPaneManagerComponent;
 
+    /** Stores the name to register this template under */
     @Input()
-    set ngPaneTemplateNamed(name: string) {
+    public set ngPaneTemplateNamed(name: string) {
         this.name = name;
     }
 
+    /** Stores the header information to register with this template */
     @Input()
-    set ngPaneTemplateWithHeader(style: PaneHeaderStyle) {
+    public set ngPaneTemplateWithHeader(style: PaneHeaderStyle) {
         this.headerStyle = style;
     }
 
+    /** Stores the pane manager to register this template with */
     @Input()
-    set ngPaneTemplateFor(manager: NgPaneManagerComponent) {
+    public set ngPaneTemplateFor(manager: NgPaneManagerComponent) {
         this.manager = manager;
     }
 
-    constructor(private readonly templateRef: TemplateRef<LeafNodeContext>,
-                viewContainer: ViewContainerRef) {}
+    /**
+     * Construct a new pane template directive.
+     * @param templateRef injected to be registered with a pane manager
+     * @param _viewContainer injected (unused)
+     */
+    public constructor(private readonly templateRef: TemplateRef<LeafNodeContext>,
+                       _viewContainer: ViewContainerRef) {}
 
-    ngAfterContentInit() {
+    /** Register the pane template with the pane manager */
+    public ngAfterContentInit(): void {
         this.manager.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
     }
 }

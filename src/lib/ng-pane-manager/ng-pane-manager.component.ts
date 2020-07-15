@@ -35,71 +35,117 @@ import {PaneFactory} from '../pane-factory';
 import {LayoutType, RootLayout} from '../pane-layout/module';
 import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
 
+/**
+ * The root component for `angular-pane-manager`, providing a tree-like
+ * hierarchical layout for child components with support for adjusting and
+ * rearranging panes.
+ */
 @Component({
+    // tslint:disable-next-line component-selector
     selector: 'ng-pane-manager',
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
 export class NgPaneManagerComponent {
-    @ViewChild(NgPaneRendererDirective, {static: true}) readonly renderer!: NgPaneRendererDirective;
-
+    /** See `layout` */
     private _layout: RootLayout                                = new RootLayout(undefined);
+    /** See `dropTargets` */
     private _dropTargets: Map<ElementRef<Element>, DropTarget> = new Map();
+    /** The root component of the current layout */
     private pane: ComponentRef<NgPaneComponent>|undefined;
+    /** The pane factory used for rendering all inner components */
     private readonly factory: PaneFactory;
 
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    public readonly renderer!: NgPaneRendererDirective;
+
+    /**
+     * The current layout being rendered.  This can be changed using the
+     * accessor, and is automatically updated when the layout is changed by the
+     * user.
+     */
     @Input()
-    get layout(): RootLayout {
+    public get layout(): RootLayout {
         return this._layout;
     }
 
-    set layout(val: RootLayout) {
-        if (val === this._layout) return;
+    public set layout(val: RootLayout) {
+        if (val === this._layout) { return; }
 
-        if (val.type !== LayoutType.Root)
+        if (val.type !== LayoutType.Root) {
             throw new Error('invalid layout type for pane manager - must be a root layout');
-
-        const simplified = val.simplifyDeep();
-
-        if (simplified !== undefined) {
-            if (simplified.type !== LayoutType.Root)
-                throw new Error('invalid simplification - root layout collapsed into child');
-
-            val = simplified;
         }
 
-        this._layout = val;
+        let newLayout = val.simplifyDeep();
+
+        if (newLayout !== undefined) {
+            if (newLayout.type !== LayoutType.Root) {
+                throw new Error('invalid simplification - root layout collapsed into child');
+            }
+        }
+        else {
+            newLayout = val;
+        }
+
+        this._layout = newLayout;
 
         const oldPane = this.pane;
 
         this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
 
         try {
-            this.pane = this.factory.placePane(this.renderer.viewContainer, val.childId());
+            this.pane = this.factory.placePane(this.renderer.viewContainer, newLayout.childId());
         }
         finally {
             this.factory.notifyLayoutChangeEnd();
 
-            if (oldPane !== undefined) oldPane.destroy();
+            if (oldPane !== undefined) { oldPane.destroy(); }
         }
     }
 
-    get dropTargets(): Readonly<Map<ElementRef<Element>, DropTarget>> { return this._dropTargets; }
+    /**
+     * Drag-and-drop information created by the pane renderer. Used for
+     * hit testing during drag-and-drop.
+     */
+    public get dropTargets(): Readonly<Map<ElementRef<Element>, DropTarget>> {
+        return this._dropTargets;
+    }
 
-    constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(this, cfr); }
+    /**
+     * Construct a new pane manager.
+     * @param cfr injected for use by the pane factory
+     */
+    public constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(this, cfr); }
 
-    registerLeafTemplate(name: string,
-                         header: PaneHeaderStyle,
-                         template: TemplateRef<LeafNodeContext>) {
+    /**
+     * Registers a given `TemplateRef` for leaves with the corresponding
+     * template ID string.
+     * @param name the name of the template, corresponding with the `template`
+     *             property of leaf nodes
+     * @param header the default style information for this template
+     * @param template the content to render in leaves with this template
+     */
+    public registerLeafTemplate(name: string,
+                                header: PaneHeaderStyle,
+                                template: TemplateRef<LeafNodeContext>): void {
         this.factory.registerLeafTemplate(name, header, template);
     }
 
-    unregisterLeafTemplate(name: string) { this.factory.unregisterLeafTemplate(name); }
+    /**
+     * Removes the leaf template corresponding to the given name.
+     * @param name the name of the template to remove
+     */
+    public unregisterLeafTemplate(name: string): void { this.factory.unregisterLeafTemplate(name); }
 
-    collectNativeDropTargets(): Map<Element, DropTarget> {
+    /**
+     * Constructs a map from native elements to drag-and-drop information.  Used
+     * for hit testing during drag-and-drop.
+     */
+    public collectNativeDropTargets(): Map<Element, DropTarget> {
         const ret = new Map();
 
-        for (const [key, val] of this._dropTargets) ret.set(key.nativeElement, val);
+        for (const [key, val] of this._dropTargets) { ret.set(key.nativeElement, val); }
 
         return ret;
     }

@@ -18,13 +18,37 @@
  *
  ******************************************************************************/
 
+/**
+ * Callback to indicate an ongoing drag should be cancelled or aborted.
+ * @param isAbort set to `true` if the drag-end handler should be notified the
+ *                drag was aborted
+ */
 export type DragCancelFn = (isAbort: boolean) => void;
+
+/**
+ * Callback for handling mouse movement during a drag.
+ * @param clientX the client X position of the cursor
+ * @param clientY the client Y position of the cursor
+ * @param cancel callback to indicate the drag should be cancelled or aborted
+ */
 export type DragDeltaHandler = (clientX: number, clientY: number, cancel: DragCancelFn) => void;
+
+/**
+ * Callback for handling the end of a drag.
+ * @param isAbort indicates if the current drag ended in an error
+ */
 export type DragEndHandler = (isAbort: boolean) => void;
 
+/**
+ * Helper function for handling drag-and-drop events.  Binds to the window event
+ * listeners to provide hassle-free callbacks for drag delta and drag end.
+ * @param downEvt the `mousedown` event that initiated the drag
+ * @param delta callback for mouse movement
+ * @param end callback for the end of the drag
+ */
 export function beginMouseDrag(downEvt: MouseEvent,
                                delta: DragDeltaHandler|undefined,
-                               end?: DragEndHandler) {
+                               end?: DragEndHandler): void {
     const opts   = {capture: true};
     const button = downEvt.button;
 
@@ -36,7 +60,7 @@ export function beginMouseDrag(downEvt: MouseEvent,
     const mouseMove = (evt: MouseEvent) => {
         // If no delta handler is specified, just perform a dummy drag
         try {
-            if (delta !== undefined) delta(evt.clientX, evt.clientY, cancel);
+            if (delta !== undefined) { delta(evt.clientX, evt.clientY, cancel); }
         }
         catch (e) {
             console.error(e);
@@ -48,7 +72,7 @@ export function beginMouseDrag(downEvt: MouseEvent,
     };
     const selectStart = (evt: Event) => evt.preventDefault();
     const mouseUp = (evt: MouseEvent) => {
-        if (evt.button !== button) return;
+        if (evt.button !== button) { return; }
 
         cancel(false);
     };
@@ -62,7 +86,7 @@ export function beginMouseDrag(downEvt: MouseEvent,
     };
     cancel = (isAbort: boolean) => {
         try {
-            if (end !== undefined) end(isAbort);
+            if (end !== undefined) { end(isAbort); }
         }
         finally {
             window.removeEventListener('mousedown', mouseDown, opts);
