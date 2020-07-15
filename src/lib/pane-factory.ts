@@ -25,6 +25,7 @@ import {
     ElementRef,
     TemplateRef,
     ViewContainerRef,
+    ViewRef,
 } from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
@@ -131,6 +132,12 @@ export interface ComponentInst<C> {
     component: ComponentRef<C>;
     /** The container holding it */
     container: ViewContainerRef;
+    /**
+     * The host view of the component.\
+     * This is provided here because for some reason ComponentRef.hostView does
+     * not always work with ViewContainerRef.indexOf.
+     */
+    hostView: ViewRef;
 }
 
 // TODO: try to recycle as many components as possible, rather than just leaves
@@ -243,6 +250,36 @@ export class PaneFactory {
     }
 
     /**
+     * Attempt to fetch an existing rendered leaf node from the component tree.
+     * @param id the ID of the leaf node
+     */
+    private tryDetachLeaf(id: string): [ViewRef, ComponentInst<NgPaneLeafComponent>]|undefined {
+        const leaf = this.leaves.get(id);
+
+        if (leaf === undefined) { return undefined; }
+
+        if (leaf.hostView.destroyed) {
+            console.warn(`leaf ${id} destroyed during layout change`);
+
+            return undefined;
+        }
+
+        const index = leaf.container.indexOf(leaf.hostView);
+
+        if (index < 0) { throw new Error(`leaf '${id}' not found in container`); }
+
+        const view = leaf.container.detach(index);
+
+        if (view === null) {
+            console.warn(`failed to detach view for leaf '${id}'`);
+
+            return undefined;
+        }
+
+        return [view, leaf];
+    }
+
+    /**
      * Render a leaf pane.
      * @param container the container to render the leaf in
      * @param withId the layout node corresponding to the leaf
@@ -252,31 +289,29 @@ export class PaneFactory {
                       withId: ChildWithId<LeafLayout>,
                       pane: NgPaneComponent): ComponentRef<NgPaneLeafComponent> {
         const {child: layout, id} = withId;
-        const leaf                = this.leaves.get(layout.id);
-
         let component: ComponentRef<NgPaneLeafComponent>|undefined;
+        let hostView: ViewRef|undefined;
 
-        if (leaf !== undefined) {
-            if (!leaf.component.hostView.destroyed) {
-                const view = leaf.container.detach(leaf.container.indexOf(leaf.component.hostView));
+        const detached = this.tryDetachLeaf(layout.id);
 
-                if (view !== null) {
-                    container.insert(view);
+        if (detached !== undefined) {
+            const [view, leaf] = detached;
 
-                    component = leaf.component;
-                }
-                else {
-                    console.warn(`failed to detach view for leaf '${layout.id}'`);
-                }
-            }
-            else {
-                console.warn(`leaf '${layout.id}' destroyed during layout change`);
-            }
+            container.insert(view);
+            component = leaf.component;
+            hostView  = view;
         }
 
-        if (component === undefined) { component = container.createComponent(this.leafFactory); }
+        if (component === undefined) {
+            component = container.createComponent(this.leafFactory);
+            hostView  = component.hostView;
+        }
 
-        this.leaves.set(layout.id, {component, container});
+        if (hostView === undefined) {
+            throw new Error('host view is undefined - this should never happen');
+        }
+
+        this.leaves.set(layout.id, {component, container, hostView});
 
         const inst = component.instance;
 
@@ -389,7 +424,7 @@ export class PaneFactory {
 
         this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
 
-        return {component, container};
+        return {component, container, hostView: component.hostView};
     }
 
     /**
@@ -411,7 +446,7 @@ export class PaneFactory {
 
         this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: withId.id});
 
-        return {component, container};
+        return {component, container, hostView: component.hostView};
     }
 
     /**
@@ -462,7 +497,7 @@ export class PaneFactory {
 
         this.dropTargets.set(inst.el, {type: DropTargetType.TabRow, id: withId.id});
 
-        return {component, container};
+        return {component, container, hostView: component.hostView};
     }
 
     /**
@@ -481,9 +516,9 @@ export class PaneFactory {
 
         if (pane.header.type !== newType) {
             if (pane.header.type !== PaneHeaderType.None) {
-                const {component, container} = pane.header.header;
+                const {container, hostView} = pane.header.header;
 
-                container.remove(container.indexOf(component.hostView));
+                container.remove(container.indexOf(hostView));
             }
 
             switch (newType) {
@@ -573,9 +608,8 @@ export class PaneFactory {
         {
             const remove = [];
 
-            // TODO: pretty sure this isn't actually doing anything.
             for (const [key, val] of this.leaves.entries()) {
-                if (val.component.hostView.destroyed) {
+                if (val.hostView.destroyed) {
                     val.component.destroy();
                     remove.push(key);
                 }
