@@ -573,6 +573,18 @@ export class PaneFactory {
     }
 
     /**
+     * Get the client rectangles for a pane.
+     * @param layout the layout corresponding to the pane
+     */
+    public getPaneRects(layout: ChildLayout): DOMRectList|undefined {
+        const pane = this.panes.get(layout);
+
+        if (pane === undefined) { return undefined; }
+
+        return (pane.location.nativeElement as Element).getClientRects();
+    }
+
+    /**
      * Registers a leaf template with the given name and information.
      * @param name the name of the template
      * @param header the header style information for the template

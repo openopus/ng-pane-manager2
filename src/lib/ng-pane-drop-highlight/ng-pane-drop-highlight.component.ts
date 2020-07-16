@@ -40,4 +40,6 @@ export class NgPaneDropHighlightComponent {
     @HostBinding('style.width.px') public width: number = 0;
     /** The height of this drop highlight */
     @HostBinding('style.height.px') public height: number = 0;
+    /** Whether to emphasize a particular edge of the highlight */
+    @HostBinding('attr.data-lib-ng-pane-drop-emphasize') public emphasize: 'left'|'right'|undefined;
 }

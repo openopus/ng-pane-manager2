@@ -121,10 +121,43 @@ interface SplitDropInfo extends DropInfoBase<
 interface TabbedDropInfo extends DropInfoBase<DropOrientation.Tabbed> {
     /** The tab index to insert the floating pane at */
     tab: number;
+    /**
+     * Whether the tab index is before or after the target tab.  A value of
+     * `undefined` indicates the target element is not a tab.
+     */
+    isAfter: boolean|undefined;
 }
 
 /** Contains any kind of drop info. */
 type DropInfo = SplitDropInfo|TabbedDropInfo;
+
+/** Used below to debounce and differentiate different hover actions. */
+const enum HoverActionType {
+    None,
+    TabSwitch,
+}
+
+// None action with left beef
+/** Represents no pending hover action */
+interface NoneHoverAction {
+    /** The action type.  Used for type checking. */
+    type: HoverActionType.None;
+}
+
+/** Represents a pending tab switch */
+interface TabSwitchHoverAction {
+    /** The action type.  Used for type checking. */
+    type: HoverActionType.TabSwitch;
+    /** The tabbed layout to switch.  Used for debouncing. */
+    layout: TabbedLayout;
+    /** The tab index to switch to.  Used for debouncing. */
+    index: number;
+    /** The handle for the timeout */
+    handle: ReturnType<typeof setTimeout>;
+}
+
+/** Contains any type of hover action. */
+type HoverAction = NoneHoverAction|TabSwitchHoverAction;
 
 /**
  * Provides an implementation of the callbacks needed for `beginMouseDrag` that
@@ -140,6 +173,8 @@ export class PaneDragContext {
     private floatingInfo: FloatingInfo|undefined;
     /** The information needed to drop the floating layout */
     private dropInfo: DropInfo|undefined;
+    /** Any currently ongoing hover action */
+    private hoverAction: HoverAction = {type: HoverActionType.None};
 
     /**
      * Compute the orientation of a dropped panel given the posisition of a drag
@@ -188,6 +223,19 @@ export class PaneDragContext {
     }
 
     /**
+     * Compute whether a tab should be inserted to the left or the right of a
+     * target given the position of a drag over the target's client rectangle.
+     * @param x the X coordinate of the drag
+     * @param y the Y coordinate of the drag
+     * @param rect the client rectangle of the hovered element
+     */
+    private static computeTabIsAfter(x: number, _y: number, rect: ClientRect): boolean {
+        // If the drag is closer to the right edge of the tab,
+        // insert the floating pane after it
+        return x >= rect.left + rect.width * 0.5;
+    }
+
+    /**
      * Construct and initialize a new `PaneDragContext` given a `mousedown`
      * event.
      * @param evt the `mousedown` event to be passed to `beginMouseDrag`
@@ -213,6 +261,26 @@ export class PaneDragContext {
                         private readonly manager: NgPaneManagerComponent,
                         private readonly id: ChildLayoutId) {
         this.oldLayout = manager.layout;
+    }
+
+    /**
+     * Run the specified callback after a delay, then reset the current hover
+     * action.
+     * @param fn the callback to run
+     */
+    private runHoverAction(fn: () => void): ReturnType<typeof setTimeout> {
+        const HOVER_ACTION_DELAY = 850;
+
+        const handle = setTimeout(() => {
+            fn();
+
+            if (this.hoverAction.type !== HoverActionType.None &&
+                this.hoverAction.handle === handle) {
+                this.hoverAction = {type: HoverActionType.None};
+            }
+        }, HOVER_ACTION_DELAY);
+
+        return handle;
     }
 
     /**
@@ -262,7 +330,7 @@ export class PaneDragContext {
     private detachPanel(x: number, y: number): boolean {
         let newLayout;
         let floating;
-        let floatingRatio = 0.5;
+        let floatingPct = 0.5;
 
         switch (this.id.stem.type) {
         case LayoutType.Horiz:
@@ -272,8 +340,42 @@ export class PaneDragContext {
             floating                              = removed;
             // TODO: the ratio calculations are mildly incorrect due to the
             //       width of the split thumbs
-            // TODO: "donate" our ratio to the smallest neighbor
-            floatingRatio = removedRatio / this.id.stem.ratioSum;
+
+            // This is here because of TypeScript
+            const stem = this.id.stem;
+
+            // Find the index of the neighbor with the smallest ratio
+            // TODO: this can be cleaned up if TypeScript ever introduces a
+            //       cleaner reduce signature
+            const minId = ([this.id.index - 1, this.id.index + 1].filter(
+                               i => i >= 0 && i < stem.children.length) as (number | undefined)[])
+                              .reduce((m, i) => m === undefined ||
+                                                        stem.ratios[i as number] < stem.ratios[m]
+                                                    ? i
+                                                    : m,
+                                      undefined);
+
+            // If we have a neighbor, donate our ratio to them.  The floating
+            // panel ratio will be derived from our size compared to theirs.
+            if (minId !== undefined) {
+                const oldNeighborRatio = this.id.stem.ratios[minId];
+                const combinedRatio    = oldNeighborRatio + removedRatio;
+
+                floatingPct = removedRatio / combinedRatio;
+
+                if (newLayout.children.length > 1) {
+                    // Find the index in the new layout, since the removal of the
+                    // floating pane changes the indices.
+                    const newMinId = minId > this.id.index ? minId - 1 : minId;
+
+                    newLayout.resizeChild(newMinId,
+                                          combinedRatio * newLayout.ratios[newMinId] /
+                                              oldNeighborRatio);
+                }
+            }
+            else {
+                floatingPct = 0.5;
+            }
             break;
         }
         case LayoutType.Tabbed: {
@@ -295,36 +397,48 @@ export class PaneDragContext {
         try {
             const layout = floating;
 
-            this.manager.transactLayoutChange(_ => transposed.intoRoot(), (factory, renderer) => {
-                // TODO: make sure pane is non-interactable
-                const pane = factory.placePane(renderer.viewContainer, layout.intoRoot().childId());
+            // Fallback numbers for if we can't retrieve the rendered pane size
+            let width  = 300;
+            let height = 200;
 
-                {
-                    // TODO: choose smarter values, or consider the viewport size
-                    const FLOATING_WIDTH  = 300;
-                    const FLOATING_HEIGHT = 200;
+            this.manager.transactLayoutChange(
+                (_, factory) => {
+                    const rects = factory.getPaneRects(layout);
 
-                    const inst = pane.instance;
+                    if (rects !== undefined) {
+                        width  = rects[0].width;
+                        height = rects[0].height;
+                    }
 
-                    inst.floating = true;
-                    inst.width    = FLOATING_WIDTH;
-                    inst.height   = FLOATING_HEIGHT;
-                }
+                    return transposed.intoRoot();
+                },
+                (factory, renderer) => {
+                    // TODO: make sure pane is non-interactable
+                    const pane = factory.placePane(renderer.viewContainer,
+                                                   layout.intoRoot().childId());
 
-                const dropHighlight = factory.placeDropHighlight(renderer.viewContainer);
+                    {
+                        const inst = pane.instance;
 
-                {
-                    const inst = dropHighlight.instance;
+                        inst.floating = true;
+                        inst.width    = width;
+                        inst.height   = height;
+                    }
 
-                    inst.visible = false;
-                    inst.left    = x;
-                    inst.top     = y;
-                    inst.width   = 0;
-                    inst.height  = 0;
-                }
+                    const dropHighlight = factory.placeDropHighlight(renderer.viewContainer);
 
-                this.floatingInfo = {layout, pct: floatingRatio, pane, dropHighlight};
-            });
+                    {
+                        const inst = dropHighlight.instance;
+
+                        inst.visible = false;
+                        inst.left    = x;
+                        inst.top     = y;
+                        inst.width   = 0;
+                        inst.height  = 0;
+                    }
+
+                    this.floatingInfo = {layout, pct: floatingPct, pane, dropHighlight};
+                });
         }
         catch (e) {
             console.error(e, 'Drag detach failed!  Attempting to restore original layout...');
@@ -341,7 +455,6 @@ export class PaneDragContext {
 
     // TODO: dropping on split pane thumbs should probably count as inserting
     //       the pane between the two adjacent children
-    // TODO?: should holding over a tab switch to it?
     /**
      * Compute the information necessary to drop the floating pane.
      * @param x the current X coordinate of the drag
@@ -351,6 +464,14 @@ export class PaneDragContext {
         if (this.floatingInfo === undefined) { return; }
 
         const MARGIN = 8;
+
+        /**
+         * The next hover action to switch to.  A type of `HoverActionType.None`
+         * indicates to cancel the current action, and a value of `undefined`
+         * indicates to continue running the current action.  All other values
+         * will cancel the current action and start a new one.
+         */
+        let nextHoverAction: HoverAction|undefined = {type: HoverActionType.None};
 
         const outerRect = this.manager.el.nativeElement.getClientRects()[0];
 
@@ -417,7 +538,8 @@ export class PaneDragContext {
                             orientation: DropOrientation.Tabbed,
                             layout,
                             element,
-                            tab: layout.type === LayoutType.Leaf ? 1 : layout.children.length,
+                            tab: layout.type === LayoutType.Tabbed ? layout.currentTab + 1 : 1,
+                            isAfter: undefined,
                         };
                     }
                     else {
@@ -429,28 +551,59 @@ export class PaneDragContext {
                         };
                     }
                     break;
-                case DropTargetType.Header:
+                case DropTargetType.Header: {
+                    const isAfter = PaneDragContext.computeTabIsAfter(x,
+                                                                      y,
+                                                                      element.getClientRects()[0]);
+
+                    this.dropInfo = {
+                        orientation: DropOrientation.Tabbed,
+                        layout,
+                        element,
+                        tab: isAfter ? 1 : 0,
+                        isAfter,
+                    };
+                    break;
+                }
                 case DropTargetType.TabRow:
-                    if (target.id.stem.type === LayoutType.Root) { this.dropInfo = undefined; }
-                    else {
-                        this.dropInfo = {
-                            orientation: DropOrientation.Tabbed,
-                            layout,
-                            element,
-                            tab: layout.type === LayoutType.Leaf ? 1 : layout.children.length,
-                        };
-                    }
+                    this.dropInfo = {
+                        orientation: DropOrientation.Tabbed,
+                        layout,
+                        element,
+                        tab: layout.type === LayoutType.Tabbed ? layout.children.length : 1,
+                        isAfter: undefined,
+                    };
                     break;
-                case DropTargetType.Tab:
+                case DropTargetType.Tab: {
+                    const isAfter = PaneDragContext.computeTabIsAfter(x,
+                                                                      y,
+                                                                      element.getClientRects()[0]);
+
                     if (target.id.stem.type === LayoutType.Tabbed) {
-                        // TODO: adjust the tab index based on whether or not
-                        //       the drag position is closer to the left or the
-                        //       right edge of the tab.
+                        const {stem, index} = target.id;
+
+                        if (target.id.stem.currentTab !== target.id.index) {
+                            if (this.hoverAction.type === HoverActionType.TabSwitch &&
+                                this.hoverAction.layout === stem &&
+                                this.hoverAction.index === index) {
+                                nextHoverAction = undefined;
+                            }
+                            else {
+                                const handle = this.runHoverAction(() => stem.currentTab = index);
+
+                                nextHoverAction =
+                                    {type: HoverActionType.TabSwitch, layout: stem, index, handle};
+                            }
+                        }
+
+                        // TODO: add a visual to indicate which side of the tab
+                        //       the floating panel will be inserted at
                         this.dropInfo = {
                             orientation: DropOrientation.Tabbed,
-                            layout: target.id.stem,
+                            layout: stem,
                             element,
-                            tab: target.id.index,
+                            tab: isAfter ? index + 1 : index,
+                            isAfter,
                         };
                     }
                     else {
@@ -458,10 +611,12 @@ export class PaneDragContext {
                             orientation: DropOrientation.Tabbed,
                             layout,
                             element,
-                            tab: 0,
+                            tab: isAfter ? 1 : 0,
+                            isAfter,
                         };
                     }
                     break;
+                }
                 }
             }
         }
@@ -475,6 +630,14 @@ export class PaneDragContext {
         }
         else {
             this.dropInfo = undefined;
+        }
+
+        if (nextHoverAction !== undefined) {
+            if (this.hoverAction.type !== HoverActionType.None) {
+                clearTimeout(this.hoverAction.handle);
+            }
+
+            this.hoverAction = nextHoverAction;
         }
     }
 
@@ -507,39 +670,47 @@ export class PaneDragContext {
             inst.visible = true;
 
             const rect = this.dropInfo.element.getClientRects()[0];
-            const pct  = 0.5; // TODO
 
             switch (this.dropInfo.orientation) {
             case DropOrientation.Left:
-                inst.left   = rect.left;
-                inst.top    = rect.top;
-                inst.width  = rect.width * pct;
-                inst.height = rect.height;
+                inst.left      = rect.left;
+                inst.top       = rect.top;
+                inst.width     = rect.width * this.dropInfo.pct;
+                inst.height    = rect.height;
+                inst.emphasize = undefined;
                 break;
             case DropOrientation.Top:
-                inst.left   = rect.left;
-                inst.top    = rect.top;
-                inst.width  = rect.width;
-                inst.height = rect.height * pct;
+                inst.left      = rect.left;
+                inst.top       = rect.top;
+                inst.width     = rect.width;
+                inst.height    = rect.height * this.dropInfo.pct;
+                inst.emphasize = undefined;
                 break;
             case DropOrientation.Right:
-                inst.left   = rect.left + rect.width * (1 - pct);
-                inst.top    = rect.top;
-                inst.width  = rect.width * pct;
-                inst.height = rect.height;
+                inst.left      = rect.left + rect.width * (1 - this.dropInfo.pct);
+                inst.top       = rect.top;
+                inst.width     = rect.width * this.dropInfo.pct;
+                inst.height    = rect.height;
+                inst.emphasize = undefined;
                 break;
             case DropOrientation.Bottom:
-                inst.left   = rect.left;
-                inst.top    = rect.top + rect.height * (1 - pct);
-                inst.width  = rect.width;
-                inst.height = rect.height * pct;
+                inst.left      = rect.left;
+                inst.top       = rect.top + rect.height * (1 - this.dropInfo.pct);
+                inst.width     = rect.width;
+                inst.height    = rect.height * this.dropInfo.pct;
+                inst.emphasize = undefined;
                 break;
             case DropOrientation.Tabbed:
-                // TODO?: should this attempt to position itself on the tab bar?
                 inst.left   = rect.left;
                 inst.top    = rect.top;
                 inst.width  = rect.width;
                 inst.height = rect.height;
+
+                switch (this.dropInfo.isAfter) {
+                case undefined: inst.emphasize = undefined; break;
+                case false: inst.emphasize = 'left'; break;
+                case true: inst.emphasize = 'right'; break;
+                }
                 break;
             }
         }

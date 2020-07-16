@@ -125,10 +125,10 @@ export class NgPaneManagerComponent {
      * @param fn callback returning a new layout given the current one
      * @param after hook to run just before all unused leaf nodes are destroyed
      */
-    public transactLayoutChange(fn: (layout: RootLayout)                    => RootLayout,
+    public transactLayoutChange(fn: (layout: RootLayout, factory: PaneFactory) => RootLayout,
                                 after?: (factory: PaneFactory,
-                                         renderer: NgPaneRendererDirective) => void): void {
-        let newLayout = fn(this._layout);
+                                         renderer: NgPaneRendererDirective)    => void): void {
+        let newLayout = fn(this._layout, this.factory);
 
         const simplified = newLayout.simplifyDeep();
 
