@@ -443,6 +443,9 @@ export class PaneDragContext {
                     break;
                 case DropTargetType.Tab:
                     if (target.id.stem.type === LayoutType.Tabbed) {
+                        // TODO: adjust the tab index based on whether or not
+                        //       the drag position is closer to the left or the
+                        //       right edge of the tab.
                         this.dropInfo = {
                             orientation: DropOrientation.Tabbed,
                             layout: target.id.stem,
@@ -554,6 +557,11 @@ export class PaneDragContext {
 
         let replace: ChildLayout;
 
+        // TODO: this may be an issue that needs to be fixed in the logic for
+        //       spliceChildren, but should gravity/group be inherited?  This
+        //       depends on whether gravity/group needs to be applied to just
+        //       a single node or to all the nodes it contains
+
         switch (this.dropInfo.orientation) {
         case DropOrientation.Left:
             replace = new SplitLayout(LayoutType.Horiz,
@@ -650,6 +658,7 @@ export abstract class DraggablePaneComponent {
     /** The ID of this pane */
     public childId!: ChildLayoutId;
 
+    // TODO: this won't work at all with touch
     /**
      * Initiates drag-and-drop for this pane.
      *
@@ -664,5 +673,8 @@ export abstract class DraggablePaneComponent {
             evt.preventDefault();
             evt.stopPropagation();
         }
+
+        // TODO: middle-click on headers and tabs should close panes, but only
+        //       if it's closable
     }
 }

@@ -46,6 +46,7 @@ export interface PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
     title: Observable<string>;
     /** The icon for this header, or `undefined` for no icon */
     icon: Observable<string|undefined>;
+    // TODO: make closable actually do something
     /** Whether this pane can be closed */
     closable: boolean;
 }

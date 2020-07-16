@@ -169,9 +169,12 @@ export class PaneFactory {
     /** Factory for tabbed branch panes */
     private readonly tabbedFactory: ComponentFactory<NgPaneTabbedComponent>;
 
-    // TODO: clean out old data from these maps on layout changes
+    // TODO: move the template dictionary into a global service
     /** Registered leaf templates, stored by name */
     private readonly templates: Map<string, LeafTemplateInfo> = new Map();
+
+    // TODO: clean out old data from these maps on layout changes
+    // TODO: stress test layout changes to make sure all old data is cleaned out
     /** All currently rendered leaves, stored by leaf pane id (_not_ template) */
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent>> = new Map();
     /**

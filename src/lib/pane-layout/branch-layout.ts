@@ -345,6 +345,8 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
                     const sum    = next._ratioSum;
                     const ratios = this._ratios;
 
+                    // TODO: this calculation needs to be corrected to account
+                    //       for the widths of the split thumbs
                     newRatio = next._ratios.map(r => (r / sum) * ratios[idx]);
                 }
                 else {

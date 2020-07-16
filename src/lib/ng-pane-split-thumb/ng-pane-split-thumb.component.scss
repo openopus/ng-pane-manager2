@@ -21,6 +21,8 @@
 :host {
     flex: 0 0 8px;
 
+    // TODO: force the cursor to always match this element's cursor when in a drag
+
     &.lib-ng-pane-horiz {
         cursor: ew-resize;
     }
