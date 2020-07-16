@@ -44,6 +44,20 @@ export class NgPaneComponent {
     @HostBinding('style.flex-grow') public ratio: number|undefined;
     /** The pane visibility if this is a child of a tabbed branch */
     @HostBinding('class.lib-ng-pane-hidden') public hidden: boolean = false;
+    /**
+     * Display this pane floating with `position: fixed`.\
+     * The position and size can be adjusted with `left`, `top`, `right`, and
+     * `bottom`.
+     */
+    @HostBinding('class.lib-ng-pane-floating') public floating: boolean = false;
+    /** The X position of this pane, if it is floating */
+    @HostBinding('style.left.px') public left: number|undefined;
+    /** The Y position of this pane, if it is floating */
+    @HostBinding('style.top.px') public top: number|undefined;
+    /** The width of this pane, if it is floating */
+    @HostBinding('style.width.px') public width: number|undefined;
+    /** The height of this pane, if it is floating */
+    @HostBinding('style.height.px') public height: number|undefined;
 
     /** The ID of the pane associated with this component */
     public childId!: ChildLayoutId;

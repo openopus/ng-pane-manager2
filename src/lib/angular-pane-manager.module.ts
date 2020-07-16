@@ -21,6 +21,9 @@
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 
+import {
+    NgPaneDropHighlightComponent,
+} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
@@ -41,6 +44,7 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
 @NgModule({
     declarations: [
         NgPaneComponent,
+        NgPaneDropHighlightComponent,
         NgPaneHeaderComponent,
         NgPaneLeafComponent,
         NgPaneManagerComponent,

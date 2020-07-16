@@ -47,18 +47,18 @@ import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
 export class NgPaneManagerComponent {
+    /** Provides a view container to render into */
+    @ViewChild(NgPaneRendererDirective, {static: true})
+    private readonly renderer!: NgPaneRendererDirective;
+
     /** See `layout` */
-    private _layout: RootLayout                                = new RootLayout(undefined);
+    private _layout: RootLayout = new RootLayout(undefined);
     /** See `dropTargets` */
     private _dropTargets: Map<ElementRef<Element>, DropTarget> = new Map();
     /** The root component of the current layout */
     private pane: ComponentRef<NgPaneComponent>|undefined;
     /** The pane factory used for rendering all inner components */
     private readonly factory: PaneFactory;
-
-    /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
-    public readonly renderer!: NgPaneRendererDirective;
 
     /**
      * The current layout being rendered.  This can be changed using the
@@ -70,39 +70,7 @@ export class NgPaneManagerComponent {
         return this._layout;
     }
 
-    public set layout(val: RootLayout) {
-        if (val === this._layout) { return; }
-
-        if (val.type !== LayoutType.Root) {
-            throw new Error('invalid layout type for pane manager - must be a root layout');
-        }
-
-        let newLayout = val.simplifyDeep();
-
-        if (newLayout !== undefined) {
-            if (newLayout.type !== LayoutType.Root) {
-                throw new Error('invalid simplification - root layout collapsed into child');
-            }
-        }
-        else {
-            newLayout = val;
-        }
-
-        this._layout = newLayout;
-
-        const oldPane = this.pane;
-
-        this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
-
-        try {
-            this.pane = this.factory.placePane(this.renderer.viewContainer, newLayout.childId());
-        }
-        finally {
-            this.factory.notifyLayoutChangeEnd();
-
-            if (oldPane !== undefined) { oldPane.destroy(); }
-        }
-    }
+    public set layout(val: RootLayout) { this.transactLayoutChange(_ => val); }
 
     /**
      * Drag-and-drop information created by the pane renderer. Used for
@@ -116,7 +84,9 @@ export class NgPaneManagerComponent {
      * Construct a new pane manager.
      * @param cfr injected for use by the pane factory
      */
-    public constructor(cfr: ComponentFactoryResolver) { this.factory = new PaneFactory(this, cfr); }
+    public constructor(public el: ElementRef<Element>, cfr: ComponentFactoryResolver) {
+        this.factory = new PaneFactory(this, cfr);
+    }
 
     /**
      * Registers a given `TemplateRef` for leaves with the corresponding
@@ -148,5 +118,43 @@ export class NgPaneManagerComponent {
         for (const [key, val] of this._dropTargets) { ret.set(key.nativeElement, val); }
 
         return ret;
+    }
+
+    /**
+     * Apply one or more changes to the rendered layout as a single operation.
+     * @param fn callback returning a new layout given the current one
+     * @param after hook to run just before all unused leaf nodes are destroyed
+     */
+    public transactLayoutChange(fn: (layout: RootLayout)                    => RootLayout,
+                                after?: (factory: PaneFactory,
+                                         renderer: NgPaneRendererDirective) => void): void {
+        let newLayout = fn(this._layout);
+
+        const simplified = newLayout.simplifyDeep();
+
+        if (simplified !== undefined) {
+            if (simplified.type !== LayoutType.Root) {
+                throw new Error('invalid simplification - root layout collapsed into child');
+            }
+
+            newLayout = simplified;
+        }
+
+        this._layout = newLayout;
+
+        const oldPane = this.pane;
+
+        this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
+
+        try {
+            this.pane = this.factory.placePane(this.renderer.viewContainer, newLayout.childId());
+
+            if (after !== undefined) { after(this.factory, this.renderer); }
+        }
+        finally {
+            if (oldPane !== undefined) { oldPane.destroy(); }
+
+            this.factory.notifyLayoutChangeEnd();
+        }
     }
 }

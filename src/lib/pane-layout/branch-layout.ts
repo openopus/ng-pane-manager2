@@ -470,6 +470,8 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
             if (newCurrentTab >= idx && addChildren !== undefined) {
                 newCurrentTab += addChildren.length;
             }
+
+            newCurrentTab = Math.max(0, Math.min(newChildren.length - 1, newCurrentTab));
         }
 
         return {

@@ -133,7 +133,7 @@
     "no-invalid-template-strings": true,
     "no-invalid-this": true,
     "no-irregular-whitespace": true,
-    "no-magic-numbers": true,
+    "no-magic-numbers": [true, -1, 0, 0.5, 1],
     "no-mergeable-namespace": true,
     "no-misused-new": true,
     "no-non-null-assertion": true,

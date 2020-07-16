@@ -30,6 +30,9 @@ import {
 import {BehaviorSubject} from 'rxjs';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
+import {
+    NgPaneDropHighlightComponent,
+} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
@@ -147,6 +150,8 @@ export interface ComponentInst<C> {
  * layout of a pane manager.
  */
 export class PaneFactory {
+    /** Factory for pane drop highlights */
+    private readonly dropHighlightFactory: ComponentFactory<NgPaneDropHighlightComponent>;
     /** Factory for pane headers */
     private readonly headerFactory: ComponentFactory<NgPaneHeaderComponent>;
     /** Factory for leaf panes */
@@ -184,14 +189,15 @@ export class PaneFactory {
      */
     public constructor(private readonly manager: NgPaneManagerComponent,
                        cfr: ComponentFactoryResolver) {
-        this.headerFactory     = cfr.resolveComponentFactory(NgPaneHeaderComponent);
-        this.leafFactory       = cfr.resolveComponentFactory(NgPaneLeafComponent);
-        this.paneFactory       = cfr.resolveComponentFactory(NgPaneComponent);
-        this.splitFactory      = cfr.resolveComponentFactory(NgPaneSplitComponent);
-        this.splitThumbFactory = cfr.resolveComponentFactory(NgPaneSplitThumbComponent);
-        this.tabFactory        = cfr.resolveComponentFactory(NgPaneTabComponent);
-        this.tabRowFactory     = cfr.resolveComponentFactory(NgPaneTabRowComponent);
-        this.tabbedFactory     = cfr.resolveComponentFactory(NgPaneTabbedComponent);
+        this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
+        this.headerFactory        = cfr.resolveComponentFactory(NgPaneHeaderComponent);
+        this.leafFactory          = cfr.resolveComponentFactory(NgPaneLeafComponent);
+        this.paneFactory          = cfr.resolveComponentFactory(NgPaneComponent);
+        this.splitFactory         = cfr.resolveComponentFactory(NgPaneSplitComponent);
+        this.splitThumbFactory    = cfr.resolveComponentFactory(NgPaneSplitThumbComponent);
+        this.tabFactory           = cfr.resolveComponentFactory(NgPaneTabComponent);
+        this.tabRowFactory        = cfr.resolveComponentFactory(NgPaneTabRowComponent);
+        this.tabbedFactory        = cfr.resolveComponentFactory(NgPaneTabbedComponent);
     }
 
     // TODO: allow passing in extra data from layout nodes
@@ -319,7 +325,7 @@ export class PaneFactory {
         inst.layout   = layout;
         inst.template = this.renderLeafTemplate(layout.template);
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Leaf, id});
+        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
 
         return component;
     }
@@ -373,7 +379,7 @@ export class PaneFactory {
 
         inst.resizeEvents = layout.resizeEvents;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Split, id});
+        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
 
         return component;
     }
@@ -399,7 +405,7 @@ export class PaneFactory {
 
         inst.$currentTab = layout.$currentTab;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Tabbed, id});
+        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
 
         return component;
     }
@@ -653,6 +659,17 @@ export class PaneFactory {
         }
 
         this.updatePaneHeader(inst);
+
+        return component;
+    }
+
+    /**
+     * Render a drop highlight visual.
+     * @param container the container to render the drop highlight in
+     */
+    public placeDropHighlight(container: ViewContainerRef):
+        ComponentRef<NgPaneDropHighlightComponent> {
+        const component = container.createComponent(this.dropHighlightFactory);
 
         return component;
     }
