@@ -35,6 +35,7 @@ import {
     SplitLayout,
     TabbedLayout,
 } from './pane-layout/module';
+import {clipDenormPos} from './util';
 
 /**
  * Indicates the type of a pane drop target.
@@ -186,8 +187,8 @@ export class PaneDragContext {
     private static computeDropOrientation(x: number, y: number, rect: ClientRect): DropOrientation {
         const TAB_MARGIN = 0.15;
 
-        const posX = (x - rect.left) / rect.width - 0.5;
-        const posY = (y - rect.top) / rect.height - 0.5;
+        const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
+        const posY = (y - rect.top) / clipDenormPos(rect.height) - 0.5;
 
         if (posX >= -TAB_MARGIN && posX < TAB_MARGIN && posY >= -TAB_MARGIN && posY < TAB_MARGIN) {
             return DropOrientation.Tabbed;
@@ -212,8 +213,8 @@ export class PaneDragContext {
      */
     private static computeSplitDropOrientation(x: number, y: number, rect: ClientRect):
         DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom {
-        const posX = (x - rect.left) / rect.width - 0.5;
-        const posY = (y - rect.top) / rect.height - 0.5;
+        const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
+        const posY = (y - rect.top) / clipDenormPos(rect.height) - 0.5;
 
         if (Math.abs(posX) > Math.abs(posY)) {
             return posX < 0 ? DropOrientation.Left : DropOrientation.Right;
@@ -361,7 +362,7 @@ export class PaneDragContext {
                 const oldNeighborRatio = this.id.stem.ratios[minId];
                 const combinedRatio    = oldNeighborRatio + removedRatio;
 
-                floatingPct = removedRatio / combinedRatio;
+                floatingPct = removedRatio / clipDenormPos(combinedRatio);
 
                 if (newLayout.children.length > 1) {
                     // Find the index in the new layout, since the removal of the
@@ -370,7 +371,7 @@ export class PaneDragContext {
 
                     newLayout.resizeChild(newMinId,
                                           combinedRatio * newLayout.ratios[newMinId] /
-                                              oldNeighborRatio);
+                                              clipDenormPos(oldNeighborRatio));
                 }
             }
             else {
@@ -671,11 +672,16 @@ export class PaneDragContext {
 
             const rect = this.dropInfo.element.getClientRects()[0];
 
+            const MIN_PCT = 0.15;
+            const MAX_PCT = 1 - MIN_PCT;
+
+            const clip = (pct: number) => Math.max(MIN_PCT, Math.min(MAX_PCT, pct));
+
             switch (this.dropInfo.orientation) {
             case DropOrientation.Left:
                 inst.left      = rect.left;
                 inst.top       = rect.top;
-                inst.width     = rect.width * this.dropInfo.pct;
+                inst.width     = rect.width * clip(this.dropInfo.pct);
                 inst.height    = rect.height;
                 inst.emphasize = undefined;
                 break;
@@ -683,11 +689,11 @@ export class PaneDragContext {
                 inst.left      = rect.left;
                 inst.top       = rect.top;
                 inst.width     = rect.width;
-                inst.height    = rect.height * this.dropInfo.pct;
+                inst.height    = rect.height * clip(this.dropInfo.pct);
                 inst.emphasize = undefined;
                 break;
             case DropOrientation.Right:
-                inst.left      = rect.left + rect.width * (1 - this.dropInfo.pct);
+                inst.left      = rect.left + rect.width * clip(1 - this.dropInfo.pct);
                 inst.top       = rect.top;
                 inst.width     = rect.width * this.dropInfo.pct;
                 inst.height    = rect.height;
@@ -695,7 +701,7 @@ export class PaneDragContext {
                 break;
             case DropOrientation.Bottom:
                 inst.left      = rect.left;
-                inst.top       = rect.top + rect.height * (1 - this.dropInfo.pct);
+                inst.top       = rect.top + rect.height * clip(1 - this.dropInfo.pct);
                 inst.width     = rect.width;
                 inst.height    = rect.height * this.dropInfo.pct;
                 inst.emphasize = undefined;

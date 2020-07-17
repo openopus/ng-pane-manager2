@@ -22,6 +22,7 @@ import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
 
 import {beginMouseDrag} from '../begin-drag';
 import {ChildLayoutId, LayoutType, SplitLayout} from '../pane-layout/module';
+import {clipDenormPos} from '../util';
 
 /**
  * State information for dragging a split branch thumb.
@@ -81,24 +82,21 @@ export class NgPaneSplitThumbComponent {
         const branchRect = this.splitEl.nativeElement.getClientRects()[0];
         const selfRect   = this.el.nativeElement.getClientRects()[0];
 
-        const layout  = this.childId.stem;
-        const EPSILON = 1e-7;
+        const layout = this.childId.stem;
 
         // TODO: some of these calculations are a little weird because moveSplit
         //       doesn't consider the width of thumbs
         switch (layout.type) {
         case LayoutType.Horiz:
             state.scaleFactor = layout.ratioSum /
-                                Math.max(EPSILON,
-                                         branchRect.width -
-                                             selfRect.width * (layout.ratios.length - 1));
+                                clipDenormPos(branchRect.width -
+                                              selfRect.width * (layout.ratios.length - 1));
             state.lastPos = clientX;
             break;
         case LayoutType.Vert:
             state.scaleFactor = layout.ratioSum /
-                                Math.max(EPSILON,
-                                         branchRect.height -
-                                             selfRect.height * (layout.ratios.length - 1));
+                                clipDenormPos(branchRect.height -
+                                              selfRect.height * (layout.ratios.length - 1));
             state.lastPos = clientY;
             break;
         }
