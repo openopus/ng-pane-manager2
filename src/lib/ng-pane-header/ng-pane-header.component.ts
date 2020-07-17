@@ -20,7 +20,7 @@
 
 import {Component, ElementRef} from '@angular/core';
 
-import {DraggablePaneComponent} from '../drag-and-drop';
+import {ClosablePaneComponent} from '../closable';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 
 /**
@@ -34,10 +34,16 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
             <img class="lib-ng-pane-header-icon" [src]="icon">
         </ng-container>
         <span class="lib-ng-pane-header-title">{{style.title | async}}</span>
+        <ng-container *ngIf="style.closable">
+            <div class="lib-ng-pane-header-spacer"></div>
+            <button class="lib-ng-pane-header-close"
+                    (mousedown)="$event.stopPropagation()"
+                    (click)="close()"></button>
+        </ng-container>
     </ng-container>`,
     styleUrls: ['./ng-pane-header.component.scss'],
 })
-export class NgPaneHeaderComponent extends DraggablePaneComponent {
+export class NgPaneHeaderComponent extends ClosablePaneComponent<PaneHeaderMode.Visible> {
     /** The header style information for this header */
     public style!: PaneHeaderStyle<PaneHeaderMode.Visible>;
 

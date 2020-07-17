@@ -21,6 +21,8 @@
 import {SplitLayout, TabbedLayout} from './branch-layout';
 import {ChildLayout, LayoutGravity, LayoutType, LeafLayout, PaneLayout} from './layout-core';
 
+// TODO: create helper functions to construct common layout templates
+
 /** A template for any kind of layout */
 export type LayoutTemplate = SplitLayoutTemplate|TabLayoutTemplate|LeafLayoutTemplate;
 

@@ -18,3 +18,16 @@
  *
  **********************************************************************************************/
 
+:host {
+    display: flex;
+    flex-flow: row nowrap;
+    white-space: nowrap;
+
+    > .lib-ng-pane-header-spacer {
+        flex: 1 0 0;
+    }
+
+    > .lib-ng-pane-header-close {
+        flex: 0 0 auto;
+    }
+}

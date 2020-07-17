@@ -18,7 +18,7 @@
  *
  *********************************************************************************/
 
-import {ComponentRef, HostListener} from '@angular/core';
+import {Component, ComponentRef, HostListener} from '@angular/core';
 
 import {beginMouseDrag, DragCancelFn} from './begin-drag';
 import {
@@ -829,6 +829,7 @@ export class PaneDragContext {
  * Provides a `mousedown` handler that covers all pane drag-and-drop
  * functionality.
  */
+@Component({template: ''})
 export abstract class DraggablePaneComponent {
     /** The pane manager hosting this pane */
     public manager!: NgPaneManagerComponent;
@@ -850,8 +851,5 @@ export abstract class DraggablePaneComponent {
             evt.preventDefault();
             evt.stopPropagation();
         }
-
-        // TODO: middle-click on headers and tabs should close panes, but only
-        //       if it's closable
     }
 }

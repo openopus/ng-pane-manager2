@@ -18,3 +18,16 @@
  *
  *******************************************************************************************/
 
+:host {
+    display: flex;
+    flex-flow: row nowrap;
+    white-space: nowrap;
+
+    > .lib-ng-pane-tab-spacer {
+        flex: 0 0 8px;
+    }
+
+    > .lib-ng-pane-tab-close {
+        flex: 0 0 auto;
+    }
+}
