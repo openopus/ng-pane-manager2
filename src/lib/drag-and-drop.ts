@@ -48,6 +48,8 @@ export const enum DropTargetType {
      * leaf, split, or tabbed component contained by one.
      */
     Pane,
+    /** Similar to `Pane`, but disallows tabbing with the pane */
+    PaneNoTab,
     /** The target element is owned by a (non-tabbed) panel header */
     Header,
     /** The target element is owned by a tab in a tab row */
@@ -532,7 +534,7 @@ export class PaneDragContext<X> {
                 const layout            = childFromId(target.id);
 
                 switch (target.type) {
-                case DropTargetType.Pane:
+                case DropTargetType.Pane: {
                     const orientation = PaneDragContext.computeDropOrientation(
                         x, y, element.getClientRects()[0]);
 
@@ -554,6 +556,19 @@ export class PaneDragContext<X> {
                         };
                     }
                     break;
+                }
+                case DropTargetType.PaneNoTab: {
+                    const orientation = PaneDragContext.computeSplitDropOrientation(
+                        x, y, element.getClientRects()[0]);
+
+                    this.dropInfo = {
+                        orientation,
+                        layout,
+                        element,
+                        pct: this.floatingInfo.pct,
+                    };
+                    break;
+                }
                 case DropTargetType.Header: {
                     const isAfter = PaneDragContext.computeTabIsAfter(x,
                                                                       y,

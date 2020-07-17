@@ -21,8 +21,7 @@
 import {TemplateRef} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 
-// TODO: prevent tabifying headerless panes
-// TODO: add size constraints/no-resize mode?
+// TODO: add size constraints/no-resize mode? Perhaps fixed sizes, too
 /** The display format of a pane header */
 export const enum PaneHeaderMode {
     /** Don't display a header for this pane */
@@ -46,7 +45,6 @@ export interface PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
     title: Observable<string>;
     /** The icon for this header, or `undefined` for no icon */
     icon: Observable<string|undefined>;
-    // TODO: make closable actually do something
     /** Whether this pane can be closed */
     closable: boolean;
 }

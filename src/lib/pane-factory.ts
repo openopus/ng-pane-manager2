@@ -209,7 +209,6 @@ export class PaneFactory<X> {
                              ComponentFactory<NgPaneTabbedComponent<X>>;
     }
 
-    // TODO: allow passing in extra data from layout nodes
     /**
      * Collect all the necessary information to render the contents of a leaf
      * pane.
@@ -262,6 +261,22 @@ export class PaneFactory<X> {
                 closable: false,
             };
         }
+    }
+
+    /**
+     * Register the contents of a pane as a drop target.
+     * @param id the ID of the pane
+     * @param el the element containing the pane
+     * @param style the header style of the pane
+     */
+    private setPaneDropTarget(id: ChildLayoutId<X>,
+                              el: ElementRef<Element>,
+                              style: PaneHeaderStyle): void {
+        this.dropTargets.set(el, {
+            type: style.headerMode === PaneHeaderMode.Hidden ? DropTargetType.PaneNoTab
+                                                             : DropTargetType.Pane,
+            id,
+        });
     }
 
     /**
@@ -334,7 +349,8 @@ export class PaneFactory<X> {
         inst.layout   = layout;
         inst.template = this.renderLeafTemplate(layout);
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
+        const style = this.headerStyleForLayout(layout);
+        this.setPaneDropTarget(id, inst.el, style);
 
         return component;
     }
@@ -388,7 +404,8 @@ export class PaneFactory<X> {
 
         inst.resizeEvents = layout.resizeEvents;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
+        const style = this.headerStyleForLayout(layout);
+        this.setPaneDropTarget(id, inst.el, style);
 
         return component;
     }
@@ -414,7 +431,8 @@ export class PaneFactory<X> {
 
         inst.$currentTab = layout.$currentTab;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Pane, id});
+        const style = this.headerStyleForLayout(layout);
+        this.setPaneDropTarget(id, inst.el, style);
 
         return component;
     }
