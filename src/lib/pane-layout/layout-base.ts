@@ -23,7 +23,7 @@ import {LayoutGravity, PaneLayout} from './layout-core';
 /**
  * Base class for all pane layout node types.
  */
-export abstract class LayoutBase {
+export abstract class LayoutBase<X> {
     /**
      * Construct a new layout node.
      * @param gravity the gravity of this layout node
@@ -38,10 +38,11 @@ export abstract class LayoutBase {
      * @param find the node to search for
      * @param replace the node to replace the search node with
      */
-    public abstract transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined;
+    public abstract transposeDeep(find: PaneLayout<X>,
+                                  replace: PaneLayout<X>): PaneLayout<X>|undefined;
 
     /**
      * Recursively simplify this node tree.
      */
-    public abstract simplifyDeep(): PaneLayout|undefined;
+    public abstract simplifyDeep(): PaneLayout<X>|undefined;
 }

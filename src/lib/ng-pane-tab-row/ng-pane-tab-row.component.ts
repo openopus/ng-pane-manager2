@@ -29,15 +29,15 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
 /**
  * Extra information for a mock tab row with a single tab.
  */
-interface SimpleExtra {
+interface SimpleExtra<X> {
     /** The tab owned by this tab row */
-    tab: NgPaneTabComponent<PaneHeaderMode.AlwaysTab>;
+    tab: NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
 }
 
 /**
  * Extra information for a real tab row with multiple tabs.
  */
-interface TabbedExtra {
+interface TabbedExtra<X> {
     /** Mut be undefined, used for type checking */
     tab?: undefined;
     /** The style information for this pane */
@@ -45,7 +45,7 @@ interface TabbedExtra {
     /** Subscription for current tab changes */
     subscription: Subscription|undefined;
     /** The tabs rendered into this tab row */
-    tabs: NgPaneTabComponent[];
+    tabs: NgPaneTabComponent<X>[];
     /** The tab currently rendered as selected */
     current: number|undefined;
 }
@@ -59,9 +59,9 @@ interface TabbedExtra {
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tab-row.component.scss'],
 })
-export class NgPaneTabRowComponent extends DraggablePaneComponent {
+export class NgPaneTabRowComponent<X> extends DraggablePaneComponent<X> {
     /** Extra information.  See `SimpleExtra` and `TabbedExtra` */
-    private extra!: SimpleExtra|TabbedExtra|undefined;
+    private extra!: SimpleExtra<X>|TabbedExtra<X>|undefined;
 
     /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
@@ -92,7 +92,7 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
     }
 
     /** Convert this to a mock tab row using the given tab. */
-    public set tab(tab: NgPaneTabComponent<PaneHeaderMode.AlwaysTab>) {
+    public set tab(tab: NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>) {
         const style = this.extra !== undefined ? this.style : undefined;
 
         this.extra = {tab};
@@ -100,7 +100,7 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
     }
 
     /** If this is a real tab row, return the child tabs. */
-    public get tabs(): NgPaneTabComponent[] {
+    public get tabs(): NgPaneTabComponent<X>[] {
         const extra = this.setupTabbedExtra();
         if (extra === undefined) { throw new Error('tab row in invalid state'); }
 
@@ -135,7 +135,7 @@ export class NgPaneTabRowComponent extends DraggablePaneComponent {
     /**
      * Set up default information for a real tab row.
      */
-    private setupTabbedExtra(): TabbedExtra|undefined {
+    private setupTabbedExtra(): TabbedExtra<X>|undefined {
         if (this.extra === undefined) {
             this.extra = {
                 style: undefined,

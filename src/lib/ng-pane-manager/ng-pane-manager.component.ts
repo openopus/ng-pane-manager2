@@ -46,19 +46,19 @@ import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
-export class NgPaneManagerComponent {
+export class NgPaneManagerComponent<X> {
     /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
     /** See `layout` */
-    private _layout: RootLayout = new RootLayout(undefined);
+    private _layout: RootLayout<X> = new RootLayout(undefined);
     /** See `dropTargets` */
-    private _dropTargets: Map<ElementRef<Element>, DropTarget> = new Map();
+    private _dropTargets: Map<ElementRef<Element>, DropTarget<X>> = new Map();
     /** The root component of the current layout */
-    private pane: ComponentRef<NgPaneComponent>|undefined;
+    private pane: ComponentRef<NgPaneComponent<X>>|undefined;
     /** The pane factory used for rendering all inner components */
-    private readonly factory: PaneFactory;
+    private readonly factory: PaneFactory<X>;
 
     /**
      * The current layout being rendered.  This can be changed using the
@@ -66,17 +66,17 @@ export class NgPaneManagerComponent {
      * user.
      */
     @Input()
-    public get layout(): RootLayout {
+    public get layout(): RootLayout<X> {
         return this._layout;
     }
 
-    public set layout(val: RootLayout) { this.transactLayoutChange(_ => val); }
+    public set layout(val: RootLayout<X>) { this.transactLayoutChange(_ => val); }
 
     /**
      * Drag-and-drop information created by the pane renderer. Used for
      * hit testing during drag-and-drop.
      */
-    public get dropTargets(): Readonly<Map<ElementRef<Element>, DropTarget>> {
+    public get dropTargets(): Readonly<Map<ElementRef<Element>, DropTarget<X>>> {
         return this._dropTargets;
     }
 
@@ -98,7 +98,7 @@ export class NgPaneManagerComponent {
      */
     public registerLeafTemplate(name: string,
                                 header: PaneHeaderStyle,
-                                template: TemplateRef<LeafNodeContext>): void {
+                                template: TemplateRef<LeafNodeContext<X>>): void {
         this.factory.registerLeafTemplate(name, header, template);
     }
 
@@ -112,7 +112,7 @@ export class NgPaneManagerComponent {
      * Constructs a map from native elements to drag-and-drop information.  Used
      * for hit testing during drag-and-drop.
      */
-    public collectNativeDropTargets(): Map<Element, DropTarget> {
+    public collectNativeDropTargets(): Map<Element, DropTarget<X>> {
         const ret = new Map();
 
         for (const [key, val] of this._dropTargets) { ret.set(key.nativeElement, val); }
@@ -125,9 +125,10 @@ export class NgPaneManagerComponent {
      * @param fn callback returning a new layout given the current one
      * @param after hook to run just before all unused leaf nodes are destroyed
      */
-    public transactLayoutChange(fn: (layout: RootLayout, factory: PaneFactory) => RootLayout,
-                                after?: (factory: PaneFactory,
-                                         renderer: NgPaneRendererDirective)    => void): void {
+    public transactLayoutChange(fn: (layout: RootLayout<X>,
+                                     factory: PaneFactory<X>)               => RootLayout<X>,
+                                after?: (factory: PaneFactory<X>,
+                                         renderer: NgPaneRendererDirective) => void): void {
         let newLayout = fn(this._layout, this.factory);
 
         const simplified = newLayout.simplifyDeep();

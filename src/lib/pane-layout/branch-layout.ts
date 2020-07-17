@@ -33,14 +33,14 @@ import {
 /**
  * Base class for all branch layouts
  */
-export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase {
+export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends LayoutBase<X> {
     /**
      * Construct a new branch layout node.
      * @param children the children of this layout node
      * @param gravity the gravity of this layout node
      * @param group the group of this layout node
      */
-    public constructor(public readonly children: readonly ChildLayout[],
+    public constructor(public readonly children: readonly ChildLayout<X>[],
                        gravity: LayoutGravity|undefined,
                        group: string|undefined) {
         super(gravity, group);
@@ -50,14 +50,14 @@ export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase 
      * Construct a clone of the current node with a new list of children
      * @param newChildren the children to construct the clone with
      */
-    protected abstract withChildren(newChildren: ChildLayout[]): T;
+    protected abstract withChildren(newChildren: ChildLayout<X>[]): S;
 
     /**
      * Map the children of the current node to a new node using the given
      * function.
      * @param func function to map each child with
      */
-    public mapChildren(func: (value: ChildLayout, index: number) => ChildLayout): T {
+    public mapChildren(func: (value: ChildLayout<X>, index: number) => ChildLayout<X>): S {
         return this.withChildren(this.children.map(func));
     }
 
@@ -67,7 +67,7 @@ export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase 
      * @param index index of the child to map
      * @param func function to map the child with
      */
-    public mapChild(index: number, func: (value: ChildLayout) => ChildLayout): T {
+    public mapChild(index: number, func: (value: ChildLayout<X>) => ChildLayout<X>): S {
         return this.mapChildren((e, i) => i === index ? func(e) : e);
     }
 
@@ -77,10 +77,10 @@ export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase 
      * @param find the node to search for
      * @param replace the note to replace the search node with
      */
-    public transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
+    public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
         if (this as any === find) { return replace; }
 
-        let newChildren: ChildLayout[]|undefined;
+        let newChildren: ChildLayout<X>[]|undefined;
 
         this.children.forEach((child, idx) => {
             const newChild = child.transposeDeep(find, replace);
@@ -101,7 +101,7 @@ export abstract class BranchLayoutBase<T extends PaneLayout> extends LayoutBase 
 }
 
 /** A `ChildLayout` that can contain children */
-export type BranchLayout = SplitLayout|TabbedLayout;
+export type BranchLayout<X> = SplitLayout<X>|TabbedLayout<X>;
 
 // TODO: there's some pretty heavy code duplication between the two
 //       implementations below, but I can't think of a clean way to abstract the
@@ -118,7 +118,7 @@ export interface ResizeEvent {
 /**
  * A layout with its children stacked horizontally or vertically
  */
-export class SplitLayout extends BranchLayoutBase<SplitLayout> {
+export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
     /** See `resizeEvents` */
     private readonly _resizeEvents: Subject<ResizeEvent> = new Subject();
     /** See `ratioSum` */
@@ -151,7 +151,7 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
      * @param group the group of the split node
      */
     public constructor(public readonly    type: LayoutType.Horiz|LayoutType.Vert,
-                       children: readonly ChildLayout[],
+                       children: readonly ChildLayout<X>[],
                        private readonly   _ratios: number[],
                        gravity?: LayoutGravity,
                        group?: string) {
@@ -178,7 +178,7 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
     }
 
     /** See `BranchLayoutBase.withChildren` */
-    protected withChildren(newChildren: ChildLayout[]): SplitLayout {
+    protected withChildren(newChildren: ChildLayout<X>[]): SplitLayout<X> {
         return new SplitLayout(this.type, newChildren, this._ratios, this.gravity, this.group);
     }
 
@@ -186,12 +186,12 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
      * Construct a child ID referencing a child of this node.
      * @param index the index of the child ID
      */
-    public childId(index: number): ChildLayoutId { return {stem: this, index}; }
+    public childId(index: number): ChildLayoutId<X> { return {stem: this, index}; }
 
     /**
      * Convert this node into a root node.
      */
-    public intoRoot(): RootLayout { return new RootLayout(this); }
+    public intoRoot(): RootLayout<X> { return new RootLayout(this); }
 
     /**
      * Change the ratio of a single child.
@@ -248,12 +248,12 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
      */
     public spliceChildren(start: number|undefined,
                           remove: number,
-                          addChildren?: readonly ChildLayout[],
+                          addChildren?: readonly ChildLayout<X>[],
                           addRatios?: readonly   number[]): {
         /** The resulting layout */
-        layout: SplitLayout;
+        layout: SplitLayout<X>;
         /** The removed children */
-        removed: ChildLayout[];
+        removed: ChildLayout<X>[];
         /** The ratios of the removed children */
         removedRatios: number[];
     } {
@@ -286,9 +286,9 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
      */
     public withoutChild(index: number|undefined): {
         /** The resulting layout */
-        layout: SplitLayout;
+        layout: SplitLayout<X>;
         /** The removed child */
-        removed: ChildLayout;
+        removed: ChildLayout<X>;
         /** The ratio of the removed child */
         removedRatio: number;
     } {
@@ -304,7 +304,8 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
      * @param child the child to add
      * @param ratio the ratio of the child
      */
-    public withChild(index: number|undefined, child: ChildLayout, ratio: number): SplitLayout {
+    public withChild(index: number|undefined, child: ChildLayout<X>, ratio: number):
+        SplitLayout<X> {
         const {layout} = this.spliceChildren(index, 0, [child], [ratio]);
 
         return layout;
@@ -313,7 +314,7 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
     /**
      * Recursively simplify this node tree.
      */
-    public simplifyDeep(): PaneLayout|undefined {
+    public simplifyDeep(): PaneLayout<X>|undefined {
         if (this.children.length === 1) {
             const child      = this.children[0];
             const simplified = child.simplifyDeep();
@@ -321,11 +322,11 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
             return simplified !== undefined ? simplified : child;
         }
 
-        let newChildren: (ChildLayout|readonly ChildLayout[]|undefined)[]|undefined;
+        let newChildren: (ChildLayout<X>|readonly ChildLayout<X>[]|undefined)[]|undefined;
         let newRatios: (number|readonly number[]|undefined)[]|undefined;
 
         this.children.forEach((child, idx) => {
-            let newChild: ChildLayout|readonly ChildLayout[]|undefined;
+            let newChild: ChildLayout<X>|readonly ChildLayout<X>[]|undefined;
             let newRatio: number|readonly number[]|undefined;
 
             // Branches with no children will skip this block, leaving newChild
@@ -377,7 +378,7 @@ export class SplitLayout extends BranchLayoutBase<SplitLayout> {
 /**
  * A layout with its children placed in tabs
  */
-export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
+export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
     /** See `$currentTab` */
     private readonly _$currentTab: BehaviorSubject<number> = new BehaviorSubject(-1);
 
@@ -407,7 +408,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
      * @param gravity the gravity of the tabbed node
      * @param group the group of the tabbed node
      */
-    public constructor(children: readonly ChildLayout[],
+    public constructor(children: readonly ChildLayout<X>[],
                        currentTab: number,
                        gravity?: LayoutGravity,
                        group?: string) {
@@ -418,7 +419,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
 
 
     /** See `BranchLayoutBase.withChildren` */
-    protected withChildren(newChildren: ChildLayout[]): TabbedLayout {
+    protected withChildren(newChildren: ChildLayout<X>[]): TabbedLayout<X> {
         return new TabbedLayout(newChildren, this.currentTab, this.gravity, this.group);
     }
 
@@ -426,12 +427,12 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
      * Construct a child ID referencing a child of this node.
      * @param index the index of the child ID
      */
-    public childId(index: number): ChildLayoutId { return {stem: this, index}; }
+    public childId(index: number): ChildLayoutId<X> { return {stem: this, index}; }
 
     /**
      * convert this node into a root node.
      */
-    public intoRoot(): RootLayout { return new RootLayout(this); }
+    public intoRoot(): RootLayout<X> { return new RootLayout(this); }
 
     /**
      * Splice the list of children.  See `Array.prototype.splice` for more
@@ -443,12 +444,12 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
      */
     public spliceChildren(start: number|undefined,
                           remove: number,
-                          addChildren?: readonly ChildLayout[],
+                          addChildren?: readonly ChildLayout<X>[],
                           changeTabTo?: number): {
         /** The resulting layout */
-        layout: TabbedLayout;
+        layout: TabbedLayout<X>;
         /** The removed children */
-        removed: ChildLayout[];
+        removed: ChildLayout<X>[];
     } {
         const idx = start === undefined ? this.children.length : start;
 
@@ -489,9 +490,9 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
      */
     public withoutChild(index: number|undefined): {
         /** The resulting layout */
-        layout: TabbedLayout;
+        layout: TabbedLayout<X>;
         /** The removed child */
-        removed: ChildLayout;
+        removed: ChildLayout<X>;
     } {
         const {layout, removed} = this.spliceChildren(index, 1);
 
@@ -508,8 +509,8 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
      * @param child the child to add
      * @param changeTabTo change the current tab to the added child
      */
-    public withChild(index: number|undefined, child: ChildLayout, changeTabTo: boolean):
-        TabbedLayout {
+    public withChild(index: number|undefined, child: ChildLayout<X>, changeTabTo: boolean):
+        TabbedLayout<X> {
         const {layout} = this.spliceChildren(index, 0, [child], changeTabTo ? 0 : undefined);
 
         return layout;
@@ -518,7 +519,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
     /**
      * Recursively simplify this node tree.
      */
-    public simplifyDeep(): PaneLayout|undefined {
+    public simplifyDeep(): PaneLayout<X>|undefined {
         if (this.children.length === 1) {
             const child      = this.children[0];
             const simplified = child.simplifyDeep();
@@ -526,7 +527,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
             return simplified !== undefined ? simplified : child;
         }
 
-        let newChildren: (ChildLayout|undefined)[]|undefined;
+        let newChildren: (ChildLayout<X>|undefined)[]|undefined;
 
         this.children.forEach((child, idx) => {
             let newChild;
@@ -551,7 +552,7 @@ export class TabbedLayout extends BranchLayoutBase<TabbedLayout> {
         });
 
         return newChildren !== undefined
-                   ? new TabbedLayout(newChildren.filter(c => c !== undefined) as ChildLayout[],
+                   ? new TabbedLayout(newChildren.filter(c => c !== undefined) as ChildLayout<X>[],
                                       this.currentTab,
                                       this.gravity,
                                       this.group)

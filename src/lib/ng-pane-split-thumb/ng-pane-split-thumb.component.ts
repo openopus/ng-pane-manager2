@@ -43,7 +43,7 @@ interface DragState {
     template: '',
     styleUrls: ['./ng-pane-split-thumb.component.scss'],
 })
-export class NgPaneSplitThumbComponent {
+export class NgPaneSplitThumbComponent<X> {
     /** The native element owned by the split panel itself */
     public splitEl!: ElementRef<HTMLElement>;
     /**
@@ -51,7 +51,7 @@ export class NgPaneSplitThumbComponent {
      * For horizontal splits this is the left child, and for vertical splits it
      * is the top.
      */
-    public childId!: ChildLayoutId<SplitLayout>;
+    public childId!: ChildLayoutId<X, SplitLayout<X>>;
 
     /** Indicates this thumb belongs to a vertical split */
     @HostBinding('class.lib-ng-pane-vert') public vert: boolean = false;

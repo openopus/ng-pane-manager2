@@ -35,7 +35,7 @@ import {ChildLayoutId} from '../pane-layout/module';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane.component.scss'],
 })
-export class NgPaneComponent {
+export class NgPaneComponent<X> {
     /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
     public readonly renderer!: NgPaneRendererDirective;
@@ -60,10 +60,11 @@ export class NgPaneComponent {
     @HostBinding('style.height.px') public height: number|undefined;
 
     /** The ID of the pane associated with this component */
-    public childId!: ChildLayoutId;
+    public childId!: ChildLayoutId<X>;
     /** The header for this pane */
-    public header: PaneHeader = {type: PaneHeaderType.None};
+    public header: PaneHeader<X> = {type: PaneHeaderType.None};
     /** The content of this pane */
-    public content: ComponentRef<NgPaneSplitComponent|NgPaneLeafComponent|NgPaneTabbedComponent>|
+    public content:
+        ComponentRef<NgPaneSplitComponent<X>|NgPaneLeafComponent<X>|NgPaneTabbedComponent<X>>|
         undefined;
 }

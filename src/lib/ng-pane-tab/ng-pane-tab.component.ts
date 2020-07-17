@@ -45,8 +45,8 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
     </ng-container>`,
     styleUrls: ['./ng-pane-tab.component.scss'],
 })
-export class NgPaneTabComponent<T extends PaneHeaderMode = PaneHeaderMode> extends
-    ClosablePaneComponent<T> {
+export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> extends
+    ClosablePaneComponent<X, T> {
     /** The style information for this tab */
     public style!: PaneHeaderStyle<T>;
 
@@ -59,6 +59,7 @@ export class NgPaneTabComponent<T extends PaneHeaderMode = PaneHeaderMode> exten
      */
     public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
 
+    // TODO: this doesn't work on iOS
     /**
      * Selects the current tab and initiates a drag of the associated pane.
      */

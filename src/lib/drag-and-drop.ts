@@ -62,17 +62,17 @@ export const enum DropTargetType {
  *
  * See `NgPaneManagerComponent.dropTargets`
  */
-export interface DropTarget {
+export interface DropTarget<X> {
     /** The type of the component */
     type: DropTargetType;
     /** The ID of the child layout corresponding to this element */
-    id: ChildLayoutId;
+    id: ChildLayoutId<X>;
 }
 
 /** All properties associated with a floating drag-and-drop layout */
-interface FloatingInfo {
+interface FloatingInfo<X> {
     /** The layout node removed from the original layout tree */
-    readonly layout: ChildLayout;
+    readonly layout: ChildLayout<X>;
     /**
      * The ratio of the removed layout node, if it was taken from a split.
      *
@@ -81,7 +81,7 @@ interface FloatingInfo {
     readonly pct: number;
 
     /** The floating pane for the removed layout node */
-    readonly pane: ComponentRef<NgPaneComponent>;
+    readonly pane: ComponentRef<NgPaneComponent<X>>;
     /** The drop highlight visual */
     readonly dropHighlight: ComponentRef<NgPaneDropHighlightComponent>;
 }
@@ -99,11 +99,11 @@ const enum DropOrientation {
 }
 
 /** All basic drop information used regardless of drop orientation. */
-interface DropInfoBase<T extends DropOrientation = DropOrientation> {
+interface DropInfoBase<X, O extends DropOrientation = DropOrientation> {
     /** The type and direction of the dropped layout */
-    orientation: T;
+    orientation: O;
     /** The layout to modify during the drop */
-    layout: ChildLayout;
+    layout: ChildLayout<X>;
     /**
      * The element used to determine the drop information.\
      * This element is also used to render the drop highlight visual.
@@ -112,14 +112,15 @@ interface DropInfoBase<T extends DropOrientation = DropOrientation> {
 }
 
 /** Drop information for creating a split layout. */
-interface SplitDropInfo extends DropInfoBase<
+interface SplitDropInfo<X> extends DropInfoBase<
+    X,
     DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom> {
     /** The ratio of the removed child as a factor from 0.0 to 1.0 */
     pct: number;
 }
 
 /** Drop information for creating a tabbed layout. */
-interface TabbedDropInfo extends DropInfoBase<DropOrientation.Tabbed> {
+interface TabbedDropInfo<X> extends DropInfoBase<X, DropOrientation.Tabbed> {
     /** The tab index to insert the floating pane at */
     tab: number;
     /**
@@ -130,7 +131,7 @@ interface TabbedDropInfo extends DropInfoBase<DropOrientation.Tabbed> {
 }
 
 /** Contains any kind of drop info. */
-type DropInfo = SplitDropInfo|TabbedDropInfo;
+type DropInfo<X> = SplitDropInfo<X>|TabbedDropInfo<X>;
 
 /** Used below to debounce and differentiate different hover actions. */
 const enum HoverActionType {
@@ -146,11 +147,11 @@ interface NoneHoverAction {
 }
 
 /** Represents a pending tab switch */
-interface TabSwitchHoverAction {
+interface TabSwitchHoverAction<X> {
     /** The action type.  Used for type checking. */
     type: HoverActionType.TabSwitch;
     /** The tabbed layout to switch.  Used for debouncing. */
-    layout: TabbedLayout;
+    layout: TabbedLayout<X>;
     /** The tab index to switch to.  Used for debouncing. */
     index: number;
     /** The handle for the timeout */
@@ -158,24 +159,24 @@ interface TabSwitchHoverAction {
 }
 
 /** Contains any type of hover action. */
-type HoverAction = NoneHoverAction|TabSwitchHoverAction;
+type HoverAction<X> = NoneHoverAction|TabSwitchHoverAction<X>;
 
 /**
  * Provides an implementation of the callbacks needed for `beginMouseDrag` that
  * actuates dragging and dropping panes within a layout.
  */
-export class PaneDragContext {
+export class PaneDragContext<X> {
     /**
      * The original layout, before any action was performed.\
      * Used to recover the original layout if an error occurs.
      */
-    private readonly oldLayout: RootLayout;
+    private readonly oldLayout: RootLayout<X>;
     /** The floating layout node and all associated properties */
-    private floatingInfo: FloatingInfo|undefined;
+    private floatingInfo: FloatingInfo<X>|undefined;
     /** The information needed to drop the floating layout */
-    private dropInfo: DropInfo|undefined;
+    private dropInfo: DropInfo<X>|undefined;
     /** Any currently ongoing hover action */
-    private hoverAction: HoverAction = {type: HoverActionType.None};
+    private hoverAction: HoverAction<X> = {type: HoverActionType.None};
 
     /**
      * Compute the orientation of a dropped panel given the posisition of a drag
@@ -243,8 +244,9 @@ export class PaneDragContext {
      * @param manager the pane manager hosting the current pane
      * @param id the ID of the pane being dragged
      */
-    public static mouseDown(evt: MouseEvent, manager: NgPaneManagerComponent, id: ChildLayoutId):
-        void {
+    public static mouseDown<X>(evt: MouseEvent,
+                               manager: NgPaneManagerComponent<X>,
+                               id: ChildLayoutId<X>): void {
         const ctx = new PaneDragContext(evt.clientX, evt.clientY, manager, id);
 
         beginMouseDrag(evt, ctx.dragDelta.bind(ctx), ctx.dragEnd.bind(ctx));
@@ -259,8 +261,8 @@ export class PaneDragContext {
      */
     private constructor(private readonly startX: number,
                         private readonly startY: number,
-                        private readonly manager: NgPaneManagerComponent,
-                        private readonly id: ChildLayoutId) {
+                        private readonly manager: NgPaneManagerComponent<X>,
+                        private readonly id: ChildLayoutId<X>) {
         this.oldLayout = manager.layout;
     }
 
@@ -472,7 +474,7 @@ export class PaneDragContext {
          * indicates to continue running the current action.  All other values
          * will cancel the current action and start a new one.
          */
-        let nextHoverAction: HoverAction|undefined = {type: HoverActionType.None};
+        let nextHoverAction: HoverAction<X>|undefined = {type: HoverActionType.None};
 
         const outerRect = this.manager.el.nativeElement.getClientRects()[0];
 
@@ -486,7 +488,7 @@ export class PaneDragContext {
             //       in order for the code below to work correctly
             const targets = document.elementsFromPoint(x, y)
                                 .filter(e => targetMap.has(e))
-                                .map(e => [e, targetMap.get(e)] as [Element, DropTarget]);
+                                .map(e => [e, targetMap.get(e)] as [Element, DropTarget<X>]);
 
             if (targets.length === 0) {
                 this.dropInfo = undefined;
@@ -597,8 +599,6 @@ export class PaneDragContext {
                             }
                         }
 
-                        // TODO: add a visual to indicate which side of the tab
-                        //       the floating panel will be inserted at
                         this.dropInfo = {
                             orientation: DropOrientation.Tabbed,
                             layout: stem,
@@ -732,7 +732,7 @@ export class PaneDragContext {
     private dropFloatingPane(): boolean {
         if (this.floatingInfo === undefined || this.dropInfo === undefined) { return false; }
 
-        let replace: ChildLayout;
+        let replace: ChildLayout<X>;
 
         // TODO: this may be an issue that needs to be fixed in the logic for
         //       spliceChildren, but should gravity/group be inherited?  This
@@ -830,11 +830,11 @@ export class PaneDragContext {
  * functionality.
  */
 @Component({template: ''})
-export abstract class DraggablePaneComponent {
+export abstract class DraggablePaneComponent<X> {
     /** The pane manager hosting this pane */
-    public manager!: NgPaneManagerComponent;
+    public manager!: NgPaneManagerComponent<X>;
     /** The ID of this pane */
-    public childId!: ChildLayoutId;
+    public childId!: ChildLayoutId<X>;
 
     // TODO: this won't work at all with touch
     /**

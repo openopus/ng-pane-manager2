@@ -24,7 +24,7 @@ import {ChildLayout, LayoutGravity, LayoutType, LeafLayout, PaneLayout} from './
 // TODO: create helper functions to construct common layout templates
 
 /** A template for any kind of layout */
-export type LayoutTemplate = SplitLayoutTemplate|TabLayoutTemplate|LeafLayoutTemplate;
+export type LayoutTemplate<T> = SplitLayoutTemplate<T>|TabLayoutTemplate<T>|LeafLayoutTemplate<T>;
 
 /** Stringified versions of the layout gravities */
 export type GravityTemplate = 'top'|'left'|'center'|'right'|'bottom';
@@ -42,37 +42,39 @@ export interface LayoutTemplateBase {
 /**
  * Template for a leaf layout node.
  */
-export interface LeafLayoutTemplate extends LayoutTemplateBase {
+export interface LeafLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Must be undefined, used for type checking. */
     split?: undefined;
     /** The unique identifier of this node */
     id: string;
     /** The template name of this node */
     template: string;
+    /** The data for this leaf passed to the template */
+    extra: T;
 }
 
 /**
  * Template for a split branch layout node.
  */
-export interface SplitLayoutTemplate extends LayoutTemplateBase {
+export interface SplitLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Can be `'horiz'` or `'vert'`. */
     split: 'horiz'|'vert';
     /** The ratios of this node's children.  Must match the length of `children`. */
     ratio: number[];
     /** The children of this node */
-    children: LayoutTemplate[];
+    children: LayoutTemplate<T>[];
 }
 
 /**
  * Template for a tabbed branch layout node.
  */
-export interface TabLayoutTemplate extends LayoutTemplateBase {
+export interface TabLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Must be `'tab'`, used for type checking. */
     split: 'tab';
     /** The currently visible child */
     currentTab: number;
     /** The children of this node */
-    children: LayoutTemplate[];
+    children: LayoutTemplate<T>[];
 }
 
 /**
@@ -95,27 +97,31 @@ function loadGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefine
  * Load a child layout from a layout template.
  * @param template the layout template to load
  */
-export function loadLayout(template: LayoutTemplate): ChildLayout {
+export function loadLayout<T, X>(template: LayoutTemplate<T>,
+                                 loadExtra: (extra: T) => X): ChildLayout<X> {
+    const recurse = (tmpl: LayoutTemplate<T>) => loadLayout(tmpl, loadExtra);
+
     switch (template.split) {
     case undefined:
         return new LeafLayout(template.id,
                               template.template,
+                              loadExtra(template.extra),
                               loadGravity(template.gravity),
                               template.group);
     case 'horiz':
         return new SplitLayout(LayoutType.Horiz,
-                               template.children.map(loadLayout),
+                               template.children.map(recurse),
                                template.ratio,
                                loadGravity(template.gravity),
                                template.group);
     case 'vert':
         return new SplitLayout(LayoutType.Vert,
-                               template.children.map(loadLayout),
+                               template.children.map(recurse),
                                template.ratio,
                                loadGravity(template.gravity),
                                template.group);
     case 'tab':
-        return new TabbedLayout(template.children.map(loadLayout),
+        return new TabbedLayout(template.children.map(recurse),
                                 template.currentTab,
                                 loadGravity(template.gravity),
                                 template.group);
@@ -142,24 +148,28 @@ function saveGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefine
  * Save a layout node to a layout template.
  * @param layout the layout node to save
  */
-export function saveLayout(layout: PaneLayout): LayoutTemplate {
+export function saveLayout<X, T>(layout: PaneLayout<X>,
+                                 saveExtra: (extra: X) => T): LayoutTemplate<T> {
+    const recurse = (pane: PaneLayout<X>) => saveLayout(pane, saveExtra);
+
     switch (layout.type) {
     case LayoutType.Root:
         if (layout.layout === undefined) { throw new Error('root layout is empty'); }
 
-        return saveLayout(layout.layout);
+        return recurse(layout.layout);
     case LayoutType.Leaf:
         return {
             id: layout.id,
             template: layout.template,
             gravity: saveGravity(layout.gravity),
             group: layout.group,
+            extra: saveExtra(layout.extra),
         };
     case LayoutType.Horiz:
         return {
             split: 'horiz',
             ratio: layout.ratios.slice(),
-            children: layout.children.map(saveLayout),
+            children: layout.children.map(recurse),
             gravity: saveGravity(layout.gravity),
             group: layout.group,
         };
@@ -167,7 +177,7 @@ export function saveLayout(layout: PaneLayout): LayoutTemplate {
         return {
             split: 'vert',
             ratio: layout.ratios.slice(),
-            children: layout.children.map(saveLayout),
+            children: layout.children.map(recurse),
             gravity: saveGravity(layout.gravity),
             group: layout.group,
         };
@@ -175,7 +185,7 @@ export function saveLayout(layout: PaneLayout): LayoutTemplate {
         return {
             split: 'tab',
             currentTab: layout.currentTab,
-            children: layout.children.map(saveLayout),
+            children: layout.children.map(recurse),
             gravity: saveGravity(layout.gravity),
             group: layout.group,
         };

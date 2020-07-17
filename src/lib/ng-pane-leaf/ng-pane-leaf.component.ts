@@ -33,25 +33,25 @@ import {LeafNodeContext, LeafNodeTemplate} from '../pane-template';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-leaf.component.scss'],
 })
-export class NgPaneLeafComponent {
+export class NgPaneLeafComponent<X> {
     /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
 
     /** See `template`. */
-    private _template: LeafNodeTemplate|undefined;
+    private _template: LeafNodeTemplate<X>|undefined;
     /**
      * The pane containing this leaf node.\
      * Used by `PaneFactory`.
      */
-    public pane!: NgPaneComponent;
+    public pane!: NgPaneComponent<X>;
     /** The layout node corresponding to this pane */
-    public layout!: LeafLayout;
+    public layout!: LeafLayout<X>;
 
     /** The leaf pane template to render */
-    public get template(): LeafNodeTemplate|undefined { return this._template; }
+    public get template(): LeafNodeTemplate<X>|undefined { return this._template; }
 
-    public set template(val: LeafNodeTemplate|undefined) {
+    public set template(val: LeafNodeTemplate<X>|undefined) {
         if (val === this._template) { return; }
 
         this._template = val;
@@ -59,7 +59,7 @@ export class NgPaneLeafComponent {
         this.renderer.viewContainer.clear();
 
         if (val !== undefined) {
-            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext>(...val);
+            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext<X>>(...val);
         }
     }
 

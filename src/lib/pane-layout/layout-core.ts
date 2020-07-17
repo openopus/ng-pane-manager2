@@ -22,11 +22,11 @@ import {BranchLayout} from './branch-layout';
 import {LayoutBase} from './layout-base';
 
 /** A layout node of any kind */
-export type PaneLayout = RootLayout|BranchLayout|LeafLayout;
+export type PaneLayout<X> = RootLayout<X>|BranchLayout<X>|LeafLayout<X>;
 /** A layout node containing children */
-export type StemLayout = RootLayout|BranchLayout;
+export type StemLayout<X> = RootLayout<X>|BranchLayout<X>;
 /** A non-root layout node */
-export type ChildLayout = BranchLayout|LeafLayout;
+export type ChildLayout<X> = BranchLayout<X>|LeafLayout<X>;
 
 /** The type identifier of a layout node */
 export const enum LayoutType {
@@ -61,9 +61,9 @@ export const enum LayoutGravity {
 /**
  * A reference to a layout node via the parent containing it.
  */
-export interface ChildLayoutId<T extends StemLayout = StemLayout> {
+export interface ChildLayoutId<X, S extends StemLayout<X> = StemLayout<X>> {
     /** The stem containing the target node */
-    stem: T;
+    stem: S;
     /** The index of the target node */
     index: number;
 }
@@ -71,12 +71,12 @@ export interface ChildLayoutId<T extends StemLayout = StemLayout> {
 /**
  * A child layout ID, stored with a child guaranteed to match the ID.
  */
-export class ChildWithId<T extends ChildLayout = ChildLayout> {
+export class ChildWithId<X, C extends ChildLayout<X> = ChildLayout<X>> {
     /**
      * Retrieve the child referenced by the given ID.
      * @param id the layout ID to retrieve the child from
      */
-    public static fromId(id: ChildLayoutId): ChildWithId {
+    public static fromId<X>(id: ChildLayoutId<X>): ChildWithId<X> {
         return new ChildWithId(childFromId(id), id);
     }
 
@@ -85,14 +85,14 @@ export class ChildWithId<T extends ChildLayout = ChildLayout> {
      * @param child the child referenced by the ID
      * @param id the ID referencing a child
      */
-    private constructor(public readonly child: T, public readonly id: ChildLayoutId) {}
+    private constructor(public readonly child: C, public readonly id: ChildLayoutId<X>) {}
 }
 
 /**
  * Retrieve the child referenced by a layout ID
  * @param id the ID of the child layout
  */
-export function childFromId({stem, index}: ChildLayoutId): ChildLayout {
+export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> {
     if (stem.type === LayoutType.Root) {
         if (stem.layout === undefined) { throw new Error('root layout is empty'); }
 
@@ -110,7 +110,7 @@ export function childFromId({stem, index}: ChildLayoutId): ChildLayout {
  *
  * This node is used to ensure that any other nodes can have a valid child ID.
  */
-export class RootLayout extends LayoutBase {
+export class RootLayout<X> extends LayoutBase<X> {
     /** The type of the layout.  Used for type checking. */
     public readonly type: LayoutType.Root = LayoutType.Root;
 
@@ -118,20 +118,20 @@ export class RootLayout extends LayoutBase {
      * Construct a new root layout node.
      * @param layout the child layout
      */
-    public constructor(public readonly layout: ChildLayout|undefined) {
+    public constructor(public readonly layout: ChildLayout<X>|undefined) {
         super(undefined, undefined);
     }
 
     /**
      * Return the ID of this node's child.
      */
-    public childId(): ChildLayoutId { return {stem: this, index: 0}; }
+    public childId(): ChildLayoutId<X> { return {stem: this, index: 0}; }
 
     /**
      * Does nothing, but is provided for completeness.  Adding this definition
      * ensures `.intoRoot()` exists for any `PaneLayout`.
      */
-    public intoRoot(): RootLayout { return this; }
+    public intoRoot(): RootLayout<X> { return this; }
 
     /**
      * Remove the child of this node.
@@ -139,9 +139,9 @@ export class RootLayout extends LayoutBase {
      */
     public withoutChild(index: number|undefined): {
         /** The resulting layout */
-        layout: RootLayout;
+        layout: RootLayout<X>;
         /** The removed child */
-        removed: ChildLayout;
+        removed: ChildLayout<X>;
     } {
         if (this.layout === undefined) {
             throw new Error('cannot remove child of empty root layout');
@@ -160,7 +160,7 @@ export class RootLayout extends LayoutBase {
      * @param find the node to search for
      * @param replace the node to replace the search node with
      */
-    public transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
+    public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
         if (this === find) { return replace; }
 
         const newLayout = this.layout !== undefined ? this.layout.transposeDeep(find, replace)
@@ -178,7 +178,7 @@ export class RootLayout extends LayoutBase {
     /**
      * Recursively simplify this node tree.
      */
-    public simplifyDeep(): PaneLayout|undefined {
+    public simplifyDeep(): PaneLayout<X>|undefined {
         const newLayout = this.layout !== undefined ? this.layout.simplifyDeep() : undefined;
 
         if (newLayout === undefined) { return undefined; }
@@ -194,7 +194,7 @@ export class RootLayout extends LayoutBase {
 /**
  * A leaf node, which contains user content but no other nodes.
  */
-export class LeafLayout extends LayoutBase {
+export class LeafLayout<X> extends LayoutBase<X> {
     /** The type of the layout.  Used for type checking. */
     public readonly type: LayoutType.Leaf = LayoutType.Leaf;
 
@@ -207,6 +207,7 @@ export class LeafLayout extends LayoutBase {
      */
     public constructor(public readonly id: string,
                        public readonly template: string,
+                       public readonly extra: X,
                        gravity?: LayoutGravity,
                        group?: string) {
         super(gravity, group);
@@ -215,7 +216,7 @@ export class LeafLayout extends LayoutBase {
     /**
      * Wrap this leaf node in a root node.
      */
-    public intoRoot(): RootLayout { return new RootLayout(this); }
+    public intoRoot(): RootLayout<X> { return new RootLayout(this); }
 
     /**
      * Find any occurrences (by reference) of a node in the current tree and
@@ -223,12 +224,12 @@ export class LeafLayout extends LayoutBase {
      * @param find the node to search for
      * @param replace thenode to replace the search node with
      */
-    public transposeDeep(find: PaneLayout, replace: PaneLayout): PaneLayout|undefined {
+    public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
         return this === find ? replace : undefined;
     }
 
     /**
      * Recursively simplify this node tree.
      */
-    public simplifyDeep(): PaneLayout|undefined { return undefined; }
+    public simplifyDeep(): PaneLayout<X>|undefined { return undefined; }
 }

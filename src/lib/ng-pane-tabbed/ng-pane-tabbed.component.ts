@@ -32,7 +32,7 @@ import {NgPaneComponent} from '../ng-pane/ng-pane.component';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-tabbed.component.scss'],
 })
-export class NgPaneTabbedComponent {
+export class NgPaneTabbedComponent<X> {
     /** Subscription for current tab events */
     private subscription: Subscription|undefined;
     /** The pane currently rendered as visible */
@@ -43,7 +43,7 @@ export class NgPaneTabbedComponent {
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The child panes rendered into this one */
-    public children: NgPaneComponent[] = [];
+    public children: NgPaneComponent<X>[] = [];
 
     /** Binds an event handler to the given stream of current tab events */
     public set $currentTab(val: Observable<number>) {

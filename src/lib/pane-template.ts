@@ -81,14 +81,15 @@ export function headerStyle(
     };
 }
 
-// TODO: add support for passing parameters into the templates from the layout
 /**
  * Context passed to the `TemplateRef` of a leaf node.
  */
-export interface LeafNodeContext {
+export interface LeafNodeContext<X> {
     /** The header style of this node */
     header: PaneHeaderStyle;
+    /** The layout data for this node */
+    extra: X;
 }
 
 /** The information needed to render the contents of a leaf node. */
-export type LeafNodeTemplate = [TemplateRef<LeafNodeContext>, LeafNodeContext];
+export type LeafNodeTemplate<X> = [TemplateRef<LeafNodeContext<X>>, LeafNodeContext<X>];

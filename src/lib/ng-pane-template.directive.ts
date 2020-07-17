@@ -28,13 +28,13 @@ import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
  */
 // tslint:disable-next-line directive-selector
 @Directive({selector: '[ngPaneTemplate]'})
-export class NgPaneTemplateDirective implements AfterContentInit {
+export class NgPaneTemplateDirective<X> implements AfterContentInit {
     /** See `ngPaneTemplateNamed` */
     private name!: string;
     /** See `ngPaneTemplateWithHeader` */
     private headerStyle!: PaneHeaderStyle;
     /** See `ngPaneTamplateFor` */
-    private manager!: NgPaneManagerComponent;
+    private manager!: NgPaneManagerComponent<X>;
 
     /** Stores the name to register this template under */
     @Input()
@@ -50,7 +50,7 @@ export class NgPaneTemplateDirective implements AfterContentInit {
 
     /** Stores the pane manager to register this template with */
     @Input()
-    public set ngPaneTemplateFor(manager: NgPaneManagerComponent) {
+    public set ngPaneTemplateFor(manager: NgPaneManagerComponent<X>) {
         this.manager = manager;
     }
 
@@ -59,7 +59,7 @@ export class NgPaneTemplateDirective implements AfterContentInit {
      * @param templateRef injected to be registered with a pane manager
      * @param _viewContainer injected (unused)
      */
-    public constructor(private readonly templateRef: TemplateRef<LeafNodeContext>,
+    public constructor(private readonly templateRef: TemplateRef<LeafNodeContext<X>>,
                        _viewContainer: ViewContainerRef) {}
 
     /** Register the pane template with the pane manager */

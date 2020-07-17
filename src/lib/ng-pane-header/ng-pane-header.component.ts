@@ -43,7 +43,7 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
     </ng-container>`,
     styleUrls: ['./ng-pane-header.component.scss'],
 })
-export class NgPaneHeaderComponent extends ClosablePaneComponent<PaneHeaderMode.Visible> {
+export class NgPaneHeaderComponent<X> extends ClosablePaneComponent<X, PaneHeaderMode.Visible> {
     /** The header style information for this header */
     public style!: PaneHeaderStyle<PaneHeaderMode.Visible>;
 

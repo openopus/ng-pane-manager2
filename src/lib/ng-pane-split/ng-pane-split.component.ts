@@ -33,7 +33,7 @@ import {ResizeEvent} from '../pane-layout/module';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-split.component.scss'],
 })
-export class NgPaneSplitComponent {
+export class NgPaneSplitComponent<X> {
     /** Subscription for child resize events */
     private subscription: Subscription|undefined;
 
@@ -42,7 +42,7 @@ export class NgPaneSplitComponent {
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The child panes rendered into this one */
-    public children: NgPaneComponent[] = [];
+    public children: NgPaneComponent<X>[] = [];
 
     /** Indicates this pane renders as a vertical split */
     @HostBinding('class.lib-ng-pane-vert') public vert: boolean = false;
