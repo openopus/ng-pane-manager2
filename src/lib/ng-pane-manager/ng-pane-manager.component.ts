@@ -24,16 +24,15 @@ import {
     ComponentRef,
     ElementRef,
     Input,
-    TemplateRef,
     ViewChild,
 } from '@angular/core';
 
 import {DropTarget} from '../drag-and-drop';
+import {NgPaneLeafTemplateService} from '../ng-pane-leaf-templates.service';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {PaneFactory} from '../pane-factory';
 import {LayoutType, RootLayout} from '../pane-layout/module';
-import {LeafNodeContext, PaneHeaderStyle} from '../pane-template';
 
 /**
  * The root component for `angular-pane-manager`, providing a tree-like
@@ -84,29 +83,11 @@ export class NgPaneManagerComponent<X> {
      * Construct a new pane manager.
      * @param cfr injected for use by the pane factory
      */
-    public constructor(public el: ElementRef<Element>, cfr: ComponentFactoryResolver) {
-        this.factory = new PaneFactory(this, cfr);
+    public constructor(public el: ElementRef<Element>,
+                       templateService: NgPaneLeafTemplateService<X>,
+                       cfr: ComponentFactoryResolver) {
+        this.factory = new PaneFactory(this, templateService, cfr);
     }
-
-    /**
-     * Registers a given `TemplateRef` for leaves with the corresponding
-     * template ID string.
-     * @param name the name of the template, corresponding with the `template`
-     *             property of leaf nodes
-     * @param header the default style information for this template
-     * @param template the content to render in leaves with this template
-     */
-    public registerLeafTemplate(name: string,
-                                header: PaneHeaderStyle,
-                                template: TemplateRef<LeafNodeContext<X>>): void {
-        this.factory.registerLeafTemplate(name, header, template);
-    }
-
-    /**
-     * Removes the leaf template corresponding to the given name.
-     * @param name the name of the template to remove
-     */
-    public unregisterLeafTemplate(name: string): void { this.factory.unregisterLeafTemplate(name); }
 
     /**
      * Constructs a map from native elements to drag-and-drop information.  Used

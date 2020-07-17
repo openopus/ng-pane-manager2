@@ -20,8 +20,9 @@
 
 import {AfterContentInit, Directive, Input, TemplateRef, ViewContainerRef} from '@angular/core';
 
-import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
+import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
+
 
 /**
  * Stores the attached content as a named template for leaf panes.
@@ -33,8 +34,6 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
     private name!: string;
     /** See `ngPaneTemplateWithHeader` */
     private headerStyle!: PaneHeaderStyle;
-    /** See `ngPaneTamplateFor` */
-    private manager!: NgPaneManagerComponent<X>;
 
     /** Stores the name to register this template under */
     @Input()
@@ -48,22 +47,17 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
         this.headerStyle = style;
     }
 
-    /** Stores the pane manager to register this template with */
-    @Input()
-    public set ngPaneTemplateFor(manager: NgPaneManagerComponent<X>) {
-        this.manager = manager;
-    }
-
     /**
      * Construct a new pane template directive.
      * @param templateRef injected to be registered with a pane manager
      * @param _viewContainer injected (unused)
      */
     public constructor(private readonly templateRef: TemplateRef<LeafNodeContext<X>>,
-                       _viewContainer: ViewContainerRef) {}
+                       _viewContainer: ViewContainerRef,
+                       private readonly templateService: NgPaneLeafTemplateService<X>) {}
 
     /** Register the pane template with the pane manager */
     public ngAfterContentInit(): void {
-        this.manager.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
+        this.templateService.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
     }
 }

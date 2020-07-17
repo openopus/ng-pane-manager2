@@ -23,17 +23,18 @@ import {
     ComponentFactoryResolver,
     ComponentRef,
     ElementRef,
-    TemplateRef,
     ViewContainerRef,
     ViewRef,
 } from '@angular/core';
-import {BehaviorSubject} from 'rxjs';
+import {BehaviorSubject, Observable, Subscription} from 'rxjs';
+import {map} from 'rxjs/operators';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
+import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
 import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb/ng-pane-split-thumb.component';
@@ -52,17 +53,7 @@ import {
     SplitLayout,
     TabbedLayout,
 } from './pane-layout/module';
-import {LeafNodeContext, LeafNodeTemplate, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
-
-/**
- * A leaf template and any extra information associated with it.
- */
-interface LeafTemplateInfo<X> {
-    /** The content of the leaf template */
-    template: TemplateRef<LeafNodeContext<X>>;
-    /** The default header information for the leaf template */
-    header: PaneHeaderStyle;
-}
+import {LeafNodeTemplate, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
 
 /**
  * Used to identify different values of `NgPaneComponent.header`
@@ -168,10 +159,6 @@ export class PaneFactory<X> {
     /** Factory for tabbed branch panes */
     private readonly tabbedFactory: ComponentFactory<NgPaneTabbedComponent<X>>;
 
-    // TODO: move the template dictionary into a global service
-    /** Registered leaf templates, stored by name */
-    private readonly templates: Map<string, LeafTemplateInfo<X>> = new Map();
-
     // TODO: stress test layout changes to make sure all old data is cleaned out
     /** All currently rendered leaves, stored by leaf pane id (_not_ template) */
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent<X>>> = new Map();
@@ -180,6 +167,8 @@ export class PaneFactory<X> {
      * **NOTE:** Object map keys are _only_ comparable by reference!
      */
     private readonly panes: Map<ChildLayout<X>, ComponentRef<NgPaneComponent<X>>> = new Map();
+    /** All RxJS subscriptions associated with the current layout */
+    private readonly layoutSubscriptions: Subscription[] = [];
     /** All hit testing information for the currently rendered components */
     private dropTargets!: Map<ElementRef<Element>, DropTarget<X>>;
 
@@ -189,6 +178,7 @@ export class PaneFactory<X> {
      * @param cfr needed to resolve inner component factories
      */
     public constructor(private readonly manager: NgPaneManagerComponent<X>,
+                       private readonly templateService: NgPaneLeafTemplateService<X>,
                        cfr: ComponentFactoryResolver) {
         this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
         this.headerFactory        = cfr.resolveComponentFactory(NgPaneHeaderComponent) as
@@ -214,52 +204,56 @@ export class PaneFactory<X> {
      * pane.
      * @param layout the name of the template to produce
      */
-    private renderLeafTemplate(layout: LeafLayout<X>): LeafNodeTemplate<X>|undefined {
-        const info = this.templates.get(layout.template);
+    private renderLeafTemplate(layout: LeafLayout<X>): Observable<LeafNodeTemplate<X>|undefined> {
+        const $info = this.templateService.get(layout.template);
 
-        if (info === undefined) { return undefined; }
+        return $info.pipe(map(info => {
+            if (info === undefined) { return undefined; }
 
-        const {template, header} = info;
+            const {template, header} = info;
 
-        return [template, {header, extra: layout.extra}];
+            return [template, {header, extra: layout.extra}];
+        }));
     }
 
     /**
      * Compute header information for a given layout.
      * @param layout the layout the header is intended for
      */
-    private headerStyleForLayout(layout: ChildLayout<X>): PaneHeaderStyle {
+    private headerStyleForLayout(layout: ChildLayout<X>): Observable<PaneHeaderStyle> {
         // TODO: correctly calculate branch header style
         switch (layout.type) {
         case LayoutType.Leaf:
-            const template = this.templates.get(layout.template);
+            const $info = this.templateService.get(layout.template);
 
-            if (template === undefined) {
-                return {
-                    headerMode: PaneHeaderMode.Visible,
-                    title: new BehaviorSubject('???'),
-                    icon: new BehaviorSubject(undefined),
-                    closable: true,
-                };
-            }
+            return $info.pipe(map(info => {
+                if (info === undefined) {
+                    return {
+                        headerMode: PaneHeaderMode.Visible,
+                        title: new BehaviorSubject('???'),
+                        icon: new BehaviorSubject(undefined),
+                        closable: true,
+                    };
+                }
 
-            // TODO: allow header overriding for specific leaf nodes
-            return template.header;
+                // TODO: allow header overriding for specific leaf nodes
+                return info.header;
+            }));
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            return {
+            return new BehaviorSubject({
                 headerMode: PaneHeaderMode.Hidden,
                 title: new BehaviorSubject('SPLIT'),
                 icon: new BehaviorSubject(undefined),
                 closable: false,
-            };
+            });
         case LayoutType.Tabbed:
-            return {
+            return new BehaviorSubject({
                 headerMode: PaneHeaderMode.AlwaysTab,
                 title: new BehaviorSubject('TABBED'),
                 icon: new BehaviorSubject(undefined),
                 closable: false,
-            };
+            });
         }
     }
 
@@ -345,12 +339,14 @@ export class PaneFactory<X> {
 
         const inst = component.instance;
 
-        inst.pane     = pane;
-        inst.layout   = layout;
-        inst.template = this.renderLeafTemplate(layout);
+        inst.pane   = pane;
+        inst.layout = layout;
 
-        const style = this.headerStyleForLayout(layout);
-        this.setPaneDropTarget(id, inst.el, style);
+        this.layoutSubscriptions.push(
+            this.renderLeafTemplate(layout).subscribe(t => inst.template = t));
+
+        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+            s => this.setPaneDropTarget(id, inst.el, s)));
 
         return component;
     }
@@ -404,8 +400,8 @@ export class PaneFactory<X> {
 
         inst.resizeEvents = layout.resizeEvents;
 
-        const style = this.headerStyleForLayout(layout);
-        this.setPaneDropTarget(id, inst.el, style);
+        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+            s => this.setPaneDropTarget(id, inst.el, s)));
 
         return component;
     }
@@ -431,8 +427,8 @@ export class PaneFactory<X> {
 
         inst.$currentTab = layout.$currentTab;
 
-        const style = this.headerStyleForLayout(layout);
-        this.setPaneDropTarget(id, inst.el, style);
+        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+            s => this.setPaneDropTarget(id, inst.el, s)));
 
         return component;
     }
@@ -541,59 +537,48 @@ export class PaneFactory<X> {
         if (pane.header.type === PaneHeaderType.Skip) { return; }
 
         const withId = ChildWithId.fromId(pane.childId);
-        const style  = this.headerStyleForLayout(withId.child);
+        const $style = this.headerStyleForLayout(withId.child);
 
-        const newType = pane.header.type === PaneHeaderType.Tab
-                            ? PaneHeaderType.Tab
-                            : headerTypeForMode(style.headerMode);
+        this.layoutSubscriptions.push($style.subscribe(style => {
+            if (pane.header.type === PaneHeaderType.Skip) { return; }
 
-        if (pane.header.type !== newType) {
-            if (pane.header.type !== PaneHeaderType.None) {
-                const {container, hostView} = pane.header.header;
+            const newType = pane.header.type === PaneHeaderType.Tab
+                                ? PaneHeaderType.Tab
+                                : headerTypeForMode(style.headerMode);
 
-                container.remove(container.indexOf(hostView));
-            }
+            if (pane.header.type !== newType) {
+                if (pane.header.type !== PaneHeaderType.None) {
+                    const {container, hostView} = pane.header.header;
 
-            switch (newType) {
-            case PaneHeaderType.None: pane.header = {type: PaneHeaderType.None}; break;
-            case PaneHeaderType.Header:
-                pane.header = {
-                    type: PaneHeaderType.Header,
-                    header: this.placeHeader(pane.renderer.viewContainer,
-                                             withId,
-                                             style as PaneHeaderStyle<PaneHeaderMode.Visible>),
-                };
-                break;
-            case PaneHeaderType.TabRow:
-                pane.header = {
-                    type: PaneHeaderType.TabRow,
-                    header: this.placeTabRow(pane.renderer.viewContainer,
+                    container.remove(container.indexOf(hostView));
+                }
+
+                switch (newType) {
+                case PaneHeaderType.None: pane.header = {type: PaneHeaderType.None}; break;
+                case PaneHeaderType.Header:
+                    pane.header = {
+                        type: PaneHeaderType.Header,
+                        header: this.placeHeader(pane.renderer.viewContainer,
+                                                 withId,
+                                                 style as PaneHeaderStyle<PaneHeaderMode.Visible>),
+                    };
+                    break;
+                case PaneHeaderType.TabRow:
+                    pane.header = {
+                        type: PaneHeaderType.TabRow,
+                        header:
+                            this.placeTabRow(pane.renderer.viewContainer,
                                              withId,
                                              style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>),
-                };
-                break;
-            case PaneHeaderType.Tab: throw new Error('unreachable');
+                    };
+                    break;
+                case PaneHeaderType.Tab: throw new Error('unreachable');
+                }
             }
-        }
-        else if (pane.header.type !== PaneHeaderType.None) {
-            pane.header.header.component.instance.style = style;
-        }
-    }
-
-    /**
-     * Update all leaf panes using a given template, re-rendering their contents
-     * and refreshing their style information.
-     * @param name the name of the leaf template
-     */
-    private updateLeavesWithTemplate(name: string): void {
-        for (const leaf of this.leaves.values()) {
-            const inst = leaf.component.instance;
-
-            if (inst.layout.template === name) {
-                inst.template = this.renderLeafTemplate(inst.layout);
-                this.updatePaneHeader(inst.pane);
+            else if (pane.header.type !== PaneHeaderType.None) {
+                pane.header.header.component.instance.style = style;
             }
-        }
+        }));
     }
 
     /**
@@ -609,34 +594,6 @@ export class PaneFactory<X> {
     }
 
     /**
-     * Registers a leaf template with the given name and information.
-     * @param name the name of the template
-     * @param header the header style information for the template
-     * @param template the content to render for the template
-     * @param force set to true to override an existing template with this name
-     */
-    public registerLeafTemplate(name: string,
-                                header: PaneHeaderStyle,
-                                template: TemplateRef<LeafNodeContext<X>>,
-                                force?: boolean): void {
-        if (this.templates.has(name) && force !== true) {
-            throw new Error(`pane template '${name}' already registered`);
-        }
-
-        this.templates.set(name, {template, header});
-
-        this.updateLeavesWithTemplate(name);
-    }
-
-    /**
-     * Removes the leaf template with the given name
-     * @param name the name of the template to remove
-     */
-    public unregisterLeafTemplate(name: string): void {
-        if (this.templates.delete(name)) { this.updateLeavesWithTemplate(name); }
-    }
-
-    /**
      * Initialize the pane factory for rendering a layout.
      * @param dropTargets empty map of drag-and-drop hit targets to populate
      */
@@ -644,6 +601,10 @@ export class PaneFactory<X> {
         this.dropTargets = dropTargets;
 
         this.panes.clear();
+
+        for (const sub of this.layoutSubscriptions) { sub.unsubscribe(); }
+
+        this.layoutSubscriptions.splice(0, this.layoutSubscriptions.length);
     }
 
     /**
