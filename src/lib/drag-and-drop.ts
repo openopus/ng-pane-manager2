@@ -20,7 +20,7 @@
 
 import {Component, ComponentRef, HostListener} from '@angular/core';
 
-import {beginMouseDrag, DragCancelFn} from './begin-drag';
+import {averageTouchPos, beginMouseDrag, beginTouchDrag, DragCancelFn} from './begin-drag';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
@@ -185,10 +185,14 @@ export class PaneDragContext<X> {
      * over the panel's client rectangle.
      * @param x the X coordinate of the drag
      * @param y the Y coordinate of the drag
-     * @param rect the client rectangle of the hovered element
+     * @param rects the client rectangles of the hovered element
      */
-    private static computeDropOrientation(x: number, y: number, rect: ClientRect): DropOrientation {
+    private static computeDropOrientation(x: number, y: number, rects: DOMRectList): DropOrientation
+        |undefined {
         const TAB_MARGIN = 0.15;
+
+        if (rects.length === 0) { return undefined; }
+        const rect = rects[0];
 
         const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
         const posY = (y - rect.top) / clipDenormPos(rect.height) - 0.5;
@@ -212,10 +216,14 @@ export class PaneDragContext<X> {
      * `DropOrientation.Tabbed`.
      * @param x the X coordinate of the drag
      * @param y the Y coordinate of the drag
-     * @param rect the client rectangle of the hovered element
+     * @param rects the client rectangles of the hovered element
      */
-    private static computeSplitDropOrientation(x: number, y: number, rect: ClientRect):
-        DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom {
+    private static computeSplitDropOrientation(x: number, y: number, rects: DOMRectList):
+        DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom
+        |undefined {
+        if (rects.length === 0) { return undefined; }
+        const rect = rects[0];
+
         const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
         const posY = (y - rect.top) / clipDenormPos(rect.height) - 0.5;
 
@@ -231,9 +239,12 @@ export class PaneDragContext<X> {
      * target given the position of a drag over the target's client rectangle.
      * @param x the X coordinate of the drag
      * @param y the Y coordinate of the drag
-     * @param rect the client rectangle of the hovered element
+     * @param rects the client rectangles of the hovered element
      */
-    private static computeTabIsAfter(x: number, _y: number, rect: ClientRect): boolean {
+    private static computeTabIsAfter(x: number, _y: number, rects: DOMRectList): boolean|undefined {
+        if (rects.length === 0) { return undefined; }
+        const rect = rects[0];
+
         // If the drag is closer to the right edge of the tab,
         // insert the floating pane after it
         return x >= rect.left + rect.width * 0.5;
@@ -255,6 +266,23 @@ export class PaneDragContext<X> {
     }
 
     /**
+     * Construct and initialize a new `PaneDragContext` given a `touchstart`
+     * event.
+     * @param evt the `touchstart` event to be passed to `beginTouchDrag`
+     * @param manager the pane manager hosting the current pane
+     * @param id the ID of the pane being dragged
+     */
+    public static touchStart<X>(evt: TouchEvent,
+                                manager: NgPaneManagerComponent<X>,
+                                id: ChildLayoutId<X>): void {
+        const target = evt.target instanceof HTMLElement ? evt.target : undefined;
+        const [x, y] = averageTouchPos(evt);
+        const ctx    = new PaneDragContext(x, y, manager, id, target);
+
+        beginTouchDrag(evt, ctx.dragDelta.bind(ctx), ctx.dragEnd.bind(ctx));
+    }
+
+    /**
      * Construct a new PaneDragContext.
      * @param startX the original client X coordinate of the drag
      * @param startY the original client Y coordinate of the drag
@@ -264,7 +292,8 @@ export class PaneDragContext<X> {
     private constructor(private readonly startX: number,
                         private readonly startY: number,
                         private readonly manager: NgPaneManagerComponent<X>,
-                        private readonly id: ChildLayoutId<X>) {
+                        private readonly id: ChildLayoutId<X>,
+                        private readonly target?: HTMLElement) {
         this.oldLayout = manager.layout;
     }
 
@@ -316,8 +345,13 @@ export class PaneDragContext<X> {
      * See `begin-drag.ts`
      */
     private dragEnd(isAbort: boolean): void {
-        // Don't do anything if the drag never started
-        if (this.floatingInfo === undefined) { return; }
+        // Act as a click if the drag never started
+        // TODO: move this to beginDrag?
+        if (this.floatingInfo === undefined) {
+            if (this.target !== undefined) { this.target.click(); }
+
+            return;
+        }
 
         if (isAbort || this.dropInfo === undefined || !this.dropFloatingPane()) {
             this.manager.layout = this.oldLayout;
@@ -410,7 +444,7 @@ export class PaneDragContext<X> {
                 (_, factory) => {
                     const rects = factory.getPaneRects(layout);
 
-                    if (rects !== undefined) {
+                    if (rects !== undefined && rects.length > 0) {
                         width  = rects[0].width;
                         height = rects[0].height;
                     }
@@ -478,7 +512,14 @@ export class PaneDragContext<X> {
          */
         let nextHoverAction: HoverAction<X>|undefined = {type: HoverActionType.None};
 
-        const outerRect = this.manager.el.nativeElement.getClientRects()[0];
+        const outerRects = this.manager.el.nativeElement.getClientRects();
+        if (outerRects.length === 0) {
+            this.dropInfo = undefined;
+
+            return;
+        }
+
+        const outerRect = outerRects[0];
 
         if (x >= (outerRect.left + MARGIN) && x < (outerRect.right - MARGIN) &&
             y >= (outerRect.top + MARGIN) && y < (outerRect.bottom - MARGIN)) {
@@ -536,9 +577,10 @@ export class PaneDragContext<X> {
                 switch (target.type) {
                 case DropTargetType.Pane: {
                     const orientation = PaneDragContext.computeDropOrientation(
-                        x, y, element.getClientRects()[0]);
+                        x, y, element.getClientRects());
 
-                    if (orientation === DropOrientation.Tabbed) {
+                    if (orientation === undefined) { this.dropInfo = undefined; }
+                    else if (orientation === DropOrientation.Tabbed) {
                         this.dropInfo = {
                             orientation: DropOrientation.Tabbed,
                             layout,
@@ -559,9 +601,9 @@ export class PaneDragContext<X> {
                 }
                 case DropTargetType.PaneNoTab: {
                     const orientation = PaneDragContext.computeSplitDropOrientation(
-                        x, y, element.getClientRects()[0]);
+                        x, y, element.getClientRects());
 
-                    this.dropInfo = {
+                    this.dropInfo = orientation === undefined ? undefined : {
                         orientation,
                         layout,
                         element,
@@ -572,9 +614,9 @@ export class PaneDragContext<X> {
                 case DropTargetType.Header: {
                     const isAfter = PaneDragContext.computeTabIsAfter(x,
                                                                       y,
-                                                                      element.getClientRects()[0]);
+                                                                      element.getClientRects());
 
-                    this.dropInfo = {
+                    this.dropInfo = isAfter === undefined ? undefined : {
                         orientation: DropOrientation.Tabbed,
                         layout,
                         element,
@@ -595,9 +637,10 @@ export class PaneDragContext<X> {
                 case DropTargetType.Tab: {
                     const isAfter = PaneDragContext.computeTabIsAfter(x,
                                                                       y,
-                                                                      element.getClientRects()[0]);
+                                                                      element.getClientRects());
 
-                    if (target.id.stem.type === LayoutType.Tabbed) {
+                    if (isAfter === undefined) { this.dropInfo = undefined; }
+                    else if (target.id.stem.type === LayoutType.Tabbed) {
                         const {stem, index} = target.id;
 
                         if (target.id.stem.currentTab !== target.id.index) {
@@ -637,8 +680,10 @@ export class PaneDragContext<X> {
             }
         }
         else if (this.manager.layout.layout !== undefined) {
-            this.dropInfo = {
-                orientation: PaneDragContext.computeSplitDropOrientation(x, y, outerRect),
+            const orientation = PaneDragContext.computeSplitDropOrientation(x, y, outerRects);
+
+            this.dropInfo = orientation === undefined ? undefined : {
+                orientation,
                 layout: this.manager.layout.layout,
                 element: this.manager.el.nativeElement,
                 pct: this.floatingInfo.pct,
@@ -685,7 +730,14 @@ export class PaneDragContext<X> {
         if (this.dropInfo !== undefined) {
             inst.visible = true;
 
-            const rect = this.dropInfo.element.getClientRects()[0];
+            const rects = this.dropInfo.element.getClientRects();
+            if (rects.length === 0) {
+                inst.visible = false;
+
+                return;
+            }
+
+            const rect = rects[0];
 
             const MIN_PCT = 0.15;
             const MAX_PCT = 1 - MIN_PCT;
@@ -851,7 +903,6 @@ export abstract class DraggablePaneComponent<X> {
     /** The ID of this pane */
     public childId!: ChildLayoutId<X>;
 
-    // TODO: this won't work at all with touch
     /**
      * Initiates drag-and-drop for this pane.
      *
@@ -866,5 +917,19 @@ export abstract class DraggablePaneComponent<X> {
             evt.preventDefault();
             evt.stopPropagation();
         }
+    }
+
+    /**
+     * Initiates touch drag-and-drop for this pane.
+     *
+     * **NOTE**: Do _not_ adorn any overrides of this method with
+     *           `@HostListener`, this will result in undesired behavior.
+     */
+    @HostListener('touchstart', ['$event'])
+    protected onTouchStart(evt: TouchEvent): void {
+        PaneDragContext.touchStart(evt, this.manager, this.childId);
+
+        evt.preventDefault();
+        evt.stopPropagation();
     }
 }

@@ -40,6 +40,7 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
             <div class="lib-ng-pane-tab-spacer"></div>
             <button class="lib-ng-pane-tab-close"
                     (mousedown)="$event.stopPropagation()"
+                    (touchstart)="$event.stopPropagation()"
                     (click)="close()"></button>
         </ng-container>
     </ng-container>`,
@@ -59,15 +60,25 @@ export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> ex
      */
     public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
 
-    // TODO: this doesn't work on iOS
     /**
      * Selects the current tab and initiates a drag of the associated pane.
      */
     protected onMouseDown(evt: MouseEvent): void {
-        super.onMouseDown(evt);
-
         if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed) {
             this.childId.stem.currentTab = this.childId.index;
         }
+
+        super.onMouseDown(evt);
+    }
+
+    /**
+     * Selects the current tab and initiates a drag of the associated pane.
+     */
+    protected onTouchStart(evt: TouchEvent): void {
+        if (evt.touches.length === 1 && this.childId.stem.type === LayoutType.Tabbed) {
+            this.childId.stem.currentTab = this.childId.index;
+        }
+
+        super.onTouchStart(evt);
     }
 }

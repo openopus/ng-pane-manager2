@@ -50,6 +50,7 @@ interface TabbedExtra<X> {
     current: number|undefined;
 }
 
+// TODO: make this inherit ClosablePaneComponent instead of Draggable
 /**
  * A row of tabs, corresponding to either a pane with a header mode of
  * `AlwaysTab` or the children of a tabbed branch pane.

@@ -20,7 +20,7 @@
 
 import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
 
-import {beginMouseDrag} from '../begin-drag';
+import {averageTouchPos, beginMouseDrag, beginTouchDrag} from '../begin-drag';
 import {ChildLayoutId, LayoutType, SplitLayout} from '../pane-layout/module';
 import {clipDenormPos} from '../util';
 
@@ -136,5 +136,15 @@ export class NgPaneSplitThumbComponent<X> {
         beginMouseDrag(evt, (x, y) => this.onDragDelta(x, y, state));
 
         // TODO: this won't work at all with touch
+    }
+
+    /**
+     * Initiate a touch drag to resize the two neighboring children.
+     */
+    @HostListener('touchstart', ['$event'])
+    protected onTouchStart(evt: TouchEvent): void {
+        const [startX, startY] = averageTouchPos(evt);
+        const state            = this.makeDragState(startX, startY);
+        beginTouchDrag(evt, (x, y) => this.onDragDelta(x, y, state));
     }
 }

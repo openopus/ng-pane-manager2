@@ -38,6 +38,7 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
             <div class="lib-ng-pane-header-spacer"></div>
             <button class="lib-ng-pane-header-close"
                     (mousedown)="$event.stopPropagation()"
+                    (touchstart)="$event.stopPropagation()"
                     (click)="close()"></button>
         </ng-container>
     </ng-container>`,

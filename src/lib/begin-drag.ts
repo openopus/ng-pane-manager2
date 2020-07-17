@@ -39,9 +39,14 @@ export type DragDeltaHandler = (clientX: number, clientY: number, cancel: DragCa
  */
 export type DragEndHandler = (isAbort: boolean) => void;
 
+// TODO: investigate backing off on some of the preventDefault/stopPropagation
+//       calls in this and beginTouchDrag
 /**
  * Helper function for handling drag-and-drop events.  Binds to the window event
  * listeners to provide hassle-free callbacks for drag delta and drag end.
+ *
+ * This function handles mouse-based events, for touch events see
+ * `beginTouchDrag`.
  * @param downEvt the `mousedown` event that initiated the drag
  * @param delta callback for mouse movement
  * @param end callback for the end of the drag
@@ -49,7 +54,7 @@ export type DragEndHandler = (isAbort: boolean) => void;
 export function beginMouseDrag(downEvt: MouseEvent,
                                delta: DragDeltaHandler|undefined,
                                end?: DragEndHandler): void {
-    const opts   = {capture: true};
+    const opts   = {capture: true, passive: false};
     const button = downEvt.button;
 
     let cancel: (isAbort: boolean) => void;
@@ -81,7 +86,7 @@ export function beginMouseDrag(downEvt: MouseEvent,
             cancel(true);
 
             evt.preventDefault();
-            evt.stopPropagation();
+            evt.stopImmediatePropagation();
         }
     };
     cancel = (isAbort: boolean) => {
@@ -102,4 +107,140 @@ export function beginMouseDrag(downEvt: MouseEvent,
     window.addEventListener('selectstart', selectStart, opts);
     window.addEventListener('mouseup', mouseUp, opts);
     window.addEventListener('keydown', keyDown, opts);
+}
+
+/**
+ * Compute the average position of all touches in an event.
+ * @param evt the touch event to compute the position for
+ */
+export function averageTouchPos(evt: TouchEvent): [number, number] {
+    let x = 0;
+    let y = 0;
+
+    for (let i = 0; i < evt.touches.length; i += 1) {
+        const touch = evt.touches.item(i) as Touch;
+        x += touch.clientX;
+        y += touch.clientY;
+    }
+
+    return [x / evt.touches.length, y / evt.touches.length];
+}
+
+// TODO: differentiate between drag and scroll
+/**
+ * Helper function for handling drag-and-drop events.  Binds to the window event
+ * listeners to provide hassle-free callbacks for drag delta and drag end.
+ *
+ * This function handles touch-based events, for mouse events see
+ * `beginMouseDrag`.
+ * @param startEvt the `touchstart` event that initiated the drag
+ * @param target the target of the `touchstart` event
+ * @param delta callback for touch movement
+ * @param end callback for the end of the drag
+ */
+export function beginTouchDrag(startEvt: TouchEvent,
+                               delta: DragDeltaHandler|undefined,
+                               end?: DragEndHandler): void {
+    const target  = startEvt.target;
+    const opts    = {capture: true, passive: false};
+    const touches = new Map();
+
+    for (let i = 0; i < startEvt.touches.length; i += 1) {
+        const touch = startEvt.touches.item(i) as Touch;
+        touches.set(touch.identifier, true);
+    }
+
+    const sameTouches = (list: TouchList) => {
+        if (list.length !== touches.size) { return false; }
+
+        for (let i = 0; i < list.length; i += 1) {
+            const touch = list.item(i) as Touch;
+            if (!touches.has(touch.identifier)) { return false; }
+        }
+
+        return true;
+    };
+
+    let cancel: (isAbort: boolean) => void;
+    const touchStart = (evt: TouchEvent) => {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+    };
+    const touchMove = (evt: TouchEvent) => {
+        if (!sameTouches(evt.touches)) { return; }
+
+        // If no delta handler is specified, just perform a dummy drag
+        try {
+            if (delta !== undefined) {
+                const [x, y] = averageTouchPos(evt);
+                delta(x, y, cancel);
+            }
+        }
+        catch (e) {
+            console.error(e);
+            cancel(true);
+        }
+
+        evt.preventDefault();
+        evt.stopPropagation();
+    };
+    const selectStart = (evt: Event) => evt.preventDefault();
+    const touchEnd = (evt: TouchEvent) => {
+        for (let i = 0; i < evt.changedTouches.length; i += 1) {
+            const touch = evt.changedTouches.item(i) as Touch;
+
+            touches.delete(touch.identifier);
+        }
+
+        if (touches.size === 0) { cancel(false); }
+    };
+    const touchCancel = (evt: TouchEvent) => {
+        for (let i = 0; i < evt.changedTouches.length; i += 1) {
+            const touch = evt.changedTouches.item(i) as Touch;
+
+            if (touches.has(touch.identifier)) {
+                cancel(true);
+
+                return;
+            }
+        }
+    };
+    const keyDown = (evt: KeyboardEvent) => {
+        if (evt.key === 'Escape') {
+            cancel(true);
+
+            evt.preventDefault();
+            evt.stopImmediatePropagation();
+        }
+    };
+    cancel = (isAbort: boolean) => {
+        try {
+            if (end !== undefined) { end(isAbort); }
+        }
+        finally {
+            window.removeEventListener('touchstart', touchStart, opts);
+            window.removeEventListener('touchmove', touchMove, opts);
+            window.removeEventListener('selectstart', selectStart, opts);
+            window.removeEventListener('touchend', touchEnd, opts);
+            window.removeEventListener('touchcancel', touchCancel, opts);
+            window.removeEventListener('keydown', keyDown, opts);
+            if (target !== null) {
+                target.removeEventListener('touchmove', touchMove as EventListener, opts);
+                target.removeEventListener('touchend', touchEnd as EventListener, opts);
+                target.removeEventListener('touchcancel', touchCancel as EventListener, opts);
+            }
+        }
+    };
+
+    window.addEventListener('touchstart', touchStart, opts);
+    window.addEventListener('touchmove', touchMove, opts);
+    window.addEventListener('selectstart', selectStart, opts);
+    window.addEventListener('touchend', touchEnd, opts);
+    window.addEventListener('touchcancel', touchCancel, opts);
+    window.addEventListener('keydown', keyDown, opts);
+    if (target !== null) {
+        target.addEventListener('touchmove', touchMove as EventListener, opts);
+        target.addEventListener('touchend', touchEnd as EventListener, opts);
+        target.addEventListener('touchcancel', touchCancel as EventListener, opts);
+    }
 }
