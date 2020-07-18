@@ -89,7 +89,7 @@ export class ChildWithId<X, C extends ChildLayout<X> = ChildLayout<X>> {
 }
 
 /**
- * Retrieve the child referenced by a layout ID
+ * Retrieve the child referenced by a layout ID.
  * @param id the ID of the child layout
  */
 export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> {
@@ -102,6 +102,16 @@ export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> 
     }
 
     return stem.children[index];
+}
+
+/**
+ * Verify the given child ID is valid.
+ * @param id the ID of the child layout
+ */
+export function childIdValid<X>({stem, index}: ChildLayoutId<X>): boolean {
+    if (stem.type === LayoutType.Root) { return stem.layout !== undefined; }
+
+    return index >= 0 && stem.children.length > index;
 }
 
 /**

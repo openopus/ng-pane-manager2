@@ -45,6 +45,7 @@ import {NgPaneTabbedComponent} from './ng-pane-tabbed/ng-pane-tabbed.component';
 import {NgPaneComponent} from './ng-pane/ng-pane.component';
 import {
     childFromId,
+    childIdValid,
     ChildLayout,
     ChildLayoutId,
     ChildWithId,
@@ -635,8 +636,10 @@ export class PaneFactory<X> {
         ComponentRef<NgPaneComponent<X>> {
         const component = container.createComponent(this.paneFactory);
 
+        const inst = component.instance;
 
-        const inst  = component.instance;
+        if (!childIdValid(childId)) { return component; }
+
         const child = childFromId(childId);
 
         this.panes.set(child, component);
