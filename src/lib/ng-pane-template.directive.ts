@@ -19,9 +19,11 @@
  **********************************************************************************************/
 
 import {AfterContentInit, Directive, Input, TemplateRef, ViewContainerRef} from '@angular/core';
+import {BehaviorSubject} from 'rxjs';
 
 import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
-import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
+import {LeafNodeContext, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
+
 
 
 /**
@@ -31,9 +33,9 @@ import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
 @Directive({selector: '[ngPaneTemplate]'})
 export class NgPaneTemplateDirective<X> implements AfterContentInit {
     /** See `ngPaneTemplateNamed` */
-    private name!: string;
+    private name: string|undefined;
     /** See `ngPaneTemplateWithHeader` */
-    private headerStyle!: PaneHeaderStyle;
+    private headerStyle: PaneHeaderStyle|undefined;
 
     /** Stores the name to register this template under */
     @Input()
@@ -58,6 +60,17 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
 
     /** Register the pane template with the pane manager */
     public ngAfterContentInit(): void {
+        if (this.name === undefined) { throw new Error(`pane template missing 'named' keyword`); }
+
+        if (this.headerStyle === undefined) {
+            this.headerStyle = {
+                headerMode: PaneHeaderMode.Hidden,
+                title: new BehaviorSubject(''),
+                icon: new BehaviorSubject(undefined),
+                closable: false,
+            };
+        }
+
         this.templateService.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
     }
 }

@@ -27,7 +27,7 @@ import {
     ViewRef,
 } from '@angular/core';
 import {BehaviorSubject, Observable, Subscription} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {map, switchMap} from 'rxjs/operators';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
 import {
@@ -161,13 +161,20 @@ export class PaneFactory<X> {
     private readonly tabbedFactory: ComponentFactory<NgPaneTabbedComponent<X>>;
 
     // TODO: stress test layout changes to make sure all old data is cleaned out
-    /** All currently rendered leaves, stored by leaf pane id (_not_ template) */
+    /** All currently rendered leaves, stored by leaf pane ID (_not_ template) */
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent<X>>> = new Map();
     /**
      * All currently rendered panes, stored by their associated layout node.
      * **NOTE:** Object map keys are _only_ comparable by reference!
      */
     private readonly panes: Map<ChildLayout<X>, ComponentRef<NgPaneComponent<X>>> = new Map();
+    /**
+     * The headers of all currently rendered leaf nodes, stored by leaf pane ID.
+     *
+     * A value of `undefined` indicates to use the default template header.
+     */
+    private readonly leafHeaders:
+        Map<string, BehaviorSubject<PaneHeaderStyle|undefined>> = new Map();
     /** All RxJS subscriptions associated with the current layout */
     private readonly layoutSubscriptions: Subscription[] = [];
     /** All hit testing information for the currently rendered components */
@@ -201,6 +208,25 @@ export class PaneFactory<X> {
     }
 
     /**
+     * Returns an observable reference to the header of a leaf node, or creates
+     * a placeholder one if no header is currently registered.
+     *
+     * See `leafHeaders` for a description of the returned value.
+     * @param id the ID of the leaf node (_not_ template) to retrieve the header
+     *           for
+     */
+    private initLeafHeader(id: string): BehaviorSubject<PaneHeaderStyle|undefined> {
+        let entry = this.leafHeaders.get(id);
+
+        if (entry === undefined) {
+            entry = new BehaviorSubject<PaneHeaderStyle|undefined>(undefined);
+            this.leafHeaders.set(id, entry);
+        }
+
+        return entry;
+    }
+
+    /**
      * Collect all the necessary information to render the contents of a leaf
      * pane.
      * @param layout the name of the template to produce
@@ -211,9 +237,23 @@ export class PaneFactory<X> {
         return $info.pipe(map(info => {
             if (info === undefined) { return undefined; }
 
-            const {template, header} = info;
+            const {template, header: templateHeader} = info;
 
-            return [template, {header, extra: layout.extra}];
+            const header = this.initLeafHeader(layout.id);
+
+            const $implicit = {
+                get header(): PaneHeaderStyle {
+                    return header.value !== undefined ? header.value : templateHeader;
+                },
+                set header(val: PaneHeaderStyle) {
+                    // TODO: possibly add a synchronous version of this, but I
+                    //       think that wouldn't be usable without raising
+                    //       ExpressionChangedAfterItHasBeenCheckedErrors
+                    if (val !== header.value) { requestAnimationFrame(_ => header.next(val)); }
+                },
+            };
+
+            return [template, {$implicit, extra: layout.extra}];
         }));
     }
 
@@ -227,19 +267,17 @@ export class PaneFactory<X> {
         case LayoutType.Leaf:
             const $info = this.templateService.get(layout.template);
 
-            return $info.pipe(map(info => {
-                if (info === undefined) {
-                    return {
-                        headerMode: PaneHeaderMode.Visible,
-                        title: new BehaviorSubject('???'),
-                        icon: new BehaviorSubject(undefined),
-                        closable: true,
-                    };
-                }
+            return $info.pipe(switchMap(info => this.initLeafHeader(layout.id).pipe(map(header => {
+                if (header !== undefined) { return header; }
+                if (info !== undefined) { return info.header; }
 
-                // TODO: allow header overriding for specific leaf nodes
-                return info.header;
-            }));
+                return {
+                    headerMode: PaneHeaderMode.Visible,
+                    title: new BehaviorSubject('???'),
+                    icon: new BehaviorSubject(undefined),
+                    closable: true,
+                };
+            }))));
         case LayoutType.Horiz:
         case LayoutType.Vert:
             return new BehaviorSubject({
@@ -618,6 +656,7 @@ export class PaneFactory<X> {
             for (const [key, val] of this.leaves.entries()) {
                 if (val.hostView.destroyed) {
                     val.component.destroy();
+                    this.leafHeaders.delete(key);
                     remove.push(key);
                 }
             }

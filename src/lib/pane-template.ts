@@ -83,8 +83,11 @@ export function headerStyle(
  * Context passed to the `TemplateRef` of a leaf node.
  */
 export interface LeafNodeContext<X> {
-    /** The header style of this node */
-    header: PaneHeaderStyle;
+    /** The panel data itself */
+    $implicit: {
+        /** The header style of this node.  Can be read or written. */
+        header: PaneHeaderStyle;
+    };
     /** The layout data for this node */
     extra: X;
 }
