@@ -27,7 +27,7 @@ describe('NgPaneDropHighlightComponent', () => {
     let fixture: ComponentFixture<NgPaneDropHighlightComponent>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneDropHighlightComponent]})
+        void TestBed.configureTestingModule({declarations: [NgPaneDropHighlightComponent]})
             .compileComponents();
     }));
 
@@ -37,5 +37,5 @@ describe('NgPaneDropHighlightComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

@@ -23,11 +23,12 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneTabbedComponent} from './ng-pane-tabbed.component';
 
 describe('NgPaneTabbedComponent', () => {
-    let component: NgPaneTabbedComponent;
-    let fixture: ComponentFixture<NgPaneTabbedComponent>;
+    let component: NgPaneTabbedComponent<any>;
+    let fixture: ComponentFixture<NgPaneTabbedComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneTabbedComponent]}).compileComponents();
+        void TestBed.configureTestingModule({declarations: [NgPaneTabbedComponent]})
+            .compileComponents();
     }));
 
     beforeEach(() => {
@@ -36,5 +37,5 @@ describe('NgPaneTabbedComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

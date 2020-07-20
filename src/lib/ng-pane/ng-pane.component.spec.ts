@@ -23,11 +23,11 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneComponent} from './ng-pane.component';
 
 describe('NgPaneComponent', () => {
-    let component: NgPaneComponent;
-    let fixture: ComponentFixture<NgPaneComponent>;
+    let component: NgPaneComponent<any>;
+    let fixture: ComponentFixture<NgPaneComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneComponent]}).compileComponents();
+        void TestBed.configureTestingModule({declarations: [NgPaneComponent]}).compileComponents();
     }));
 
     beforeEach(() => {
@@ -36,5 +36,5 @@ describe('NgPaneComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

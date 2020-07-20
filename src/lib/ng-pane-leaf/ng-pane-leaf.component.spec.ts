@@ -23,11 +23,12 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneLeafComponent} from './ng-pane-leaf.component';
 
 describe('NgPaneLeafComponent', () => {
-    let component: NgPaneLeafComponent;
-    let fixture: ComponentFixture<NgPaneLeafComponent>;
+    let component: NgPaneLeafComponent<any>;
+    let fixture: ComponentFixture<NgPaneLeafComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneLeafComponent]}).compileComponents();
+        void TestBed.configureTestingModule({declarations: [NgPaneLeafComponent]})
+            .compileComponents();
     }));
 
     beforeEach(() => {
@@ -36,5 +37,5 @@ describe('NgPaneLeafComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

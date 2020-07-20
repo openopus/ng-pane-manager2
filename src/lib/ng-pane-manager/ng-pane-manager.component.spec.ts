@@ -23,11 +23,11 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneManagerComponent} from './ng-pane-manager.component';
 
 describe('NgPaneManagerComponent', () => {
-    let component: NgPaneManagerComponent;
-    let fixture: ComponentFixture<NgPaneManagerComponent>;
+    let component: NgPaneManagerComponent<any>;
+    let fixture: ComponentFixture<NgPaneManagerComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneManagerComponent]})
+        void TestBed.configureTestingModule({declarations: [NgPaneManagerComponent]})
             .compileComponents();
     }));
 
@@ -37,5 +37,5 @@ describe('NgPaneManagerComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

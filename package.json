@@ -1,10 +1,12 @@
 {
-  "name": "angular-pane-manager",
-  "version": "0.0.1",
-  "peerDependencies": {
-    "@angular/common": "~10.0.2",
-    "@angular/core": "~10.0.2",
-    "@angular/platform-browser": "~10.0.2",
-    "rxjs": "~6.5.5"
-  }
+    "name": "angular-pane-manager",
+    "version": "0.0.1",
+    "peerDependencies": {
+        "@angular/common": "~10.0.2",
+        "@angular/core": "~10.0.2",
+        "@angular/platform-browser": "~10.0.2",
+        "@angular/platform-browser-dynamic": "~10.0.2",
+        "rxjs": "~6.5.5",
+        "zone.js": "~0.10.3"
+    }
 }

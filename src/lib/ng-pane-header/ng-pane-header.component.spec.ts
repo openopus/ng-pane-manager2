@@ -23,11 +23,12 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneHeaderComponent} from './ng-pane-header.component';
 
 describe('NgPaneHeaderComponent', () => {
-    let component: NgPaneHeaderComponent;
-    let fixture: ComponentFixture<NgPaneHeaderComponent>;
+    let component: NgPaneHeaderComponent<any>;
+    let fixture: ComponentFixture<NgPaneHeaderComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneHeaderComponent]}).compileComponents();
+        void TestBed.configureTestingModule({declarations: [NgPaneHeaderComponent]})
+            .compileComponents();
     }));
 
     beforeEach(() => {
@@ -36,5 +37,5 @@ describe('NgPaneHeaderComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

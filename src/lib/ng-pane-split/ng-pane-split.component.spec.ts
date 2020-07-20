@@ -23,11 +23,12 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneSplitComponent} from './ng-pane-split.component';
 
 describe('NgPaneSplitComponent', () => {
-    let component: NgPaneSplitComponent;
-    let fixture: ComponentFixture<NgPaneSplitComponent>;
+    let component: NgPaneSplitComponent<any>;
+    let fixture: ComponentFixture<NgPaneSplitComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneSplitComponent]}).compileComponents();
+        void TestBed.configureTestingModule({declarations: [NgPaneSplitComponent]})
+            .compileComponents();
     }));
 
     beforeEach(() => {
@@ -36,5 +37,5 @@ describe('NgPaneSplitComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });

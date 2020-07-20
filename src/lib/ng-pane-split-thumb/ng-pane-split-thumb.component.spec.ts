@@ -23,11 +23,11 @@ import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb.component';
 
 describe('NgPaneSplitThumbComponent', () => {
-    let component: NgPaneSplitThumbComponent;
-    let fixture: ComponentFixture<NgPaneSplitThumbComponent>;
+    let component: NgPaneSplitThumbComponent<any>;
+    let fixture: ComponentFixture<NgPaneSplitThumbComponent<any>>;
 
     beforeEach(async(() => {
-        TestBed.configureTestingModule({declarations: [NgPaneSplitThumbComponent]})
+        void TestBed.configureTestingModule({declarations: [NgPaneSplitThumbComponent]})
             .compileComponents();
     }));
 
@@ -37,5 +37,5 @@ describe('NgPaneSplitThumbComponent', () => {
         fixture.detectChanges();
     });
 
-    it('should create', () => { expect(component).toBeTruthy(); });
+    it('should create', () => { void expect(component).toBeTruthy(); });
 });
