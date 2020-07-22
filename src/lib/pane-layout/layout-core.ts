@@ -42,6 +42,7 @@ export const enum LayoutType {
     Leaf,
 }
 
+// TODO: make gravity and group useful
 /**
  * The gravity of a layout, used for identifying regions to insert panes into.
  */
@@ -109,7 +110,7 @@ export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> 
  * @param id the ID of the child layout
  */
 export function childIdValid<X>({stem, index}: ChildLayoutId<X>): boolean {
-    if (stem.type === LayoutType.Root) { return stem.layout !== undefined; }
+    if (stem.type === LayoutType.Root) { return stem.layout !== undefined && index === 0; }
 
     return index >= 0 && stem.children.length > index;
 }

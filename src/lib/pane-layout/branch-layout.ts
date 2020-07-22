@@ -20,6 +20,8 @@
 
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
+import {EPSILON} from '../util';
+
 import {LayoutBase} from './layout-base';
 import {
     ChildLayout,
@@ -167,6 +169,10 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         }
 
         this._ratioSum = _ratios.reduce((s, e) => s + e, 0);
+
+        if (this.children.length > 0 && this._ratioSum < EPSILON) {
+            throw new Error('ratios for split layout are too small');
+        }
 
         // This fixes a quirk with the flex layout system where a sum weight
         // less than 1.0 causes elements not to fill all available space.
@@ -402,6 +408,30 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
     }
 
     /**
+     * Compute the new current tab for a spliced tab layout.
+     * @param currentTab the current tab index of the old layout
+     * @param idx the start index of the splice
+     * @param remove the remove count of the splice
+     * @param add the added children of the splice
+     * @param children the resulting array of children
+     */
+    private static computeSpliceTab(currentTab: number,
+                                    idx: number,
+                                    remove: number,
+                                    add: readonly      unknown[]|undefined,
+                                    children: readonly unknown[]): number {
+        let ret = currentTab;
+
+        ret -= currentTab - Math.max(0, Math.min(remove, ret - idx + 1));
+
+        if (ret >= idx && add !== undefined) { ret += add.length; }
+
+        ret = Math.max(0, Math.min(children.length - 1, ret));
+
+        return ret;
+    }
+
+    /**
      * Construct a new tabbed branch node.
      * @param children the children of the node
      * @param currentTab the currently selected child
@@ -460,21 +490,23 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
         let newCurrentTab = this.currentTab;
 
         if (changeTabTo !== undefined) {
-            if (changeTabTo < 0 ||
-                (addChildren === undefined || changeTabTo >= addChildren.length)) {
-                throw new Error('invalid value for changeTabTo');
-            }
+            if (addChildren === undefined || addChildren.length === 0) {
+                if (changeTabTo !== 0) { throw new Error('invalid value for changeTabTo'); }
 
-            newCurrentTab = idx + changeTabTo;
+                newCurrentTab = TabbedLayout.computeSpliceTab(
+                    this.currentTab, idx, remove, addChildren, newChildren);
+            }
+            else {
+                if (changeTabTo < 0 || changeTabTo >= addChildren.length) {
+                    throw new Error('invalid value for changeTabTo');
+                }
+
+                newCurrentTab = idx + changeTabTo;
+            }
         }
         else {
-            newCurrentTab -= Math.max(0, Math.min(remove, newCurrentTab - idx + 1));
-
-            if (newCurrentTab >= idx && addChildren !== undefined) {
-                newCurrentTab += addChildren.length;
-            }
-
-            newCurrentTab = Math.max(0, Math.min(newChildren.length - 1, newCurrentTab));
+            newCurrentTab = TabbedLayout.computeSpliceTab(
+                this.currentTab, idx, remove, addChildren, newChildren);
         }
 
         return {
