@@ -42,6 +42,8 @@ import {
     TabLayoutTemplate,
 } from './layout-template';
 
+// TODO: change these functions to asserts to improve error messages
+
 /** Indicates if two layout templates are equivalent */
 function sameTemplate<T>(lhs: LayoutTemplate<T>,
                          rhs: LayoutTemplate<T>,

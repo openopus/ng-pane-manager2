@@ -331,13 +331,6 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
      * Recursively simplify this node tree.
      */
     public simplifyDeep(): PaneLayout<X>|undefined {
-        if (this.children.length === 1) {
-            const child      = this.children[0];
-            const simplified = child.simplifyDeep();
-
-            return simplified !== undefined ? simplified : child;
-        }
-
         let newChildren: (ChildLayout<X>|readonly ChildLayout<X>[]|undefined)[]|undefined;
         let newRatios: (number|readonly number[]|undefined)[]|undefined;
 
@@ -345,16 +338,18 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             let newChild: ChildLayout<X>|readonly ChildLayout<X>[]|undefined;
             let newRatio: number|readonly number[]|undefined;
 
+            const simplified = child.simplifyDeep();
+
+            if (simplified !== undefined && simplified.type === LayoutType.Root) {
+                throw new Error('invalid simplification - child attempted to become root');
+            }
+
+            const next = simplified !== undefined ? simplified : child;
+
             // Branches with no children will skip this block, leaving newChild
             // to be undefined.
-            if (child.type === LayoutType.Leaf || child.children.length !== 0) {
-                const simplified = child.simplifyDeep();
-
-                if (simplified !== undefined && simplified.type === LayoutType.Root) {
-                    throw new Error('invalid simplification - child attempted to become root');
-                }
-
-                const next = newChild = simplified !== undefined ? simplified : child;
+            if (next.type === LayoutType.Leaf || next.children.length !== 0) {
+                newChild = next;
 
                 if (next.type === this.type) {
                     newChild = next.children;
@@ -380,14 +375,23 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             }
         });
 
-        return newChildren !== undefined
-                   ? new SplitLayout(this.type,
-                                     SplitLayout.flatten(newChildren),
-                                     newRatios !== undefined ? SplitLayout.flatten(newRatios)
-                                                             : this._ratios,
-                                     this.gravity,
-                                     this.group)
-                   : undefined;
+        if (newChildren === undefined) {
+            if (this.children.length === 1) { return this.children[0]; }
+
+            return undefined;
+        }
+
+        const flatChildren = SplitLayout.flatten(newChildren);
+
+        if (flatChildren.length === 1) { return flatChildren[0]; }
+
+        return new SplitLayout(this.type,
+                               flatChildren,
+                               newRatios !== undefined ? SplitLayout.flatten(newRatios)
+                                                       : this._ratios,
+                               this.gravity,
+                               this.group,
+                               true);
     }
 }
 
@@ -562,29 +566,22 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
      * Recursively simplify this node tree.
      */
     public simplifyDeep(): PaneLayout<X>|undefined {
-        if (this.children.length === 1) {
-            const child      = this.children[0];
-            const simplified = child.simplifyDeep();
-
-            return simplified !== undefined ? simplified : child;
-        }
-
         let newChildren: (ChildLayout<X>|undefined)[]|undefined;
 
         this.children.forEach((child, idx) => {
             let newChild;
 
+            const simplified = child.simplifyDeep();
+
+            if (simplified !== undefined && simplified.type === LayoutType.Root) {
+                throw new Error('invalid simplification - child attempted to become root');
+            }
+
+            const next = simplified !== undefined ? simplified : child;
+
             // Branches with no children will skip this block, leaving newChild
             // to be undefined.
-            if (child.type === LayoutType.Leaf || child.children.length !== 0) {
-                const simplified = child.simplifyDeep();
-
-                if (simplified !== undefined && simplified.type === LayoutType.Root) {
-                    throw new Error('invalid simplification - child attempted to become root');
-                }
-
-                newChild = simplified !== undefined ? simplified : child;
-            }
+            if (next.type === LayoutType.Leaf || next.children.length !== 0) { newChild = next; }
 
             if (!Object.is(newChild, child)) {
                 if (newChildren === undefined) { newChildren = this.children.slice(); }
@@ -593,11 +590,26 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
             }
         });
 
-        return newChildren !== undefined
-                   ? new TabbedLayout(newChildren.filter(c => c !== undefined) as ChildLayout<X>[],
-                                      this.currentTab,
-                                      this.gravity,
-                                      this.group)
-                   : undefined;
+        if (newChildren === undefined) {
+            if (this.children.length === 1) { return this.children[0]; }
+
+            return undefined;
+        }
+
+        const flatChildren = newChildren.filter(c => c !== undefined) as ChildLayout<X>[];
+
+        if (flatChildren.length === 1) { return flatChildren[0]; }
+
+        let newCurrentTab = this.currentTab;
+
+        while (newCurrentTab > 0 && newChildren[newCurrentTab] === undefined) {
+            newCurrentTab -= 1;
+        }
+
+        for (let i = newCurrentTab - 1; i >= 0; i -= 1) {
+            if (newChildren[i] === undefined) { newCurrentTab -= 1; }
+        }
+
+        return new TabbedLayout(flatChildren, newCurrentTab, this.gravity, this.group);
     }
 }

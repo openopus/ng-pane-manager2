@@ -37,10 +37,10 @@ import {
     StemLayout,
 } from './layout-core';
 
-const MAX_LAYOUT_DEPTH  = 5;
+const MAX_LAYOUT_DEPTH = 5;
 /** Maximum branch layout fanout, to prevent explosion */
 export const MAX_LAYOUT_FANOUT = 3;
-const MAX_SPLIT_RATIO   = 10;
+const MAX_SPLIT_RATIO          = 10;
 
 /** Suggested layout tree depth range */
 export const layoutDepthArb = fc.integer(0, MAX_LAYOUT_DEPTH);
@@ -168,6 +168,68 @@ export const childLayoutIdArb:
     }),
 })));
 
+// TODO: Figure out how to make fast-check and jasmine's expect play nice.
+//       This affects multiple tests, but this one was particularly bad.
+// TODO: Seed fast-check against Jasmine because this stuff isn't repeatable.
+/**
+ * Asserts that a given layout is properly simplified.
+ * @param layout the layout to check
+ * @param isToplevel whether the layout is the child of another layout
+ */
+function assertSimplified<X>(layout: PaneLayout<X>,
+                             isToplevel: boolean             = true,
+                             path: [PaneLayout<X>, string[]] = [layout, []]): void {
+    const throwAssert = (cond: boolean, msg: string|(() => string)) => {
+        if (!cond) {
+            throw new Error(`${typeof msg === 'string' ? msg : msg()} in ${path[1].join('->')} of ${
+                JSON.stringify(path[0])}`);
+        }
+    };
+
+    const recurse = (next: PaneLayout<X>, keepToplevel: boolean, pathSeg: string) => {
+        const [root, subpath] = path;
+
+        return assertSimplified(next, isToplevel && keepToplevel, [root, subpath.concat(pathSeg)]);
+    };
+
+    switch (layout.type) {
+    case LayoutType.Leaf: break;
+    case LayoutType.Root:
+        // Root layouts don't perform as aggressive a simplification as
+        // branches, so isToplevel should be preserved.
+        if (layout.layout !== undefined) { recurse(layout.layout, true, 'layout'); }
+        break;
+    case LayoutType.Horiz:
+    case LayoutType.Vert:
+        if (!isToplevel) {
+            throwAssert(layout.children.length > 1,
+                        () => `found non-toplevel layout with child count ${
+                            layout.children.length}`);
+        }
+
+        for (let i = 0; i < layout.children.length; i += 1) {
+            const child: ChildLayout<X> = layout.children[i];
+
+            throwAssert(child.type !== layout.type, 'found nested split with same orientation');
+
+            recurse(child, false, i.toString());
+        }
+
+        break;
+    case LayoutType.Tabbed:
+        if (!isToplevel) {
+            throwAssert(layout.children.length > 1,
+                        () => `found non-toplevel layout with child count ${
+                            layout.children.length}`);
+        }
+
+        for (let i = 0; i < layout.children.length; i += 1) {
+            recurse(layout.children[i], false, i.toString());
+        }
+        break;
+    }
+}
+
 describe('PaneLayout', () => {
     it('should have a type', async () => {
         await fc.assert(
@@ -179,6 +241,29 @@ describe('PaneLayout', () => {
         await fc.assert(fc.asyncProperty(
             layoutDepthArb.chain(paneArb),
             async pane => { await expect(pane.intoRoot().type).toEqual(LayoutType.Root); }));
+    });
+
+    it('should simplify correctly', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(paneArb), pane => {
+            const simplified = pane.simplifyDeep();
+
+            assertSimplified(simplified !== undefined ? simplified : pane);
+        }));
+
+        expect().nothing();
+    });
+
+    it('should simplify to a fixed point', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(paneArb), pane => {
+            const simplified = pane.simplifyDeep();
+
+            fc.pre(simplified !== undefined);
+            if (simplified === undefined) { return false; }
+
+            return simplified.simplifyDeep() === undefined;
+        }));
+
+        expect().nothing();
     });
 });
 
