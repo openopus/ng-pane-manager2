@@ -52,7 +52,7 @@ export class NgPaneLeafComponent<X> {
     public get template(): LeafNodeTemplate<X>|undefined { return this._template; }
 
     public set template(val: LeafNodeTemplate<X>|undefined) {
-        if (val === this._template) { return; }
+        if (Object.is(val, this._template)) { return; }
 
         this._template = val;
 

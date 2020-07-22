@@ -18,17 +18,21 @@
  *
  **************************************************************************************/
 
+// Not sure why this isn't working correctly...
+// tslint:disable await-promise no-implicit-dependencies
 import fc from 'fast-check';
 
 import {SplitLayout} from './branch-layout';
 import {LayoutType} from './layout-core';
 import {branchArb, childArb, layoutDepthArb, splitRatiosArb} from './layout-core.spec';
 
+const MAX_SPLICE_ADD = 5;
+
 const spliceOpArb = layoutDepthArb.chain(branchArb)
                         .chain(branch => fc.record({
                             branch: fc.constant(branch),
                             start: fc.integer(0, branch.children.length).noShrink(),
-                            add: fc.array(fc.integer(0, 3).chain(childArb)),
+                            add: fc.array(fc.integer(0, MAX_SPLICE_ADD).chain(childArb)),
                         }))
                         .chain(({branch, start, add}) => fc.record({
                             branch: fc.constant(branch),

@@ -249,7 +249,9 @@ export class PaneFactory<X> {
                     // TODO: possibly add a synchronous version of this, but I
                     //       think that wouldn't be usable without raising
                     //       ExpressionChangedAfterItHasBeenCheckedErrors
-                    if (val !== header.value) { requestAnimationFrame(_ => header.next(val)); }
+                    if (!Object.is(val, header.value)) {
+                        requestAnimationFrame(_ => header.next(val));
+                    }
                 },
             };
 

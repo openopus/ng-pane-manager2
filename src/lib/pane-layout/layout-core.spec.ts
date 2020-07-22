@@ -18,7 +18,9 @@
  *
  ************************************************************************************/
 
-import fc from 'fast-check'
+// Not sure why this isn't working correctly...
+// tslint:disable await-promise no-implicit-dependencies
+import fc from 'fast-check';
 
 import {EPSILON} from '../util';
 
@@ -36,14 +38,16 @@ import {
 } from './layout-core';
 
 const MAX_LAYOUT_DEPTH  = 5;
-const MAX_LAYOUT_FANOUT = 3;
+/** Maximum branch layout fanout, to prevent explosion */
+export const MAX_LAYOUT_FANOUT = 3;
 const MAX_SPLIT_RATIO   = 10;
 
 /** Suggested layout tree depth range */
 export const layoutDepthArb = fc.integer(0, MAX_LAYOUT_DEPTH);
 
-/** Produces a random ayout node gravity */
-export const gravityArb: fc.Arbitrary<LayoutGravity> = fc.oneof(
+/** Produces a random layout node gravity */
+export const gravityArb: fc.Arbitrary<LayoutGravity|undefined> = fc.oneof(
+    fc.constant(undefined),
     fc.constant(LayoutGravity.Top),
     fc.constant(LayoutGravity.Left),
     fc.constant(LayoutGravity.Center),
@@ -52,7 +56,7 @@ export const gravityArb: fc.Arbitrary<LayoutGravity> = fc.oneof(
 );
 
 /** Produces a random node group ID */
-export const groupArb = fc.string();
+export const groupArb = fc.oneof(fc.constant(undefined), fc.string());
 
 /**
  * Produces a child (non-root) layout node.
@@ -136,7 +140,7 @@ export const splitArb: fc.Memo<SplitLayout<any>> = fc.memo(_n => {
 });
 
 /**
- * Produces a tabbed branch node with generated children.
+ * Produces a tabbed branch with generated children.
  */
 export const tabbedArb: fc.Memo<TabbedLayout<any>> = fc.memo(_n => {
     return fc.array(childArb(), MAX_LAYOUT_FANOUT)

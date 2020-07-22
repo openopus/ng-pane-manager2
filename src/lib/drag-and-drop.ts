@@ -309,7 +309,7 @@ export class PaneDragContext<X> {
             fn();
 
             if (this.hoverAction.type !== HoverActionType.None &&
-                this.hoverAction.handle === handle) {
+                Object.is(this.hoverAction.handle, handle)) {
                 this.hoverAction = {type: HoverActionType.None};
             }
         }, HOVER_ACTION_DELAY);
@@ -645,7 +645,7 @@ export class PaneDragContext<X> {
 
                         if (target.id.stem.currentTab !== target.id.index) {
                             if (this.hoverAction.type === HoverActionType.TabSwitch &&
-                                this.hoverAction.layout === stem &&
+                                Object.is(this.hoverAction.layout, stem) &&
                                 this.hoverAction.index === index) {
                                 nextHoverAction = undefined;
                             }

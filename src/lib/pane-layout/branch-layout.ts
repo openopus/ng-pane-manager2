@@ -80,7 +80,7 @@ export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends Layou
      * @param replace the note to replace the search node with
      */
     public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
-        if (this as any === find) { return replace; }
+        if (Object.is(this, find)) { return replace; }
 
         let newChildren: ChildLayout<X>[]|undefined;
 
@@ -151,12 +151,14 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
      * @param _ratios the ratio of each child node
      * @param gravity the gravity of the split node
      * @param group the group of the split node
+     * @param fixTiny whether to normalize all ratios if the sum is too small
      */
     public constructor(public readonly    type: LayoutType.Horiz|LayoutType.Vert,
                        children: readonly ChildLayout<X>[],
                        private readonly   _ratios: number[],
                        gravity?: LayoutGravity,
-                       group?: string) {
+                       group?: string,
+                       fixTiny?: boolean) {
         super(children, gravity, group);
 
         if (_ratios.length !== children.length) {
@@ -171,7 +173,14 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         this._ratioSum = _ratios.reduce((s, e) => s + e, 0);
 
         if (this.children.length > 0 && this._ratioSum < EPSILON) {
-            throw new Error('ratios for split layout are too small');
+            if (fixTiny === true) {
+                for (let i = 0; i < this._ratios.length; i += 1) { this._ratios[i] = 1; }
+
+                this._ratioSum = this._ratios.length;
+            }
+            else {
+                throw new Error('ratios for split layout are too small');
+            }
         }
 
         // This fixes a quirk with the flex layout system where a sum weight
@@ -279,7 +288,8 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
                                                       : newRatios.splice(idx, remove);
 
         return {
-            layout: new SplitLayout(this.type, newChildren, newRatios, this.gravity, this.group),
+            layout:
+                new SplitLayout(this.type, newChildren, newRatios, this.gravity, this.group, true),
             removed,
             removedRatios,
         };
@@ -361,7 +371,7 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
                 }
             }
 
-            if (newChild !== child) {
+            if (!Object.is(newChild, child)) {
                 if (newChildren === undefined) { newChildren = this.children.slice(); }
                 if (newRatios === undefined) { newRatios = this._ratios.slice(); }
 
@@ -576,7 +586,7 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
                 newChild = simplified !== undefined ? simplified : child;
             }
 
-            if (newChild !== child) {
+            if (!Object.is(newChild, child)) {
                 if (newChildren === undefined) { newChildren = this.children.slice(); }
 
                 newChildren[idx] = newChild;

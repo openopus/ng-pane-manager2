@@ -172,7 +172,7 @@ export class RootLayout<X> extends LayoutBase<X> {
      * @param replace the node to replace the search node with
      */
     public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
-        if (this === find) { return replace; }
+        if (Object.is(this, find)) { return replace; }
 
         const newLayout = this.layout !== undefined ? this.layout.transposeDeep(find, replace)
                                                     : undefined;
@@ -236,7 +236,7 @@ export class LeafLayout<X> extends LayoutBase<X> {
      * @param replace thenode to replace the search node with
      */
     public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
-        return this === find ? replace : undefined;
+        return Object.is(this, find) ? replace : undefined;
     }
 
     /**
