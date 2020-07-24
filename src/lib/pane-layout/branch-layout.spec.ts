@@ -23,7 +23,7 @@
 import fc from 'fast-check';
 
 import {SplitLayout} from './branch-layout';
-import {LayoutType} from './layout-core';
+import {LayoutType} from './layout-base';
 import {branchArb, childArb, layoutDepthArb, splitRatiosArb} from './layout-core.spec';
 
 const MAX_SPLICE_ADD = 5;

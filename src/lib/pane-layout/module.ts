@@ -22,3 +22,4 @@ export * from './branch-layout';
 export * from './layout-base';
 export * from './layout-core';
 export * from './layout-template';
+export * from './layout-util';

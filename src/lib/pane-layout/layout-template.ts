@@ -19,7 +19,8 @@
  ***********************************************************************************/
 
 import {SplitLayout, TabbedLayout} from './branch-layout';
-import {ChildLayout, LayoutGravity, LayoutType, LeafLayout, PaneLayout} from './layout-core';
+import {LayoutGravity, LayoutType} from './layout-base';
+import {ChildLayout, LeafLayout, PaneLayout} from './layout-core';
 
 // TODO: create helper functions to construct common layout templates
 

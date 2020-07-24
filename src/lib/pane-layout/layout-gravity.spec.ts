@@ -22,16 +22,14 @@
 import * as chai from 'chai';
 import fc from 'fast-check';
 
+import {LayoutGravity, LayoutType} from './layout-base';
 import {
-    childFromId,
-    ChildLayoutId,
-    LayoutGravity,
-    LayoutType,
     LeafLayout,
     PaneLayout,
     RootLayout,
 } from './layout-core';
 import {saveLayoutGravity} from './layout-template';
+import {childFromId, ChildLayoutId} from './layout-util';
 
 /** Find the element with the pseudo-gravity described by its expected child nodes. */
 function findPseudoGravity<X>(stemType: LayoutType, ...children: (ChildLayoutId<X>|undefined)[]):

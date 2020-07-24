@@ -20,13 +20,64 @@
 
 import {
     ChildLayout,
-    ChildLayoutId,
-    LayoutGravity,
-    LayoutType,
     PaneLayout,
     RootLayout,
 } from './layout-core';
+import {childFromId, ChildLayoutId} from './layout-util';
 
+/** The type identifier of a layout node */
+export const enum LayoutType {
+    /** A root layout node */
+    Root,
+    /** A split branch node, oriented horizontally */
+    Horiz,
+    /** A split branch node, oriented vertically */
+    Vert,
+    /** A tabbed branch node */
+    Tabbed,
+    /** A leaf node */
+    Leaf,
+}
+
+// TODO: make gravity and group useful
+/**
+ * The gravity of a layout, used for identifying regions to insert panes into.
+ */
+export const enum LayoutGravity {
+    /**
+     * The top region spanning the whole layout horizontally.\
+     * Example usages include toolbars, ribbons, or tool shelves.
+     */
+    Header,
+    /**
+     * The left region, nested vertically between the header and footer.\
+     * Example usages include navbars or folder trees.
+     */
+    Left,
+    /**
+     * The central region, intended for the primary work area.
+     */
+    Main,
+    /**
+     * The bottom region stacked directly below main region.\
+     * Example usages include status panels or ancillary information.
+     */
+    Bottom,
+    /**
+     * The right region, nested vertically between the header and footer.\
+     * Example usages include property editors or sidebars.
+     */
+    Right,
+    /**
+     * The bottom region spanning the whole layout horizontally.\
+     * Example usages include status bars or footers.
+     */
+    Footer,
+}
+
+// TODO: add 'sticky' nodes or placeholders for empty branches that aren't
+//       removed during simplify to complement the gravity system (e.g. leaving
+//       a document well around even if the last tab was closed)
 /**
  * Base class for all pane layout node types.
  */
@@ -35,6 +86,12 @@ export abstract class LayoutBase<X> {
      * The type of the current node.
      */
     public abstract get type(): LayoutType;
+
+    /**
+     * If this represents an empty container, place the given child into it.
+     * @param child the child to place
+     */
+    protected abstract tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X>|undefined;
 
     /**
      * Convert this node into a root node.
@@ -75,8 +132,45 @@ export abstract class LayoutBase<X> {
      * @param pane the child to add
      * @param gravity the gravity of the child
      */
-    public withChildByGravity(_pane: ChildLayout<X>, _gravity: LayoutGravity): PaneLayout<X> {
-        return this as any as PaneLayout<X>;
+    public withChildByGravity(pane: ChildLayout<X>, gravity: LayoutGravity): PaneLayout<X> {
+        // return this as any as PaneLayout<X>;
+
+        {
+            const emplaced = this.tryEmplaceEmpty(pane);
+
+            // console.log(emplaced);
+
+            if (emplaced !== undefined) { return emplaced; }
+        }
+
+        // If the well with the specified gravity already exists, drop the new
+        // pane into that.
+        {
+            const well = this.findChildByGravity(gravity);
+
+            if (well !== undefined) {
+                const child = childFromId(well);
+
+                let replace;
+
+                switch (child.type) {
+                case LayoutType.Leaf: throw new Error('Not yet implemented');
+                case LayoutType.Horiz:
+                case LayoutType.Vert: throw new Error('Not yet implemented');
+                case LayoutType.Tabbed: replace = child.withChild(undefined, pane, true); break;
+                }
+
+                const transposed = this.transposeDeep(child, replace);
+
+                if (transposed === undefined) {
+                    throw new Error('failed to drop new pane into existing well');
+                }
+
+                return transposed;
+            }
+        }
+
+        throw new Error('Not yet implemented');
 
         // switch (gravity) {
         // case LayoutGravity.Top:

@@ -24,7 +24,8 @@ import fc from 'fast-check';
 
 import {EPSILON} from '../util';
 
-import {LayoutType, PaneLayout} from './layout-core';
+import {LayoutType} from './layout-base';
+import {PaneLayout} from './layout-core';
 import {
     childArb,
     groupArb,

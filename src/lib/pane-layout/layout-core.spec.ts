@@ -25,17 +25,14 @@ import fc from 'fast-check';
 import {EPSILON} from '../util';
 
 import {BranchLayout, SplitLayout, TabbedLayout} from './branch-layout';
+import {LayoutGravity, LayoutType} from './layout-base';
 import {
-    childFromId,
-    childIdValid,
     ChildLayout,
-    ChildLayoutId,
-    LayoutGravity,
-    LayoutType,
     LeafLayout,
     PaneLayout,
     StemLayout,
 } from './layout-core';
+import {childFromId, childIdValid, ChildLayoutId} from './layout-util';
 
 const MAX_LAYOUT_DEPTH = 5;
 /** Maximum branch layout fanout, to prevent explosion */

@@ -22,15 +22,13 @@ import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
 import {EPSILON} from '../util';
 
-import {ChildLayoutBase} from './layout-base';
+import {ChildLayoutBase, LayoutGravity, LayoutType} from './layout-base';
 import {
     ChildLayout,
-    ChildLayoutId,
-    LayoutGravity,
-    LayoutType,
     PaneLayout,
     RootLayout,
 } from './layout-core';
+import {ChildLayoutId} from './layout-util';
 
 /**
  * Base class for all branch layouts
@@ -46,6 +44,16 @@ export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends Child
                        gravity: LayoutGravity|undefined,
                        group: string|undefined) {
         super(gravity, group);
+    }
+
+    /**
+     * If this represents an empty container, place the given child into it.
+     * @param child the child to place
+     */
+    protected tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X>|undefined {
+        if (this.children.length === 0) { return this.withChildren([child]); }
+
+        return undefined;
     }
 
     /**
@@ -484,7 +492,6 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
 
         this.currentTab = currentTab;
     }
-
 
     /** See `BranchLayoutBase.withChildren` */
     protected withChildren(newChildren: ChildLayout<X>[]): TabbedLayout<X> {
