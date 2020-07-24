@@ -48,11 +48,12 @@ export const layoutDepthArb = fc.integer(0, MAX_LAYOUT_DEPTH);
 /** Produces a random layout node gravity */
 export const gravityArb: fc.Arbitrary<LayoutGravity|undefined> = fc.oneof(
     fc.constant(undefined),
-    fc.constant(LayoutGravity.Top),
+    fc.constant(LayoutGravity.Header),
     fc.constant(LayoutGravity.Left),
-    fc.constant(LayoutGravity.Center),
-    fc.constant(LayoutGravity.Right),
+    fc.constant(LayoutGravity.Main),
     fc.constant(LayoutGravity.Bottom),
+    fc.constant(LayoutGravity.Right),
+    fc.constant(LayoutGravity.Footer),
 );
 
 /** Produces a random node group ID */

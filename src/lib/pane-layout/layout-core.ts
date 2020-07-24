@@ -19,7 +19,7 @@
  *******************************************************************************/
 
 import {BranchLayout} from './branch-layout';
-import {LayoutBase} from './layout-base';
+import {ChildLayoutBase, LayoutBase} from './layout-base';
 
 /** A layout node of any kind */
 export type PaneLayout<X> = RootLayout<X>|BranchLayout<X>|LeafLayout<X>;
@@ -47,16 +47,35 @@ export const enum LayoutType {
  * The gravity of a layout, used for identifying regions to insert panes into.
  */
 export const enum LayoutGravity {
-    /** The top region, usually for toolbars */
-    Top,
-    /** The left region, usually for sidebars */
+    /**
+     * The top region spanning the whole layout horizontally.\
+     * Example usages include toolbars, ribbons, or tool shelves.
+     */
+    Header,
+    /**
+     * The left region, nested vertically between the header and footer.\
+     * Example usages include navbars or folder trees.
+     */
     Left,
-    /** The center region, usually for primary content */
-    Center,
-    /** The right region, usually for sidebars */
-    Right,
-    /** The bottom region, usually for extra content or status panels */
+    /**
+     * The central region, intended for the primary work area.
+     */
+    Main,
+    /**
+     * The bottom region stacked directly below main region.\
+     * Example usages include status panels or ancillary information.
+     */
     Bottom,
+    /**
+     * The right region, nested vertically between the header and footer.\
+     * Example usages include property editors or sidebars.
+     */
+    Right,
+    /**
+     * The bottom region spanning the whole layout horizontally.\
+     * Example usages include status bars or footers.
+     */
+    Footer,
 }
 
 /**
@@ -129,9 +148,7 @@ export class RootLayout<X> extends LayoutBase<X> {
      * Construct a new root layout node.
      * @param layout the child layout
      */
-    public constructor(public readonly layout: ChildLayout<X>|undefined) {
-        super(undefined, undefined);
-    }
+    public constructor(public readonly layout: ChildLayout<X>|undefined) { super(); }
 
     /**
      * Return the ID of this node's child.
@@ -143,6 +160,18 @@ export class RootLayout<X> extends LayoutBase<X> {
      * ensures `.intoRoot()` exists for any `PaneLayout`.
      */
     public intoRoot(): RootLayout<X> { return this; }
+
+    /**
+     * Find a child matching the given predicate.
+     * @param pred predicate to match elements against
+     */
+    public findChild(pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X>|undefined {
+        if (this.layout === undefined) { return undefined; }
+
+        if (pred(this.layout)) { return this.childId(); }
+
+        return this.layout.findChild(pred);
+    }
 
     /**
      * Remove the child of this node.
@@ -205,7 +234,7 @@ export class RootLayout<X> extends LayoutBase<X> {
 /**
  * A leaf node, which contains user content but no other nodes.
  */
-export class LeafLayout<X> extends LayoutBase<X> {
+export class LeafLayout<X> extends ChildLayoutBase<X> {
     /** The type of the layout.  Used for type checking. */
     public readonly type: LayoutType.Leaf = LayoutType.Leaf;
 
@@ -228,6 +257,14 @@ export class LeafLayout<X> extends LayoutBase<X> {
      * Wrap this leaf node in a root node.
      */
     public intoRoot(): RootLayout<X> { return new RootLayout(this); }
+
+    /**
+     * Returns undefined, since leaves have no child IDs.
+     * @param pred predicate to match elements against
+     */
+    public findChild(_pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X>|undefined {
+        return undefined;
+    }
 
     /**
      * Find any occurrences (by reference) of a node in the current tree and

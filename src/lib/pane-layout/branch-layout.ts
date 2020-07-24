@@ -22,7 +22,7 @@ import {BehaviorSubject, Observable, Subject} from 'rxjs';
 
 import {EPSILON} from '../util';
 
-import {LayoutBase} from './layout-base';
+import {ChildLayoutBase} from './layout-base';
 import {
     ChildLayout,
     ChildLayoutId,
@@ -35,7 +35,7 @@ import {
 /**
  * Base class for all branch layouts
  */
-export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends LayoutBase<X> {
+export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends ChildLayoutBase<X> {
     /**
      * Construct a new branch layout node.
      * @param children the children of this layout node
@@ -53,6 +53,30 @@ export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends Layou
      * @param newChildren the children to construct the clone with
      */
     protected abstract withChildren(newChildren: ChildLayout<X>[]): S;
+
+    /**
+     * Construct a child ID referencing a child of this node.
+     * @param index the index of the child ID
+     */
+    public abstract childId(index: number): ChildLayoutId<X>;
+
+    /**
+     * Find a child matching the given predicate.
+     * @param pred predicate to match elements against
+     */
+    public findChild(pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X>|undefined {
+        for (let i = 0; i < this.children.length; i += 1) {
+            if (pred(this.children[i])) { return this.childId(i); }
+        }
+
+        for (const child of this.children) {
+            const id = child.findChild(pred);
+
+            if (id !== undefined) { return id; }
+        }
+
+        return undefined;
+    }
 
     /**
      * Map the children of the current node to a new node using the given

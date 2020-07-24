@@ -27,7 +27,7 @@ import {ChildLayout, LayoutGravity, LayoutType, LeafLayout, PaneLayout} from './
 export type LayoutTemplate<T> = SplitLayoutTemplate<T>|TabLayoutTemplate<T>|LeafLayoutTemplate<T>;
 
 /** Stringified versions of the layout gravities */
-export type GravityTemplate = 'top'|'left'|'center'|'right'|'bottom';
+export type GravityTemplate = 'header'|'left'|'main'|'bottom'|'right'|'footer';
 
 /**
  * Base interface for all layout node templates.
@@ -81,14 +81,15 @@ export interface TabLayoutTemplate<T> extends LayoutTemplateBase {
  * Convert a string gravity value to a numeric gravity value.
  * @param gravity the string gravity value, or `undefined`
  */
-function loadGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefined {
+export function loadLayoutGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefined {
     switch (gravity) {
     case undefined: return undefined;
-    case 'center': return LayoutGravity.Center; break;
+    case 'header': return LayoutGravity.Header; break;
     case 'left': return LayoutGravity.Left; break;
-    case 'right': return LayoutGravity.Right; break;
-    case 'top': return LayoutGravity.Top; break;
+    case 'main': return LayoutGravity.Main; break;
     case 'bottom': return LayoutGravity.Bottom; break;
+    case 'right': return LayoutGravity.Right; break;
+    case 'footer': return LayoutGravity.Footer; break;
     default: throw new Error(`invalid layout gravity '${gravity}'`);
     }
 }
@@ -106,24 +107,24 @@ export function loadLayout<T, X>(template: LayoutTemplate<T>,
         return new LeafLayout(template.id,
                               template.template,
                               loadExtra(template.extra),
-                              loadGravity(template.gravity),
+                              loadLayoutGravity(template.gravity),
                               template.group);
     case 'horiz':
         return new SplitLayout(LayoutType.Horiz,
                                template.children.map(recurse),
                                template.ratio,
-                               loadGravity(template.gravity),
+                               loadLayoutGravity(template.gravity),
                                template.group);
     case 'vert':
         return new SplitLayout(LayoutType.Vert,
                                template.children.map(recurse),
                                template.ratio,
-                               loadGravity(template.gravity),
+                               loadLayoutGravity(template.gravity),
                                template.group);
     case 'tab':
         return new TabbedLayout(template.children.map(recurse),
                                 template.currentTab,
-                                loadGravity(template.gravity),
+                                loadLayoutGravity(template.gravity),
                                 template.group);
     default: throw new Error(`invalid split type '${(template as any).split}'`);
     }
@@ -133,14 +134,15 @@ export function loadLayout<T, X>(template: LayoutTemplate<T>,
  * Convert a numeric gravity value to a string gravity value.
  * @param gravity the numeric gravity value, or `undefined`
  */
-function saveGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefined {
+export function saveLayoutGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefined {
     switch (gravity) {
     case undefined: return undefined;
-    case LayoutGravity.Center: return 'center'; break;
+    case LayoutGravity.Header: return 'header'; break;
     case LayoutGravity.Left: return 'left'; break;
-    case LayoutGravity.Right: return 'right'; break;
-    case LayoutGravity.Top: return 'top'; break;
+    case LayoutGravity.Main: return 'main'; break;
     case LayoutGravity.Bottom: return 'bottom'; break;
+    case LayoutGravity.Right: return 'right'; break;
+    case LayoutGravity.Footer: return 'footer'; break;
     }
 }
 
@@ -161,7 +163,7 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
         return {
             id: layout.id,
             template: layout.template,
-            gravity: saveGravity(layout.gravity),
+            gravity: saveLayoutGravity(layout.gravity),
             group: layout.group,
             extra: saveExtra(layout.extra),
         };
@@ -170,7 +172,7 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
             split: 'horiz',
             ratio: layout.ratios.slice(),
             children: layout.children.map(recurse),
-            gravity: saveGravity(layout.gravity),
+            gravity: saveLayoutGravity(layout.gravity),
             group: layout.group,
         };
     case LayoutType.Vert:
@@ -178,7 +180,7 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
             split: 'vert',
             ratio: layout.ratios.slice(),
             children: layout.children.map(recurse),
-            gravity: saveGravity(layout.gravity),
+            gravity: saveLayoutGravity(layout.gravity),
             group: layout.group,
         };
     case LayoutType.Tabbed:
@@ -186,7 +188,7 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
             split: 'tab',
             currentTab: layout.currentTab,
             children: layout.children.map(recurse),
-            gravity: saveGravity(layout.gravity),
+            gravity: saveLayoutGravity(layout.gravity),
             group: layout.group,
         };
     }

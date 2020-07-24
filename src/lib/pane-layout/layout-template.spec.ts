@@ -42,7 +42,8 @@ import {
     TabLayoutTemplate,
 } from './layout-template';
 
-// TODO: change these functions to asserts to improve error messages
+// TODO: use Chai for all assertions inside fast-check, because Chai assertions
+//       throw errors and fast-check doesn't work without them
 
 /** Indicates if two layout templates are equivalent */
 function sameTemplate<T>(lhs: LayoutTemplate<T>,
@@ -91,10 +92,12 @@ function sameTemplate<T>(lhs: LayoutTemplate<T>,
 function sameLayout<T>(lhs: PaneLayout<T>,
                        rhs: PaneLayout<T>,
                        sameExtra: (l: T, r: T) => boolean = sameExtraAny): boolean {
+    if (lhs.type !== rhs.type) { return false; }
+
     const anyRhs = rhs as any;
 
-    if (!(lhs.type === rhs.type && Object.is(lhs.gravity, rhs.gravity) &&
-          Object.is(lhs.group, rhs.group))) {
+    if (lhs.type !== LayoutType.Root &&
+        !(Object.is(lhs.gravity, anyRhs.gravity) && Object.is(lhs.group, anyRhs.group))) {
         return false;
     }
 
@@ -153,11 +156,12 @@ function sameExtraAny(lhs: any, rhs: any): boolean {
 /** Produces a random layout template gravity */
 export const gravityTemplateArb: fc.Arbitrary<GravityTemplate|undefined> = fc.oneof(
     fc.constant(undefined),
-    fc.constant<GravityTemplate>('top'),
+    fc.constant<GravityTemplate>('header'),
     fc.constant<GravityTemplate>('left'),
-    fc.constant<GravityTemplate>('center'),
-    fc.constant<GravityTemplate>('right'),
+    fc.constant<GravityTemplate>('main'),
     fc.constant<GravityTemplate>('bottom'),
+    fc.constant<GravityTemplate>('right'),
+    fc.constant<GravityTemplate>('footer'),
 );
 
 /**
