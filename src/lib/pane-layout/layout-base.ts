@@ -41,7 +41,6 @@ export const enum LayoutType {
     Leaf,
 }
 
-// TODO: make gravity and group useful
 /**
  * The gravity of a layout, used for identifying regions to insert panes into.
  */
@@ -250,6 +249,14 @@ export abstract class LayoutBase<X> {
     }
 
     /**
+     * Find a descendant with the given group.
+     * @param group the group to match against
+     */
+    public findChildByGroup(group: string): ChildLayoutId<X>|undefined {
+        return this.findChild(c => c.group === group);
+    }
+
+    /**
      * Find the ID of a descendant node within this node.
      * @param child the child to retrieve the ID of
      */
@@ -272,10 +279,41 @@ export abstract class LayoutBase<X> {
     public abstract simplifyDeep(): PaneLayout<X>|undefined;
 
     /**
-     * Add a child to the current layout tree using the given gravity value to
+     * Add a child to the given node, splitting or tabifying it as necessary.
+     * @param well the pane to add a child to
+     * @param desc the child to add
+     */
+    public withDescendant(well: ChildLayoutId<X>, desc: ChildLayout<X>): PaneLayout<X>|undefined {
+        const child = childFromId(well);
+
+        let replace;
+
+        switch (child.type) {
+        case LayoutType.Leaf:
+            replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
+            break;
+        // TODO: This may cause undesired behavior.  The more intuitive
+        //       approach may be to descend and create a tab in a child
+        //       container but I didn't want to risk accidentally
+        //       creating a split inside a tab.
+        case LayoutType.Horiz:
+        case LayoutType.Vert:
+            replace = child.withChild(undefined, desc, child.ratioSum / child.children.length);
+            break;
+        case LayoutType.Tabbed: replace = child.withChild(undefined, desc, true); break;
+        }
+
+        const transposed = this.transposeDeep(child, replace);
+
+        if (transposed === undefined) { throw new Error('failed to drop descendant into well'); }
+
+        return transposed;
+    }
+
+    /**
+     * Add a child to the current layout tree using the child's gravity value to
      * position it automatically.
      * @param pane the child to add
-     * @param gravity the gravity of the child
      */
     public withChildByGravity(pane: ChildLayout<X>): PaneLayout<X>|undefined {
         if (pane.gravity === undefined) { throw new Error('cannot insert pane with no gravity'); }
@@ -288,39 +326,13 @@ export abstract class LayoutBase<X> {
 
         // If the well with the specified gravity already exists, drop the new
         // pane into that.
-        // TODO: finish writing this section
         {
             const well = this.findChildByGravity(pane.gravity);
 
             if (well !== undefined) {
-                const child = childFromId(well);
+                const ret = this.withDescendant(well, pane);
 
-                let replace;
-
-                switch (child.type) {
-                case LayoutType.Leaf:
-                    replace = new TabbedLayout([child, pane], 1, child.gravity, child.group);
-                    break;
-                // TODO: This may cause undesired behavior.  The more intuitive
-                //       approach may be to descend and create a tab in a child
-                //       container but I didn't want to risk accidentally
-                //       creating a split inside a tab.
-                case LayoutType.Horiz:
-                case LayoutType.Vert:
-                    replace = child.withChild(undefined,
-                                              pane,
-                                              child.ratioSum / child.children.length);
-                    break;
-                case LayoutType.Tabbed: replace = child.withChild(undefined, pane, true); break;
-                }
-
-                const transposed = this.transposeDeep(child, replace);
-
-                if (transposed === undefined) {
-                    throw new Error('failed to drop new pane into existing well');
-                }
-
-                return transposed;
+                if (ret !== undefined) { return ret; }
             }
         }
 
@@ -435,15 +447,20 @@ export abstract class LayoutBase<X> {
         }
     }
 
-    // TODO: implement this
-    // /**
-    //  * Add a child to the specified group, or return undefined if the group
-    //  * cannot be found.
-    //  * @param pane the child to add
-    //  * @param group the group the child should be added to
-    //  */
-    // public abstract addChildByGroup(pane: ChildLayout<X>,
-    //                                 gravity: LayoutGravity): PaneLayout<X>|undefined;
+    /**
+     * Add a child to the child's group within the layout, or return undefined
+     * if the group cannot be found.
+     * @param pane the child to add
+     */
+    public withChildByGroup(pane: ChildLayout<X>): PaneLayout<X>|undefined {
+        if (pane.group === undefined) { throw new Error('cannot insert a pane with no group'); }
+
+        const well = this.findChildByGroup(pane.group);
+
+        if (well === undefined) { return undefined; }
+
+        return this.withDescendant(well, pane);
+    }
 }
 
 /**
