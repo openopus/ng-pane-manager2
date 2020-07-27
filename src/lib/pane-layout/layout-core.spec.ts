@@ -20,6 +20,7 @@
 
 // Not sure why this isn't working correctly...
 // tslint:disable await-promise no-implicit-dependencies
+import * as chai from 'chai';
 import fc from 'fast-check';
 
 import {EPSILON} from '../util';
@@ -166,8 +167,6 @@ export const childLayoutIdArb:
     }),
 })));
 
-// TODO: Figure out how to make fast-check and jasmine's expect play nice.
-//       This affects multiple tests, but this one was particularly bad.
 // TODO: Seed fast-check against Jasmine because this stuff isn't repeatable.
 /**
  * Asserts that a given layout is properly simplified.
@@ -177,68 +176,71 @@ export const childLayoutIdArb:
 function assertSimplified<X>(layout: PaneLayout<X>,
                              isToplevel: boolean             = true,
                              path: [PaneLayout<X>, string[]] = [layout, []]): void {
-    const throwAssert = (cond: boolean, msg: string|(() => string)) => {
-        if (!cond) {
-            throw new Error(`${typeof msg === 'string' ? msg : msg()} in ${path[1].join('->')} of ${
-                JSON.stringify(path[0])}`);
+    try {
+        const recurse = (next: PaneLayout<X>, keepToplevel: boolean, pathSeg: string) => {
+            const [root, subpath] = path;
+
+            return assertSimplified(next,
+                                    isToplevel && keepToplevel,
+                                    [root, subpath.concat(pathSeg)]);
+        };
+
+        switch (layout.type) {
+        case LayoutType.Leaf: break;
+        case LayoutType.Root:
+            // Root layouts don't perform as aggressive a simplification as
+            // branches, so isToplevel should be preserved.
+            if (layout.layout !== undefined) { recurse(layout.layout, true, 'layout'); }
+            break;
+        case LayoutType.Horiz:
+        case LayoutType.Vert:
+            if (!isToplevel) {
+                chai.expect(layout.children.length)
+                    .to.be.greaterThan(1, 'non-toplevel layout has bad child count');
+            }
+
+            for (let i = 0; i < layout.children.length; i += 1) {
+                const child: ChildLayout<X> = layout.children[i];
+
+                chai.expect(child.type)
+                    .not.to.equal(layout.type, 'nested split has same orientation');
+
+                recurse(child, false, i.toString());
+            }
+
+            break;
+        case LayoutType.Tabbed:
+            if (!isToplevel) {
+                chai.expect(layout.children.length)
+                    .to.be.greaterThan(1, 'non-toplevel layout has bad child count');
+            }
+
+            for (let i = 0; i < layout.children.length; i += 1) {
+                recurse(layout.children[i], false, i.toString());
+            }
+            break;
         }
-    };
-
-    const recurse = (next: PaneLayout<X>, keepToplevel: boolean, pathSeg: string) => {
-        const [root, subpath] = path;
-
-        return assertSimplified(next, isToplevel && keepToplevel, [root, subpath.concat(pathSeg)]);
-    };
-
-    switch (layout.type) {
-    case LayoutType.Leaf: break;
-    case LayoutType.Root:
-        // Root layouts don't perform as aggressive a simplification as
-        // branches, so isToplevel should be preserved.
-        if (layout.layout !== undefined) { recurse(layout.layout, true, 'layout'); }
-        break;
-    case LayoutType.Horiz:
-    case LayoutType.Vert:
-        if (!isToplevel) {
-            throwAssert(layout.children.length > 1,
-                        () => `found non-toplevel layout with child count ${
-                            layout.children.length}`);
-        }
-
-        for (let i = 0; i < layout.children.length; i += 1) {
-            const child: ChildLayout<X> = layout.children[i];
-
-            throwAssert(child.type !== layout.type, 'found nested split with same orientation');
-
-            recurse(child, false, i.toString());
-        }
-
-        break;
-    case LayoutType.Tabbed:
-        if (!isToplevel) {
-            throwAssert(layout.children.length > 1,
-                        () => `found non-toplevel layout with child count ${
-                            layout.children.length}`);
-        }
-
-        for (let i = 0; i < layout.children.length; i += 1) {
-            recurse(layout.children[i], false, i.toString());
-        }
-        break;
+    }
+    catch (e) {
+        throw new Error(
+            `path ${path[1].join('->')} of ${JSON.stringify(path[0])} not simplified:\n${e}`);
     }
 }
 
 describe('PaneLayout', () => {
-    it('should have a type', async () => {
-        await fc.assert(
-            fc.asyncProperty(layoutDepthArb.chain(paneArb),
-                             async pane => { await expect(typeof pane.type).toEqual('number'); }));
+    it('should have a type', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(paneArb),
+                              pane => { chai.expect(typeof pane.type).to.equal('number'); }));
+
+        expect().nothing();
     });
 
-    it('should support intoRoot()', async () => {
-        await fc.assert(fc.asyncProperty(
-            layoutDepthArb.chain(paneArb),
-            async pane => { await expect(pane.intoRoot().type).toEqual(LayoutType.Root); }));
+    it('should support intoRoot()', () => {
+        fc.assert(
+            fc.property(layoutDepthArb.chain(paneArb),
+                        pane => { chai.expect(pane.intoRoot().type).to.equal(LayoutType.Root); }));
+
+        expect().nothing();
     });
 
     it('should simplify correctly', () => {
@@ -266,14 +268,14 @@ describe('PaneLayout', () => {
 });
 
 describe('LayoutChildId', () => {
-    it('should not error if it is valid', async () => {
-        await fc.assert(
-            fc.asyncProperty(layoutDepthArb.chain(childLayoutIdArb),
-                             async childId => {
-                                 fc.pre(childIdValid(childId));
+    it('should not error if it is valid', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(childLayoutIdArb), childId => {
+            fc.pre(childIdValid(childId));
 
-                                 await expect(childFromId(childId)).toBeDefined();
-                             }),
-        );
+            // tslint:disable-next-line no-unused-expression
+            chai.expect(childFromId(childId)).not.to.be.undefined;
+        }));
+
+        expect().nothing();
     });
 });

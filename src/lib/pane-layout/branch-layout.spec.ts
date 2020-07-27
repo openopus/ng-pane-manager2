@@ -19,8 +19,11 @@
  **************************************************************************************/
 
 // Not sure why this isn't working correctly...
-// tslint:disable await-promise no-implicit-dependencies
+// tslint:disable no-implicit-dependencies
+import * as chai from 'chai';
 import fc from 'fast-check';
+
+import {EPSILON} from '../util';
 
 import {SplitLayout} from './branch-layout';
 import {LayoutType} from './layout-base';
@@ -45,60 +48,64 @@ const spliceOpArb = layoutDepthArb.chain(branchArb)
                         }));
 
 describe('BranchLayout', () => {
-    it('should support spliceChildren', async () => {
-        await fc.assert(
-            fc.asyncProperty(spliceOpArb, async ({branch, start, remove, add, extra}) => {
-                const {layout, removed} = branch.spliceChildren(start, remove, add, extra as any);
+    it('should support spliceChildren', () => {
+        fc.assert(fc.property(spliceOpArb, ({branch, start, remove, add, extra}) => {
+            const {layout, removed} = branch.spliceChildren(start, remove, add, extra as any);
 
-                const spliced       = branch.children.slice();
-                const spliceRemoved = spliced.splice(start, remove, ...add);
+            const spliced       = branch.children.slice();
+            const spliceRemoved = spliced.splice(start, remove, ...add);
 
-                await expect(layout.children.length).toEqual(spliced.length);
+            chai.expect(layout.children.length).to.equal(spliced.length);
 
-                for (let i = 0; i < layout.children.length; i += 1) {
-                    await expect(layout.children[i]).toEqual(spliced[i]);
-                }
+            for (let i = 0; i < layout.children.length; i += 1) {
+                chai.expect(layout.children[i]).to.equal(spliced[i]);
+            }
 
-                await expect(removed.length).toEqual(spliceRemoved.length);
+            chai.expect(removed.length).to.equal(spliceRemoved.length);
 
-                for (let i = 0; i < removed.length; i += 1) {
-                    await expect(removed[i]).toEqual(spliceRemoved[i]);
-                }
-            }));
+            for (let i = 0; i < removed.length; i += 1) {
+                chai.expect(removed[i]).to.equal(spliceRemoved[i]);
+            }
+        }));
+
+        expect().nothing();
     });
 });
 
 describe('SplitLayout', () => {
-    it('should support spliceChildren', async () => {
-        await fc.assert(
-            fc.asyncProperty(spliceOpArb, async ({branch, start, remove, add, extra}) => {
-                fc.pre(branch.type === LayoutType.Horiz || branch.type === LayoutType.Vert);
-                const split = branch as SplitLayout<any>;
+    it('should support spliceChildren', () => {
+        fc.assert(fc.property(spliceOpArb, ({branch, start, remove, add, extra}) => {
+            fc.pre(branch.type === LayoutType.Horiz || branch.type === LayoutType.Vert);
+            const split = branch as SplitLayout<any>;
 
-                const {layout,
-                       removedRatios} = split.spliceChildren(start, remove, add, extra as any);
+            const {layout, removedRatios} = split.spliceChildren(start, remove, add, extra as any);
 
-                await expect(removedRatios).toBeDefined();
+            // tslint:disable-next-line no-unused-expression
+            chai.expect(removedRatios).not.to.be.undefined;
 
-                const spliced       = split.ratios.slice();
-                const spliceRemoved = spliced.splice(start, remove, ...extra as any);
+            const spliced       = split.ratios.slice();
+            const spliceRemoved = spliced.splice(start, remove, ...extra as any);
 
-                const splicedSum = spliced.reduce((s, e) => s + e, 0);
+            const splicedSum = spliced.reduce((s, e) => s + e, 0);
 
-                await expect(layout.ratios.length).toEqual(spliced.length);
+            chai.expect(layout.ratios.length).to.equal(spliced.length);
 
-                for (let i = 0; i < layout.ratios.length; i += 1) {
-                    // Important note: the constructor for SplitLayout may
-                    // normalize ratios, see the constructor for details
-                    await expect(layout.ratios[i])
-                        .toBeCloseTo(spliced[i] * layout.ratioSum / splicedSum);
-                }
+            for (let i = 0; i < layout.ratios.length; i += 1) {
+                // Important note: the constructor for SplitLayout may
+                // normalize ratios, see the constructor for details
+                chai.expect(layout.ratios[i] * splicedSum)
+                    .to.be.closeTo(spliced[i] * layout.ratioSum, EPSILON * splicedSum);
+            }
 
-                await expect(removedRatios.length).toEqual(spliceRemoved.length);
+            chai.expect(removedRatios.length).to.equal(spliceRemoved.length);
 
-                for (let i = 0; i < removedRatios.length; i += 1) {
-                    await expect(removedRatios[i]).toEqual(spliceRemoved[i]);
-                }
-            }));
+            for (let i = 0; i < removedRatios.length; i += 1) {
+                // These ratios should not be normalized, so they should be
+                // exactly equal
+                chai.expect(removedRatios[i]).to.equal(spliceRemoved[i]);
+            }
+        }));
+
+        expect().nothing();
     });
 });

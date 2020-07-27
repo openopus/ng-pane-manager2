@@ -69,6 +69,55 @@ export abstract class BranchLayoutBase<X, S extends PaneLayout<X>> extends Child
     public abstract childId(index: number): ChildLayoutId<X>;
 
     /**
+     * Returns an index to insert a child at such that it will be placed after
+     * the panes occurring before it in `order` and after the ones occurring
+     * before.  Returns undefined if no ordering could be determined.
+     * @param child the child in order array to calculate an index for
+     * @param order the intended ordering of panes around child
+     */
+    public locateChild(child: ChildLayout<X>, order: (PaneLayout<X>|undefined)[]): number
+        |undefined {
+        const indices = new Map<any, number>();
+
+        for (let i = 0; i < this.children.length; i += 1) { indices.set(this.children[i], i); }
+
+        const idxOrder = order.map(c => indices.get(c));
+        const childIdx = order.indexOf(child);
+        let before     = -1; // The last child listed before pane in order
+        let after      = -1; // The first child listed after pane in order
+
+        for (let i = childIdx - 1; i >= 0; i -= 1) {
+            const idx = idxOrder[i];
+
+            if (idx !== undefined) {
+                before = idx;
+                break;
+            }
+        }
+
+        for (let i = childIdx + 1; i < idxOrder.length; i += 1) {
+            const idx = idxOrder[i];
+
+            if (idx !== undefined) {
+                after = idx;
+                break;
+            }
+        }
+
+        if (before === -1) {
+            if (after === -1) { return undefined; }
+
+            return after;
+        }
+
+        before += 1;
+
+        if (after === -1) { return before; }
+
+        return Math.floor((before + after) / 2);
+    }
+
+    /**
      * Find a child matching the given predicate.
      * @param pred predicate to match elements against
      */

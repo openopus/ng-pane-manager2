@@ -41,7 +41,8 @@ function findPseudoGravity<X>(stemType: LayoutType, ...children: (ChildLayoutId<
     case 1: return childFromId(defined[0]);
     default:
         defined.reduce((index, id) => {
-            if (id.index <= index) { throw new Error('mismatched order for expected siblings'); }
+            chai.expect(id.index).to.be.greaterThan(index,
+                                                    'mismatched order for expected siblings');
 
             return id.index;
         }, -1);
@@ -52,7 +53,7 @@ function findPseudoGravity<X>(stemType: LayoutType, ...children: (ChildLayoutId<
             return parent;
         });
 
-        chai.expect(stem.type).to.equal(stemType);
+        chai.expect(stem.type).to.equal(stemType, 'unexpected stem type');
 
         return stem;
     }
@@ -61,9 +62,9 @@ function findPseudoGravity<X>(stemType: LayoutType, ...children: (ChildLayoutId<
 /** Find the ID of a child from the given root. */
 function tryIdFromChild<X>(child: PaneLayout<X>|undefined, root: PaneLayout<X>): ChildLayoutId<X>|
     undefined {
-    if (child === undefined) { return undefined; }
+    if (child === undefined || child.type === LayoutType.Root) { return undefined; }
 
-    return root.findChild(c => Object.is(c, child));
+    return root.idFromChild(child);
 }
 
 /**
@@ -86,10 +87,10 @@ function assertProperGravity<X>(pane: PaneLayout<X>): void {
     const root = pane.intoRoot();
 
     const headerId = root.findChildByGravity(LayoutGravity.Header);
-    const leftId   = root.findChildByGravity(LayoutGravity.Header);
-    const mainId   = root.findChildByGravity(LayoutGravity.Header);
-    const bottomId = root.findChildByGravity(LayoutGravity.Header);
-    const rightId  = root.findChildByGravity(LayoutGravity.Header);
+    const leftId   = root.findChildByGravity(LayoutGravity.Left);
+    const mainId   = root.findChildByGravity(LayoutGravity.Main);
+    const bottomId = root.findChildByGravity(LayoutGravity.Bottom);
+    const rightId  = root.findChildByGravity(LayoutGravity.Right);
     const footerId = root.findChildByGravity(LayoutGravity.Footer);
 
     const center   = findPseudoGravity(LayoutType.Vert, mainId, bottomId);
@@ -100,7 +101,7 @@ function assertProperGravity<X>(pane: PaneLayout<X>): void {
 
     const root2 = findPseudoGravity(LayoutType.Vert, headerId, bodyId, footerId);
 
-    chai.expect(root2).to.equal(pane, 'unexpected root layout');
+    chai.expect(root2).to.equal(root.layout, 'unexpected root layout');
 }
 
 describe('PaneLayout.withChildByGravity', () => {
@@ -128,25 +129,32 @@ describe('PaneLayout.withChildByGravity', () => {
 
                 for (let i = 0; i < arr.length; i += 1) {
                     const gravity = arr[i];
-
-                    const next = layout.withChildByGravity(
-                        new LeafLayout(`grav${gravity.toString()}`, 'template', undefined),
-                        gravity);
+                    let next;
 
                     try {
-                        assertProperGravity(next);
+                        next = layout.withChildByGravity(new LeafLayout(
+                            `grav${gravity.toString()}`, 'template', undefined, gravity));
+
+                        // tslint:disable-next-line no-unused-expression
+                        chai.expect(next, 'withChildByGravity() failed').not.to.be.undefined;
+
+                        if (next !== undefined) {
+                            assertProperGravity(next);
+
+                            layout = next.intoRoot();
+                        }
                     }
                     catch (e) {
                         throw new Error(`adding panes failed at step ${i + 1} (gravity ${
                             saveLayoutGravity(gravity)}):\n${e}\nCurrent layout: ${
                             JSON.stringify(layout)}\nFailed layout: ${JSON.stringify(next)}`);
                     }
-
-                    layout = next.intoRoot();
                 }
             },
             ));
 
         expect().nothing();
     });
+
+    // TODO: add a test that introduces multiple panes with the same gravity
 });

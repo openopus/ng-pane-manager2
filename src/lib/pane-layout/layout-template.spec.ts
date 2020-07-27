@@ -20,6 +20,7 @@
 
 // Not sure why this isn't working correctly...
 // tslint:disable await-promise no-implicit-dependencies
+import * as chai from 'chai';
 import fc from 'fast-check';
 
 import {EPSILON} from '../util';
@@ -42,9 +43,6 @@ import {
     SplitLayoutTemplate,
     TabLayoutTemplate,
 } from './layout-template';
-
-// TODO: use Chai for all assertions inside fast-check, because Chai assertions
-//       throw errors and fast-check doesn't work without them
 
 /** Indicates if two layout templates are equivalent */
 function sameTemplate<T>(lhs: LayoutTemplate<T>,
@@ -214,29 +212,36 @@ export const tabTemplateArb: fc.Memo<TabLayoutTemplate<any>> = fc.memo(_n => {
 });
 
 describe('LayoutTemplate', () => {
-    it('should be equal when loaded and saved', async () => {
-        jasmine.addCustomEqualityTester(sameTemplate);
+    it('should be equal when loaded and saved', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(layoutTemplateArb), template => {
+            const next = saveLayout(loadLayout(template, x => x), x => x);
 
-        await fc.assert(
-            fc.asyncProperty(layoutDepthArb.chain(layoutTemplateArb), async template => {
-                await expect(saveLayout(loadLayout(template, x => x), x => x)).toEqual(template);
-            }));
-    });
-
-    it('should be equal when a child layout is saved and loaded', async () => {
-        jasmine.addCustomEqualityTester(sameLayout);
-
-        await fc.assert(fc.asyncProperty(layoutDepthArb.chain(childArb), async child => {
-            await expect(loadLayout(saveLayout(child, x => x), x => x)).toEqual(child);
+            chai.assert(sameTemplate(next, template),
+                        `expected ${JSON.stringify(next)} to be ${JSON.stringify(template)}`);
         }));
+
+        expect().nothing();
     });
 
-    it('should be equal when a root layout is saved and loaded', async () => {
-        jasmine.addCustomEqualityTester(sameLayout);
+    it('should be equal when a child layout is saved and loaded', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(childArb), child => {
+            const next = loadLayout(saveLayout(child, x => x), x => x);
 
-        await fc.assert(
-            fc.asyncProperty(layoutDepthArb.chain(childArb).map(c => c.intoRoot()), async root => {
-                await expect(loadLayout(saveLayout(root, x => x), x => x).intoRoot()).toEqual(root);
-            }));
+            chai.assert(sameLayout(next, child),
+                        `expected ${JSON.stringify(next)} to be ${JSON.stringify(child)}`);
+        }));
+
+        expect().nothing();
+    });
+
+    it('should be equal when a root layout is saved and loaded', () => {
+        fc.assert(fc.property(layoutDepthArb.chain(childArb).map(c => c.intoRoot()), root => {
+            const next = loadLayout(saveLayout(root, x => x), x => x).intoRoot();
+
+            chai.assert(sameLayout(next, root),
+                        `expected ${JSON.stringify(next)} to be ${JSON.stringify(root)}`);
+        }));
+
+        expect().nothing();
     });
 });
