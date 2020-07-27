@@ -18,7 +18,7 @@
  *
  *******************************************************************************/
 
-import {SplitLayout} from './branch-layout';
+import {SplitLayout, TabbedLayout} from './branch-layout';
 import {
     ChildLayout,
     PaneLayout,
@@ -204,7 +204,10 @@ export abstract class LayoutBase<X> {
                           : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]);
             break;
         case PseudoGravityType.Real:
-            if (pg.pane.type === LayoutType.Root) { throw new Error('Not yet implemented'); }
+            if (pg.pane.type === LayoutType.Root) {
+                throw new Error(
+                    'multiple children reporting one root as a parent - this shouldn\'t happen');
+            }
 
             const idx = pg.pane.locateChild(pane, order);
 
@@ -295,9 +298,19 @@ export abstract class LayoutBase<X> {
                 let replace;
 
                 switch (child.type) {
-                case LayoutType.Leaf: throw new Error('Not yet implemented (emplacing leaf)');
+                case LayoutType.Leaf:
+                    replace = new TabbedLayout([child, pane], 1, child.gravity, child.group);
+                    break;
+                // TODO: This may cause undesired behavior.  The more intuitive
+                //       approach may be to descend and create a tab in a child
+                //       container but I didn't want to risk accidentally
+                //       creating a split inside a tab.
                 case LayoutType.Horiz:
-                case LayoutType.Vert: throw new Error('Not yet implemented (emplacing split)');
+                case LayoutType.Vert:
+                    replace = child.withChild(undefined,
+                                              pane,
+                                              child.ratioSum / child.children.length);
+                    break;
                 case LayoutType.Tabbed: replace = child.withChild(undefined, pane, true); break;
                 }
 

@@ -104,57 +104,70 @@ function assertProperGravity<X>(pane: PaneLayout<X>): void {
     chai.expect(root2).to.equal(root.layout, 'unexpected root layout');
 }
 
-describe('PaneLayout.withChildByGravity', () => {
-    it('should be order-independent', () => {
-        const gravities: readonly LayoutGravity[] = [
-            LayoutGravity.Header,
-            LayoutGravity.Left,
-            LayoutGravity.Main,
-            LayoutGravity.Bottom,
-            LayoutGravity.Right,
-            LayoutGravity.Footer,
-        ];
+/**
+ * Assert adding panes to an empty layout by gravity works.
+ * @param gravs the gravities to add panes by
+ */
+function assertAddByGravity(gravs: LayoutGravity[]): void {
+    let layout = new RootLayout(undefined);
 
+    for (let i = 0; i < gravs.length; i += 1) {
+        const gravity = gravs[i];
+        let next;
+
+        try {
+            next = layout.withChildByGravity(
+                new LeafLayout(`grav${gravity.toString()}`, 'template', undefined, gravity));
+
+            // tslint:disable-next-line no-unused-expression
+            chai.expect(next, 'withChildByGravity() failed').not.to.be.undefined;
+
+            if (next !== undefined) {
+                assertProperGravity(next);
+
+                layout = next.intoRoot();
+            }
+        }
+        catch (e) {
+            throw new Error(`adding panes failed at step ${i + 1} (gravity ${
+                saveLayoutGravity(gravity)}):\n${e}\nCurrent layout: ${
+                JSON.stringify(layout)}\nFailed layout: ${JSON.stringify(next)}`);
+        }
+    }
+}
+
+describe('PaneLayout.withChildByGravity', () => {
+    const GRAVITIES: readonly LayoutGravity[] = [
+        LayoutGravity.Header,
+        LayoutGravity.Left,
+        LayoutGravity.Main,
+        LayoutGravity.Bottom,
+        LayoutGravity.Right,
+        LayoutGravity.Footer,
+    ];
+
+    it('should be order-independent', () => {
         fc.assert(fc.property(
-            fc.array(fc.nat().noShrink(), gravities.length, gravities.length).map(idcs => {
-                const bag = gravities.slice();
+            fc.array(fc.nat().noShrink(), GRAVITIES.length, GRAVITIES.length).map(idcs => {
+                const bag = GRAVITIES.slice();
                 const ret = [];
 
                 for (const idx of idcs) { ret.push(bag.splice(idx % bag.length, 1)[0]); }
 
                 return ret;
             }),
-            arr => {
-                let layout = new RootLayout(undefined);
-
-                for (let i = 0; i < arr.length; i += 1) {
-                    const gravity = arr[i];
-                    let next;
-
-                    try {
-                        next = layout.withChildByGravity(new LeafLayout(
-                            `grav${gravity.toString()}`, 'template', undefined, gravity));
-
-                        // tslint:disable-next-line no-unused-expression
-                        chai.expect(next, 'withChildByGravity() failed').not.to.be.undefined;
-
-                        if (next !== undefined) {
-                            assertProperGravity(next);
-
-                            layout = next.intoRoot();
-                        }
-                    }
-                    catch (e) {
-                        throw new Error(`adding panes failed at step ${i + 1} (gravity ${
-                            saveLayoutGravity(gravity)}):\n${e}\nCurrent layout: ${
-                            JSON.stringify(layout)}\nFailed layout: ${JSON.stringify(next)}`);
-                    }
-                }
-            },
-            ));
+            gravs => {
+                assertAddByGravity(gravs);
+                expect().nothing();
+            }));
 
         expect().nothing();
     });
 
-    // TODO: add a test that introduces multiple panes with the same gravity
+    it('should function correctly for any number of panels', () => {
+        fc.assert(fc.property(fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))), gravs => {
+            assertAddByGravity(gravs);
+            expect().nothing();
+        }));
+    });
 });
