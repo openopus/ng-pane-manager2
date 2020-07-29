@@ -21,6 +21,8 @@
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 
+import {ClosablePaneComponent} from './closable';
+import {DraggablePaneComponent} from './drag-and-drop';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
@@ -43,6 +45,8 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
  */
 @NgModule({
     declarations: [
+        ClosablePaneComponent as any,
+        DraggablePaneComponent,
         NgPaneComponent,
         NgPaneDropHighlightComponent,
         NgPaneHeaderComponent,

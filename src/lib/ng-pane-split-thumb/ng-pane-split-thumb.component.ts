@@ -129,7 +129,7 @@ export class NgPaneSplitThumbComponent<X> {
      * Initiate a drag to resize the two neighboring children.
      */
     @HostListener('mousedown', ['$event'])
-    protected onMouseDown(evt: MouseEvent): void {
+    public onMouseDown(evt: MouseEvent): void {
         if (evt.buttons !== 1) { return; }
 
         const state = this.makeDragState(evt.clientX, evt.clientY);
@@ -142,7 +142,7 @@ export class NgPaneSplitThumbComponent<X> {
      * Initiate a touch drag to resize the two neighboring children.
      */
     @HostListener('touchstart', ['$event'])
-    protected onTouchStart(evt: TouchEvent): void {
+    public onTouchStart(evt: TouchEvent): void {
         const [startX, startY] = averageTouchPos(evt);
         const state            = this.makeDragState(startX, startY);
         beginTouchDrag(evt, (x, y) => this.onDragDelta(x, y, state));

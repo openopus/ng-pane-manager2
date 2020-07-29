@@ -1,6 +1,15 @@
 {
-    "name": "angular-pane-manager",
-    "version": "0.0.1",
+    "name": "@openopus/angular-pane-manager",
+    "version": "0.1.0",
+    "author": {
+        "name": "Ryan Schroeder",
+        "email": "ryans@opuslogica.com",
+        "url": "https://ryan-s.net/"
+    },
+    "repository": {
+        "url": "https://github.com/openopus/ng-pane-manager2"
+    },
+    "license": "GPL-3.0-or-later",
     "peerDependencies": {
         "@angular/common": "~10.0.2",
         "@angular/core": "~10.0.2",

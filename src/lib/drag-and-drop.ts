@@ -910,7 +910,7 @@ export abstract class DraggablePaneComponent<X> {
      *           `@HostListener`, this will result in undesired behavior.
      */
     @HostListener('mousedown', ['$event'])
-    protected onMouseDown(evt: MouseEvent): void {
+    public onMouseDown(evt: MouseEvent): void {
         if (evt.buttons === 1) {
             PaneDragContext.mouseDown(evt, this.manager, this.childId);
 
@@ -926,7 +926,7 @@ export abstract class DraggablePaneComponent<X> {
      *           `@HostListener`, this will result in undesired behavior.
      */
     @HostListener('touchstart', ['$event'])
-    protected onTouchStart(evt: TouchEvent): void {
+    public onTouchStart(evt: TouchEvent): void {
         PaneDragContext.touchStart(evt, this.manager, this.childId);
 
         evt.preventDefault();

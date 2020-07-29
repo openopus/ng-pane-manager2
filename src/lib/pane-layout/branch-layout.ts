@@ -201,6 +201,7 @@ export interface ResizeEvent {
 /**
  * A layout with its children stacked horizontally or vertically
  */
+// @dynamic
 export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
     /** See `resizeEvents` */
     private readonly _resizeEvents: Subject<ResizeEvent> = new Subject();

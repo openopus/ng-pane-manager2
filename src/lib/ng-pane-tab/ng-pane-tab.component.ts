@@ -63,7 +63,7 @@ export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> ex
     /**
      * Selects the current tab and initiates a drag of the associated pane.
      */
-    protected onMouseDown(evt: MouseEvent): void {
+    public onMouseDown(evt: MouseEvent): void {
         if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed) {
             this.childId.stem.currentTab = this.childId.index;
         }
@@ -74,7 +74,7 @@ export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> ex
     /**
      * Selects the current tab and initiates a drag of the associated pane.
      */
-    protected onTouchStart(evt: TouchEvent): void {
+    public onTouchStart(evt: TouchEvent): void {
         if (evt.touches.length === 1 && this.childId.stem.type === LayoutType.Tabbed) {
             this.childId.stem.currentTab = this.childId.index;
         }

@@ -43,7 +43,7 @@ export abstract class ClosablePaneComponent<X, T extends PaneHeaderMode = PaneHe
      *           `@HostListener`, this will result in undesired behavior.
      */
     @HostListener('auxclick', ['$event'])
-    protected onClick(evt: MouseEvent): void {
+    public onClick(evt: MouseEvent): void {
         if (evt.button === 1) { this.close(); }
     }
 
