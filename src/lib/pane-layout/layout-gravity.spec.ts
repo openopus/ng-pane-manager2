@@ -22,12 +22,16 @@
 import * as chai from 'chai';
 import fc from 'fast-check';
 
+import {clipDenormPos, EPSILON} from '../util';
+
 import {LayoutGravity, LayoutType} from './layout-base';
 import {
+    ChildLayout,
     LeafLayout,
     PaneLayout,
     RootLayout,
 } from './layout-core';
+import {childArb, layoutDepthArb} from './layout-core.spec';
 import {saveLayoutGravity} from './layout-template';
 import {childFromId, ChildLayoutId} from './layout-util';
 
@@ -70,9 +74,10 @@ function tryIdFromChild<X>(child: PaneLayout<X>|undefined, root: PaneLayout<X>):
 /**
  * Assert that a layout node generated using withChildByGravity has the proper
  * structure.
- * @param pane the pane to check
+ * @param prev the previous pane
+ * @param next the pane to check
  */
-function assertProperGravity<X>(pane: PaneLayout<X>): void {
+function assertProperGravity<X>(_prev: RootLayout<X>, next: RootLayout<X>): void {
     // Intended layout: (parenthesized nodes are pseudo-gravities)
     // (Root)       - vert
     // |-Header     - any
@@ -84,32 +89,172 @@ function assertProperGravity<X>(pane: PaneLayout<X>): void {
     // | '-Right    - any
     // '-Footer     - any
 
-    const root = pane.intoRoot();
-
-    const headerId = root.findChildByGravity(LayoutGravity.Header);
-    const leftId   = root.findChildByGravity(LayoutGravity.Left);
-    const mainId   = root.findChildByGravity(LayoutGravity.Main);
-    const bottomId = root.findChildByGravity(LayoutGravity.Bottom);
-    const rightId  = root.findChildByGravity(LayoutGravity.Right);
-    const footerId = root.findChildByGravity(LayoutGravity.Footer);
+    const headerId = next.findChildByGravity(LayoutGravity.Header);
+    const leftId   = next.findChildByGravity(LayoutGravity.Left);
+    const mainId   = next.findChildByGravity(LayoutGravity.Main);
+    const bottomId = next.findChildByGravity(LayoutGravity.Bottom);
+    const rightId  = next.findChildByGravity(LayoutGravity.Right);
+    const footerId = next.findChildByGravity(LayoutGravity.Footer);
 
     const center   = findPseudoGravity(LayoutType.Vert, mainId, bottomId);
-    const centerId = tryIdFromChild(center, pane);
+    const centerId = tryIdFromChild(center, next);
 
     const body   = findPseudoGravity(LayoutType.Horiz, leftId, centerId, rightId);
-    const bodyId = tryIdFromChild(body, pane);
+    const bodyId = tryIdFromChild(body, next);
 
     const root2 = findPseudoGravity(LayoutType.Vert, headerId, bodyId, footerId);
 
-    chai.expect(root2).to.equal(root.layout, 'unexpected root layout');
+    chai.expect(root2).to.equal(next.layout, 'unexpected root layout');
+
+    // tslint:disable no-magic-numbers
+    if (headerId !== undefined && bodyId !== undefined) {
+        if (headerId.stem.type === LayoutType.Vert) {
+            chai.expect(headerId.stem.ratios[headerId.index] * 5, 'bad header ratio')
+                .to.be.closeTo(headerId.stem.ratioSum * 1, EPSILON * headerId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected headerId split type');
+        }
+    }
+
+    if (leftId !== undefined && centerId !== undefined) {
+        if (leftId.stem.type === LayoutType.Horiz) {
+            chai.expect(leftId.stem.ratios[leftId.index] * 4, 'bad left ratio')
+                .to.be.closeTo(leftId.stem.ratioSum * 1, EPSILON * leftId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected leftId split type');
+        }
+    }
+
+    if (bottomId !== undefined && mainId !== undefined) {
+        if (bottomId.stem.type === LayoutType.Vert) {
+            chai.expect(bottomId.stem.ratios[bottomId.index] * 3, 'bad bottom ratio')
+                .to.be.closeTo(bottomId.stem.ratioSum * 1, EPSILON * bottomId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected bottomId split type');
+        }
+    }
+
+    if (rightId !== undefined && centerId !== undefined) {
+        if (rightId.stem.type === LayoutType.Horiz) {
+            chai.expect(rightId.stem.ratios[rightId.index] * 4, 'bad right ratio')
+                .to.be.closeTo(rightId.stem.ratioSum * 1, EPSILON * rightId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected rightId split type');
+        }
+    }
+
+    if (footerId !== undefined && bodyId !== undefined) {
+        if (footerId.stem.type === LayoutType.Vert) {
+            chai.expect(footerId.stem.ratios[footerId.index] * 10, 'bad footer ratio')
+                .to.be.closeTo(footerId.stem.ratioSum * 1, EPSILON * footerId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected footerId split type');
+        }
+    }
+
+    // Special cases
+
+    if (leftId !== undefined && rightId !== undefined && centerId === undefined) {
+        chai.expect(leftId.stem, 'left-right stems should be equal').to.equal(rightId.stem);
+
+        if (leftId.stem.type === LayoutType.Horiz) {
+            chai.expect(leftId.stem.ratios[leftId.index] * 2, 'bad left ratio of left-right pair')
+                .to.be.closeTo(leftId.stem.ratioSum, EPSILON * leftId.stem.ratioSum);
+
+            chai.expect(leftId.stem.ratios[rightId.index] * 2, 'bad right ratio of left-right pair')
+                .to.be.closeTo(leftId.stem.ratioSum, EPSILON);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected left-right split type');
+        }
+    }
+
+    if (headerId !== undefined && footerId !== undefined && bodyId === undefined) {
+        chai.expect(headerId.stem, 'header-footer stems should be equal').to.equal(footerId.stem);
+
+        if (headerId.stem.type === LayoutType.Vert) {
+            chai.expect(headerId.stem.ratios[headerId.index] * 10,
+                        'bad header ratio of header-footer pair')
+                .to.be.closeTo(headerId.stem.ratioSum * 9, EPSILON * headerId.stem.ratioSum);
+
+            chai.expect(headerId.stem.ratios[footerId.index] * 10,
+                        'bad footer ratio of header-footer pair')
+                .to.be.closeTo(headerId.stem.ratioSum, EPSILON * headerId.stem.ratioSum);
+        }
+        else {
+            chai.assert(false, 'encountered unexpected header-footer-split type');
+        }
+    }
+    // tslint:enable no-magic-numbers
+}
+
+/**
+ * Assert that adding a pane by gravity did not introduce any new tiny ratios.
+ * @param prev the previous pane
+ * @param next the pane to check
+ */
+function assertNoTinyRatios<X>(prev: RootLayout<X>, next: RootLayout<X>): void {
+    const TINY        = 0.1;
+    const TINY_THRESH = TINY - EPSILON;
+
+    const findTiny = (pane: PaneLayout<X>, fac: [number, number], num: number): number => {
+        const [x, y] = fac;
+        let ret      = num;
+
+        switch (pane.type) {
+        case LayoutType.Leaf: return num;
+        case LayoutType.Root:
+            return pane.layout !== undefined ? findTiny(pane.layout, fac, ret) : ret;
+        case LayoutType.Horiz:
+            for (const [child, ratio] of pane.children.map(
+                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                if (ratio * x < TINY_THRESH * pane.ratioSum) { ret += 1; }
+                else {
+                    ret = findTiny(child, [x * ratio / clipDenormPos(pane.ratioSum), y], ret);
+                }
+            }
+
+            return ret;
+        case LayoutType.Vert:
+            for (const [child, ratio] of pane.children.map(
+                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                if (ratio * y < TINY_THRESH * pane.ratioSum) { ret += 1; }
+                else {
+                    ret = findTiny(child, [x, y * ratio / clipDenormPos(pane.ratioSum)], ret);
+                }
+            }
+
+            return ret;
+        case LayoutType.Tabbed:
+            for (const child of pane.children) { ret = findTiny(child, fac, ret); }
+
+            return ret;
+        }
+    };
+
+    chai.expect(findTiny(next, [1, 1], 0), 'layout change introduced a tiny ratio')
+        .not.to.be.greaterThan(findTiny(prev, [1, 1], 0));
 }
 
 /**
  * Assert adding panes to an empty layout by gravity works.
+ * @param start the layout to begin with
  * @param gravs the gravities to add panes by
+ * @param check the function to check new layouts with
+ * @param assertDefined whether withChildByGravity returning undefined should be
+ *                      ignored or counted as a failure
  */
-function assertAddByGravity(gravs: LayoutGravity[]): void {
-    let layout = new RootLayout(undefined);
+function assertAddByGravity(start: RootLayout<undefined>,
+                            gravs: LayoutGravity[],
+                            check: (prev: RootLayout<undefined>,
+                                    next: RootLayout<undefined>) => void,
+                            assertDefined: boolean): void {
+    let layout = start;
 
     for (let i = 0; i < gravs.length; i += 1) {
         const gravity = gravs[i];
@@ -119,13 +264,16 @@ function assertAddByGravity(gravs: LayoutGravity[]): void {
             next = layout.withChildByGravity(
                 new LeafLayout(`grav${gravity.toString()}`, 'template', undefined, gravity));
 
-            // tslint:disable-next-line no-unused-expression
-            chai.expect(next, 'withChildByGravity() failed').not.to.be.undefined;
-
             if (next !== undefined) {
-                assertProperGravity(next);
+                const nextRoot = next.intoRoot();
 
-                layout = next.intoRoot();
+                check(layout, nextRoot);
+                layout = nextRoot;
+            }
+            else {
+                if (assertDefined) { chai.assert(false, 'withChildByGravity() failed'); }
+
+                break;
             }
         }
         catch (e) {
@@ -157,8 +305,7 @@ describe('PaneLayout.withChildByGravity', () => {
                 return ret;
             }),
             gravs => {
-                assertAddByGravity(gravs);
-                expect().nothing();
+                assertAddByGravity(new RootLayout(undefined), gravs, assertProperGravity, true);
             }));
 
         expect().nothing();
@@ -166,8 +313,18 @@ describe('PaneLayout.withChildByGravity', () => {
 
     it('should function correctly for any number of panels', () => {
         fc.assert(fc.property(fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))), gravs => {
-            assertAddByGravity(gravs);
-            expect().nothing();
+            assertAddByGravity(new RootLayout(undefined), gravs, assertProperGravity, true);
         }));
+
+        expect().nothing();
+    });
+
+    it('should not create very small ratios', () => {
+        fc.assert(fc.property(
+            layoutDepthArb.chain(childArb).map(c => c.intoRoot()),
+            fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))),
+            (layout, gravs) => { assertAddByGravity(layout, gravs, assertNoTinyRatios, false); }));
+
+        expect().nothing();
     });
 });

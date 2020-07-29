@@ -70,7 +70,7 @@ export class NgPaneLeafTemplateService<X> {
     public registerLeafTemplate(name: string,
                                 header: PaneHeaderStyle,
                                 template: TemplateRef<LeafNodeContext<X>>,
-                                force?: boolean): void {
+                                force: boolean = false): void {
         const entry = this.templates.get(name);
 
         if (entry === undefined) {
@@ -81,7 +81,7 @@ export class NgPaneLeafTemplateService<X> {
             return;
         }
 
-        if (entry.value !== undefined && force !== true) {
+        if (entry.value !== undefined && !force) {
             throw new Error(`pane template '${name}' already registered`);
         }
 

@@ -145,6 +145,8 @@ export abstract class LayoutBase<X> {
                 const stem = el.stem;
                 const freq = freqs.get(stem);
 
+                if (stem.type === LayoutType.Root) { continue; }
+
                 if (freq === undefined) { freqs.set(stem, 1); }
                 else {
                     freqs.set(stem, freq + 1);
@@ -181,12 +183,15 @@ export abstract class LayoutBase<X> {
      * @param splitType if a split is inserted, what type to make it
      * @param pct if the pane is inserted into a split node, the percentage of
      *            the available space it should be given
+     * @param fixRatios a list of children to maintain fixed ratios for to
+     *                  prevent changing their size
      */
     private placeChildForPseudoGravity(pg: PseudoGravity<X>,
                                        pane: ChildLayout<X>,
                                        order: (PaneLayout<X>|undefined)[],
                                        splitType: LayoutType.Horiz|LayoutType.Vert,
-                                       pct: number): PaneLayout<X>|undefined {
+                                       pct: number,
+                                       fixRatios: ChildLayoutId<X>[]): PaneLayout<X>|undefined {
         let replace;
 
         switch (pg.type) {
@@ -210,11 +215,32 @@ export abstract class LayoutBase<X> {
 
             const idx = pg.pane.locateChild(pane, order);
 
+            if (idx === undefined) { return undefined; }
+
             switch (pg.pane.type) {
             case LayoutType.Horiz:
-            case LayoutType.Vert:
-                replace = pg.pane.withChild(idx, pane, (pct * pg.pane.ratioSum) / (1 - pct));
+            case LayoutType.Vert: {
+                const fixIdcs        = new Map<number, true>();
+                const adjustedRatios = pg.pane.ratios.slice();
+                const addRatio       = pct * pg.pane.ratioSum;
+
+                for (const {stem, index} of fixRatios) {
+                    if (Object.is(stem, pg.pane)) { fixIdcs.set(index, true); }
+                }
+
+                const extraSum = pg.pane.ratios.filter((_, i) => !fixIdcs.has(i))
+                                     .reduce((p, n) => p + n, 0);
+                const extraFactor = Math.max(0, 1 - addRatio / extraSum);
+
+                for (let i = 0; i < adjustedRatios.length; i += 1) {
+                    if (!fixIdcs.has(i)) { adjustedRatios[i] *= extraFactor; }
+                }
+
+                adjustedRatios.splice(idx, 0, addRatio);
+
+                replace = pg.pane.withChild(idx, pane, adjustedRatios);
                 break;
+            }
             case LayoutType.Tabbed: replace = pg.pane.withChild(idx, pane, true); break;
             }
             break;
@@ -318,6 +344,20 @@ export abstract class LayoutBase<X> {
     public withChildByGravity(pane: ChildLayout<X>): PaneLayout<X>|undefined {
         if (pane.gravity === undefined) { throw new Error('cannot insert pane with no gravity'); }
 
+        // tslint:disable no-magic-numbers
+        const HEADER_PCT = 1 / 5;
+        const LEFT_PCT   = 1 / 4;
+        const RIGHT_PCT  = LEFT_PCT;
+        const BOTTOM_PCT = 1 / 3;
+        const FOOTER_PCT = 1 / 10;
+
+        const LEFT_PCT_LR  = 1 / 2;
+        const RIGHT_PCT_LR = 1 - LEFT_PCT_LR;
+
+        const FOOTER_PCT_HF = FOOTER_PCT;
+        const HEADER_PCT_HF = 1 - FOOTER_PCT;
+        // tslint:enable no-magic-numbers
+
         {
             const emplaced = this.tryEmplaceEmpty(pane);
 
@@ -359,91 +399,125 @@ export abstract class LayoutBase<X> {
 
             let pg;
             let order;
-            let type: LayoutType.Horiz|LayoutType.Vert;
+            let type: LayoutType.Horiz|LayoutType.Vert|undefined;
             let ratio;
+
+            const fallbackCenter = () => {
+                if (body.type !== PseudoGravityType.None) {
+                    pg    = body;
+                    order = [left, pane, right];
+                    type  = LayoutType.Horiz;
+                    ratio = 1;
+
+                    if (leftId !== undefined) { ratio -= LEFT_PCT; }
+                    if (rightId !== undefined) { ratio -= RIGHT_PCT; }
+                }
+                else {
+                    fallbackBody();
+                }
+            };
+
+            const fallbackBody = () => {
+                pg    = root;
+                order = [header, pane, footer];
+                type  = LayoutType.Vert;
+                ratio = 1;
+
+                if (headerId !== undefined) { ratio -= HEADER_PCT; }
+                if (footerId !== undefined) { ratio -= FOOTER_PCT; }
+            };
 
             switch (pane.gravity) {
             case LayoutGravity.Header:
                 pg    = root;
                 order = [pane, body.pane, footer];
                 type  = LayoutType.Vert;
-                ratio = 1 / 5; // tslint:disable-line no-magic-numbers
+                ratio = footerId !== undefined && body.type === PseudoGravityType.None
+                            ? HEADER_PCT_HF
+                            : HEADER_PCT;
                 break;
             case LayoutGravity.Left:
                 if (body.type !== PseudoGravityType.None) {
                     pg    = body;
                     order = [pane, center.pane, right];
                     type  = LayoutType.Horiz;
+                    ratio = rightId !== undefined && center.type === PseudoGravityType.None
+                                ? LEFT_PCT_LR
+                                : LEFT_PCT;
                 }
                 else {
-                    pg    = root;
-                    order = [header, pane, footer];
-                    type  = LayoutType.Vert;
+                    fallbackBody();
                 }
-
-                ratio = 1 / 4; // tslint:disable-line no-magic-numbers
                 break;
             case LayoutGravity.Main:
                 if (center.type !== PseudoGravityType.None) {
                     pg    = center;
                     order = [pane, bottom];
                     type  = LayoutType.Vert;
-                }
-                else if (body.type !== PseudoGravityType.None) {
-                    pg    = body;
-                    order = [left, pane, right];
-                    type  = LayoutType.Horiz;
+                    ratio = 1;
+
+                    if (bottomId !== undefined) { ratio -= BOTTOM_PCT; }
                 }
                 else {
-                    pg    = root;
-                    order = [header, pane, footer];
-                    type  = LayoutType.Vert;
+                    fallbackCenter();
                 }
-
-                ratio = 2 / 3; // tslint:disable-line no-magic-numbers
                 break;
             case LayoutGravity.Bottom:
                 if (center.type !== PseudoGravityType.None) {
                     pg    = center;
                     order = [main, pane];
                     type  = LayoutType.Vert;
-                }
-                else if (body.type !== PseudoGravityType.None) {
-                    pg    = body;
-                    order = [left, pane, right];
-                    type  = LayoutType.Horiz;
+                    ratio = BOTTOM_PCT;
                 }
                 else {
-                    pg    = root;
-                    order = [header, pane, footer];
-                    type  = LayoutType.Vert;
+                    fallbackCenter();
                 }
-
-                ratio = 1 / 3; // tslint:disable-line no-magic-numbers
                 break;
             case LayoutGravity.Right:
                 if (body.type !== PseudoGravityType.None) {
                     pg    = body;
                     order = [left, center.pane, pane];
                     type  = LayoutType.Horiz;
+                    ratio = leftId !== undefined && center.type === PseudoGravityType.None
+                                ? RIGHT_PCT_LR
+                                : RIGHT_PCT;
                 }
                 else {
-                    pg    = root;
-                    order = [header, pane, footer];
-                    type  = LayoutType.Vert;
+                    fallbackBody();
                 }
-
-                ratio = 1 / 4; // tslint:disable-line no-magic-numbers
                 break;
             case LayoutGravity.Footer:
                 pg    = root;
                 order = [header, body.pane, pane];
                 type  = LayoutType.Vert;
-                ratio = 1 / 10; // tslint:disable-line no-magic-numbers
+                ratio = headerId !== undefined && body.type === PseudoGravityType.None
+                            ? FOOTER_PCT_HF
+                            : FOOTER_PCT;
                 break;
             }
 
-            return this.placeChildForPseudoGravity(pg, pane, order, type, ratio);
+            let fixRatios: (ChildLayoutId<X>|undefined)[] = [];
+
+            if (pg !== undefined && pg.type === PseudoGravityType.Real) {
+                switch (pg) {
+                case root: fixRatios = [headerId, footerId]; break;
+                case body: fixRatios = [leftId, rightId]; break;
+                case center: fixRatios = [bottomId]; break;
+                }
+            }
+
+            if (pg === undefined || order === undefined || type === undefined ||
+                ratio === undefined) {
+                throw new Error('missing pseudo-gravity info - this should never happen');
+            }
+
+            return this.placeChildForPseudoGravity(pg,
+                                                   pane,
+                                                   order,
+                                                   type,
+                                                   ratio,
+                                                   fixRatios.filter(f => f !== undefined) as
+                                                       ChildLayoutId<X>[]);
         }
     }
 

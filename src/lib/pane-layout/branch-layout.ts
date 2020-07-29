@@ -239,7 +239,7 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
                        private readonly   _ratios: number[],
                        gravity?: LayoutGravity,
                        group?: string,
-                       fixTiny?: boolean) {
+                       fixTiny: boolean = false) {
         super(children, gravity, group);
 
         if (_ratios.length !== children.length) {
@@ -251,26 +251,41 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             if (!isFinite(ratio)) { throw new Error(`invalid ratio ${ratio}`); }
         }
 
-        this._ratioSum = _ratios.reduce((s, e) => s + e, 0);
+        this._ratioSum = this._ratios.reduce((s, e) => s + e, 0);
 
+        this.checkRatioSum(fixTiny);
+    }
+
+    /**
+     * Fixes any potential issues with ratioSum.
+     * @param fixTiny whether to normalize all ratios if the sum is too small
+     * @returns true if all ratios were updated
+     */
+    private checkRatioSum(fixTiny: boolean): boolean {
         if (this.children.length > 0 && this._ratioSum < EPSILON) {
-            if (fixTiny === true) {
+            if (fixTiny) {
                 for (let i = 0; i < this._ratios.length; i += 1) { this._ratios[i] = 1; }
 
                 this._ratioSum = this._ratios.length;
+
+                return true;
             }
-            else {
-                throw new Error('ratios for split layout are too small');
-            }
+
+            throw new Error('ratios for split layout are too small');
         }
 
         // This fixes a quirk with the flex layout system where a sum weight
         // less than 1.0 causes elements not to fill all available space.
         if (this._ratioSum < 1) {
             const sum      = this._ratioSum;
-            this._ratios   = _ratios.map(r => r / sum);
             this._ratioSum = 1;
+
+            for (let i = 0; i < this._ratios.length; i += 1) { this._ratios[i] /= sum; }
+
+            return true;
         }
+
+        return false;
     }
 
     /** See `BranchLayoutBase.withChildren` */
@@ -299,15 +314,21 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             throw new Error(`index must be less than ${this._ratios.length}`);
         }
 
+        if (!isFinite(ratio)) { throw new Error(`invalid ratio ${ratio}`); }
+
         const oldRatio      = this._ratios[index];
         this._ratios[index] = ratio;
 
         this._ratioSum += ratio - oldRatio;
 
-        // TODO: should an event be sent to all other children, since changing
-        //       the sum ratio implicitly changes the size of all children?
-
-        this._resizeEvents.next({index, ratio});
+        if (this.checkRatioSum(true)) {
+            for (let i = 0; i < this._ratios.length; i += 1) {
+                this._resizeEvents.next({index: i, ratio: this._ratios[i]});
+            }
+        }
+        else {
+            this._resizeEvents.next({index, ratio});
+        }
     }
 
     /**
@@ -319,10 +340,11 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
     public moveSplit(firstIdx: number, amount: number): void {
         const secondIdx = firstIdx + 1;
 
-
         if (secondIdx >= this._ratios.length) {
             throw new Error(`firstIdx must be less than ${this._ratios.length - 1}`);
         }
+
+        if (!isFinite(amount)) { throw new Error(`invalid move amount ${amount}`); }
 
         const clampedAmount = Math.max(-this._ratios[firstIdx],
                                        Math.min(this._ratios[secondIdx], amount));
@@ -341,11 +363,15 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
      * @param remove the number of children to remove
      * @param addChildren the list of children to add
      * @param addRatios the list of ratios to add
+     * @param replaceRatios true if addRatios should be used for the new list of
+     *                      ratios, rather than splicing it into the existing
+     *                      list
      */
     public spliceChildren(start: number|undefined,
                           remove: number,
                           addChildren?: readonly ChildLayout<X>[],
-                          addRatios?: readonly   number[]): {
+                          addRatios?: readonly   number[],
+                          replaceRatios: boolean = false): {
         /** The resulting layout */
         layout: SplitLayout<X>;
         /** The removed children */
@@ -359,14 +385,29 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         const removed = addChildren !== undefined ? newChildren.splice(idx, remove, ...addChildren)
                                                   : newChildren.splice(idx, remove);
 
-        if ((addRatios !== undefined ? addRatios.length : 0) !==
-            (addChildren !== undefined ? addChildren.length : 0)) {
-            throw new Error('mismatched lengths of addChildren and addRatios');
-        }
+        let newRatios;
+        let removedRatios;
 
-        const newRatios     = this._ratios.slice();
-        const removedRatios = addRatios !== undefined ? newRatios.splice(idx, remove, ...addRatios)
-                                                      : newRatios.splice(idx, remove);
+        if (replaceRatios) {
+            if (addRatios === undefined) { throw new Error('missing value for addRatios'); }
+
+            if (addRatios.length !== newChildren.length) {
+                throw new Error('mismatched length of addRatios with replaceRatios = true');
+            }
+
+            newRatios     = addRatios.slice();
+            removedRatios = this._ratios.slice(idx, idx + remove);
+        }
+        else {
+            if ((addRatios !== undefined ? addRatios.length : 0) !==
+                (addChildren !== undefined ? addChildren.length : 0)) {
+                throw new Error('mismatched lengths of addChildren and addRatios');
+            }
+
+            newRatios     = this._ratios.slice();
+            removedRatios = addRatios !== undefined ? newRatios.splice(idx, remove, ...addRatios)
+                                                    : newRatios.splice(idx, remove);
+        }
 
         return {
             layout:
@@ -399,11 +440,17 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
      * @param index the index to insert the child at, or `undefined` for the end
      *              of the list
      * @param child the child to add
-     * @param ratio the ratio of the child
+     * @param ratio the ratio of the child, or the list of all new child ratios.
+     *              passing an array sets `replaceRatios = true` for the
+     *              underlying call to `spliceChildren`.
      */
-    public withChild(index: number|undefined, child: ChildLayout<X>, ratio: number):
+    public withChild(index: number|undefined, child: ChildLayout<X>, ratio: number|number[]):
         SplitLayout<X> {
-        const {layout} = this.spliceChildren(index, 0, [child], [ratio]);
+        const {layout} = this.spliceChildren(index,
+                                             0,
+                                             [child],
+                                             typeof ratio === 'number' ? [ratio] : ratio,
+                                             typeof ratio !== 'number');
 
         return layout;
     }

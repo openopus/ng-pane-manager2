@@ -673,8 +673,9 @@ export class PaneFactory<X> {
      * @param childId the layout node ID corresponding to the pane
      * @param skipHeader disable rendering the header of this pane
      */
-    public placePane(container: ViewContainerRef, childId: ChildLayoutId<X>, skipHeader?: boolean):
-        ComponentRef<NgPaneComponent<X>> {
+    public placePane(container: ViewContainerRef,
+                     childId: ChildLayoutId<X>,
+                     skipHeader: boolean = false): ComponentRef<NgPaneComponent<X>> {
         const component = container.createComponent(this.paneFactory);
 
         const inst = component.instance;
@@ -687,7 +688,7 @@ export class PaneFactory<X> {
 
         inst.childId = childId;
 
-        if (skipHeader === true) { inst.header = {type: PaneHeaderType.Skip}; }
+        if (skipHeader) { inst.header = {type: PaneHeaderType.Skip}; }
 
         switch (child.type) {
         case LayoutType.Leaf:
