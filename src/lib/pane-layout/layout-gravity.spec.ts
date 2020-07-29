@@ -194,51 +194,69 @@ function assertProperGravity<X>(_prev: RootLayout<X>, next: RootLayout<X>): void
 }
 
 /**
- * Assert that adding a pane by gravity did not introduce any new tiny ratios.
+ * Assert that adding a pane by gravity did not introduce any new bad ratios.
  * @param prev the previous pane
  * @param next the pane to check
  */
-function assertNoTinyRatios<X>(prev: RootLayout<X>, next: RootLayout<X>): void {
-    const TINY        = 0.1;
-    const TINY_THRESH = TINY - EPSILON;
+function assertNoBadRatios<X>(prev: RootLayout<X>, next: RootLayout<X>): void {
+    const TINY        = 0.07;
+    const TINY_PARENT = 10;
+    const HUGE        = 1e3;
 
-    const findTiny = (pane: PaneLayout<X>, fac: [number, number], num: number): number => {
-        const [x, y] = fac;
-        let ret      = num;
+    const findBad = (pane: PaneLayout<X>, fac: [number, number], tiny: number[], huge: number[]):
+        void      => {
+            const [x, y] = fac;
 
-        switch (pane.type) {
-        case LayoutType.Leaf: return num;
-        case LayoutType.Root:
-            return pane.layout !== undefined ? findTiny(pane.layout, fac, ret) : ret;
-        case LayoutType.Horiz:
-            for (const [child, ratio] of pane.children.map(
-                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
-                if (ratio * x < TINY_THRESH * pane.ratioSum) { ret += 1; }
-                else {
-                    ret = findTiny(child, [x * ratio / clipDenormPos(pane.ratioSum), y], ret);
+            switch (pane.type) {
+            case LayoutType.Leaf: break;
+            case LayoutType.Root:
+                if (pane.layout !== undefined) { findBad(pane.layout, fac, tiny, huge); }
+                break;
+            case LayoutType.Horiz:
+                for (const [child, ratio] of pane.children.map(
+                         (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                    if (ratio > HUGE) { huge.push(ratio); }
+
+                    if (ratio * x < TINY * pane.ratioSum) { tiny.push(ratio); }
+
+                    if (ratio * x >= TINY * pane.ratioSum * TINY_PARENT) {
+                        findBad(child, [x * ratio / clipDenormPos(pane.ratioSum), y], tiny, huge);
+                    }
                 }
-            }
+                break;
+            case LayoutType.Vert:
+                for (const [child, ratio] of pane.children.map(
+                         (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                    if (ratio > HUGE) { huge.push(ratio); }
 
-            return ret;
-        case LayoutType.Vert:
-            for (const [child, ratio] of pane.children.map(
-                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
-                if (ratio * y < TINY_THRESH * pane.ratioSum) { ret += 1; }
-                else {
-                    ret = findTiny(child, [x, y * ratio / clipDenormPos(pane.ratioSum)], ret);
+                    if (ratio * y < TINY * pane.ratioSum) { tiny.push(ratio); }
+
+                    if (ratio * y >= TINY * pane.ratioSum * TINY_PARENT) {
+                        findBad(child, [x, y * ratio / clipDenormPos(pane.ratioSum)], tiny, huge);
+                    }
                 }
+                break;
+            case LayoutType.Tabbed:
+                for (const child of pane.children) { findBad(child, fac, tiny, huge); }
+                break;
             }
+        };
 
-            return ret;
-        case LayoutType.Tabbed:
-            for (const child of pane.children) { ret = findTiny(child, fac, ret); }
+    const [prevTiny, prevHuge] = [[], []];
+    const [nextTiny, nextHuge] = [[], []];
 
-            return ret;
-        }
-    };
+    findBad(prev, [1, 1], prevTiny, prevHuge);
+    findBad(next, [1, 1], nextTiny, nextHuge);
 
-    chai.expect(findTiny(next, [1, 1], 0), 'layout change introduced a tiny ratio')
-        .not.to.be.greaterThan(findTiny(prev, [1, 1], 0));
+    chai.expect(nextHuge.length,
+                `layout change introduced a huge ratio: ${JSON.stringify(nextHuge)} vs ${
+                    JSON.stringify(prevHuge)}`)
+        .not.to.be.greaterThan(prevHuge.length);
+
+    chai.expect(nextTiny.length,
+                `layout change introduced a tiny ratio: ${JSON.stringify(nextTiny)} vs ${
+                    JSON.stringify(prevTiny)}`)
+        .not.to.be.greaterThan(prevTiny.length);
 }
 
 /**
@@ -319,11 +337,14 @@ describe('PaneLayout.withChildByGravity', () => {
         expect().nothing();
     });
 
-    it('should not create very small ratios', () => {
+    it('should not create very small or very big ratios', () => {
         fc.assert(fc.property(
-            layoutDepthArb.chain(childArb).map(c => c.intoRoot()),
-            fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))),
-            (layout, gravs) => { assertAddByGravity(layout, gravs, assertNoTinyRatios, false); }));
+                      layoutDepthArb.chain(childArb).map(c => c.intoRoot()),
+                      fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))),
+                      (layout,
+                       gravs) => { assertAddByGravity(layout, gravs, assertNoBadRatios, false); }),
+                  // TODO
+                  {seed: 346744235, path: '66:317:0:7', endOnFailure: true});
 
         expect().nothing();
     });

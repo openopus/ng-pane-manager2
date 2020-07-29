@@ -18,6 +18,8 @@
  *
  *******************************************************************************/
 
+import {clipDenormPos} from '../util';
+
 import {SplitLayout, TabbedLayout} from './branch-layout';
 import {
     ChildLayout,
@@ -183,15 +185,17 @@ export abstract class LayoutBase<X> {
      * @param splitType if a split is inserted, what type to make it
      * @param pct if the pane is inserted into a split node, the percentage of
      *            the available space it should be given
-     * @param fixRatios a list of children to maintain fixed ratios for to
-     *                  prevent changing their size
+     * @param fixRatios a map of children to maintain fixed ratios for to
+     *                  prevent changing their size.  maps to a factor to
+     *                  scale the child's overall percentage size by
      */
     private placeChildForPseudoGravity(pg: PseudoGravity<X>,
                                        pane: ChildLayout<X>,
                                        order: (PaneLayout<X>|undefined)[],
                                        splitType: LayoutType.Horiz|LayoutType.Vert,
                                        pct: number,
-                                       fixRatios: ChildLayoutId<X>[]): PaneLayout<X>|undefined {
+                                       fixRatios: Map<ChildLayoutId<X>, number>):
+        PaneLayout<X>|undefined {
         let replace;
 
         switch (pg.type) {
@@ -220,20 +224,31 @@ export abstract class LayoutBase<X> {
             switch (pg.pane.type) {
             case LayoutType.Horiz:
             case LayoutType.Vert: {
-                const fixIdcs        = new Map<number, true>();
+                const fixIdcs        = new Map<number, number>();
                 const adjustedRatios = pg.pane.ratios.slice();
                 const addRatio       = pct * pg.pane.ratioSum;
+                let extraSum         = 0;
+                let netFixChange     = 0;
 
-                for (const {stem, index} of fixRatios) {
-                    if (Object.is(stem, pg.pane)) { fixIdcs.set(index, true); }
+                for (const [{stem, index}, fac] of fixRatios) {
+                    if (Object.is(stem, pg.pane)) { fixIdcs.set(index, fac); }
                 }
 
-                const extraSum = pg.pane.ratios.filter((_, i) => !fixIdcs.has(i))
-                                     .reduce((p, n) => p + n, 0);
-                const extraFactor = Math.max(0, 1 - addRatio / extraSum);
+                for (const [ratio, index] of pg.pane.ratios.map((r, i) => [r, i])) {
+                    const fac = fixIdcs.get(index);
+                    if (fac !== undefined) { netFixChange += ratio * (1 - fac); }
+                    else {
+                        extraSum += ratio;
+                    }
+                }
+
+                const extraFactor = Math.max(0,
+                                             (netFixChange - addRatio) / clipDenormPos(extraSum) +
+                                                 1);
 
                 for (let i = 0; i < adjustedRatios.length; i += 1) {
-                    if (!fixIdcs.has(i)) { adjustedRatios[i] *= extraFactor; }
+                    const fac = fixIdcs.get(i);
+                    adjustedRatios[i] *= fac !== undefined ? fac : extraFactor;
                 }
 
                 adjustedRatios.splice(idx, 0, addRatio);
@@ -324,7 +339,11 @@ export abstract class LayoutBase<X> {
         //       creating a split inside a tab.
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            replace = child.withChild(undefined, desc, child.ratioSum / child.children.length);
+            replace = child.withChild(undefined,
+                                      desc,
+                                      child.children.length > 0
+                                          ? child.ratioSum / child.children.length
+                                          : 1);
             break;
         case LayoutType.Tabbed: replace = child.withChild(undefined, desc, true); break;
         }
@@ -496,28 +515,44 @@ export abstract class LayoutBase<X> {
                 break;
             }
 
-            let fixRatios: (ChildLayoutId<X>|undefined)[] = [];
+            const fixRatios = new Map<ChildLayoutId<X>|undefined, number>();
 
             if (pg !== undefined && pg.type === PseudoGravityType.Real) {
                 switch (pg) {
-                case root: fixRatios = [headerId, footerId]; break;
-                case body: fixRatios = [leftId, rightId]; break;
-                case center: fixRatios = [bottomId]; break;
+                case root:
+                    if (headerId !== undefined && footerId !== undefined) {
+                        fixRatios.set(headerId, HEADER_PCT / HEADER_PCT_HF);
+                        fixRatios.set(footerId, FOOTER_PCT / FOOTER_PCT_HF);
+                    }
+                    else {
+                        fixRatios.set(headerId, 1);
+                        fixRatios.set(footerId, 1);
+                    }
+
+                    break;
+                case body:
+                    if (leftId !== undefined && rightId !== undefined) {
+                        fixRatios.set(leftId, LEFT_PCT / LEFT_PCT_LR);
+                        fixRatios.set(rightId, RIGHT_PCT / RIGHT_PCT_LR);
+                    }
+                    else {
+                        fixRatios.set(leftId, 1);
+                        fixRatios.set(rightId, 1);
+                    }
+                    break;
+                case center: fixRatios.set(bottomId, 1); break;
                 }
             }
+
+            fixRatios.delete(undefined);
 
             if (pg === undefined || order === undefined || type === undefined ||
                 ratio === undefined) {
                 throw new Error('missing pseudo-gravity info - this should never happen');
             }
 
-            return this.placeChildForPseudoGravity(pg,
-                                                   pane,
-                                                   order,
-                                                   type,
-                                                   ratio,
-                                                   fixRatios.filter(f => f !== undefined) as
-                                                       ChildLayoutId<X>[]);
+            return this.placeChildForPseudoGravity(
+                pg, pane, order, type, ratio, fixRatios as Map<ChildLayoutId<X>, number>);
         }
     }
 
