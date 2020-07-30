@@ -94,3 +94,29 @@ export interface LeafNodeContext<X> {
 
 /** The information needed to render the contents of a leaf node. */
 export type LeafNodeTemplate<X> = [TemplateRef<LeafNodeContext<X>>, LeafNodeContext<X>];
+
+/**
+ * Function to determine if two leaf templates are equivalent.
+ * @param lhs the first template to compare
+ * @param rhs the second template to compare
+ * @param extraEq equality comparison function for the extra data
+ */
+export function sameLeafTemplate<X>(lhs: LeafNodeTemplate<X>|undefined,
+                                    rhs: LeafNodeTemplate<X>|undefined,
+                                    extraEq: (l: X, r: X) => boolean = Object.is.bind(Object)):
+    boolean {
+    if (Object.is(lhs, rhs)) { return true; }
+
+    if (lhs === undefined || rhs === undefined) { return false; }
+
+    const [lTmp, lCtx] = lhs;
+    const [rTmp, rCtx] = rhs;
+
+    if (!Object.is(lTmp.elementRef.nativeElement, rTmp.elementRef.nativeElement)) { return false; }
+
+    // TODO: check header?
+
+    if (!extraEq(lCtx.extra, rCtx.extra)) { return false; }
+
+    return true;
+}

@@ -23,7 +23,7 @@ import {Component, ElementRef, ViewChild} from '@angular/core';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 import {LeafLayout} from '../pane-layout/module';
-import {LeafNodeContext, LeafNodeTemplate} from '../pane-template';
+import {LeafNodeContext, LeafNodeTemplate, sameLeafTemplate} from '../pane-template';
 
 /**
  * A leaf pane node, containing only a rendered template.
@@ -52,7 +52,7 @@ export class NgPaneLeafComponent<X> {
     public get template(): LeafNodeTemplate<X>|undefined { return this._template; }
 
     public set template(val: LeafNodeTemplate<X>|undefined) {
-        if (Object.is(val, this._template)) { return; }
+        if (sameLeafTemplate(val, this._template)) { return; }
 
         this._template = val;
 
