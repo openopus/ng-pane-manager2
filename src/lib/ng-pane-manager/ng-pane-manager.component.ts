@@ -23,7 +23,9 @@ import {
     ComponentFactoryResolver,
     ComponentRef,
     ElementRef,
+    EventEmitter,
     Input,
+    Output,
     ViewChild,
 } from '@angular/core';
 
@@ -59,6 +61,10 @@ export class NgPaneManagerComponent<X> {
     /** The pane factory used for rendering all inner components */
     private readonly factory: PaneFactory<X>;
 
+    /** Event emitter for when the rendered layout is changed. */
+    @Output() public readonly layoutChange: EventEmitter<RootLayout<X>> = new EventEmitter();
+
+    // TODO: make this two-way bindable
     /**
      * The current layout being rendered.  This can be changed using the
      * accessor, and is automatically updated when the layout is changed by the
@@ -104,12 +110,13 @@ export class NgPaneManagerComponent<X> {
     /**
      * Apply one or more changes to the rendered layout as a single operation.
      * @param fn callback returning a new layout given the current one
-     * @param after hook to run just before all unused leaf nodes are destroyed
+     * @param after hook to run just before all unused leaf nodes are destroyed.
+     *              Returns whether a layout change event should be emitted.
      */
     public transactLayoutChange(fn: (layout: RootLayout<X>,
                                      factory: PaneFactory<X>)               => RootLayout<X>,
                                 after?: (factory: PaneFactory<X>,
-                                         renderer: NgPaneRendererDirective) => void): void {
+                                         renderer: NgPaneRendererDirective) => boolean): void {
         let newLayout = fn(this._layout, this.factory);
 
         const simplified = newLayout.simplifyDeep();
@@ -131,7 +138,11 @@ export class NgPaneManagerComponent<X> {
         try {
             this.pane = this.factory.placePane(this.renderer.viewContainer, newLayout.childId());
 
-            if (after !== undefined) { after(this.factory, this.renderer); }
+            let emitChange = true;
+
+            if (after !== undefined) { emitChange = after(this.factory, this.renderer); }
+
+            if (emitChange) { this.layoutChange.emit(this._layout); }
         }
         finally {
             if (oldPane !== undefined) { oldPane.destroy(); }

@@ -477,6 +477,8 @@ export class PaneDragContext<X> {
                     }
 
                     this.floatingInfo = {layout, pct: floatingPct, pane, dropHighlight};
+
+                    return false; // Suppress emitting a layout change
                 });
         }
         catch (e) {

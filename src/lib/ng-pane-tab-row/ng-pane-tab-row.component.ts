@@ -57,7 +57,8 @@ interface TabbedExtra<X> {
  */
 @Component({
     selector: 'lib-ng-pane-tab-row',
-    template: '<ng-container libNgPaneRenderer></ng-container>',
+    template: `<ng-container libNgPaneRenderer></ng-container>
+<div class="lib-ng-pane-tab-row-spacer"></div>`,
     styleUrls: ['./ng-pane-tab-row.component.scss'],
 })
 export class NgPaneTabRowComponent<X> extends DraggablePaneComponent<X> {

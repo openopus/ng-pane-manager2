@@ -24,3 +24,8 @@
     justify-content: flex-start;
     overflow-x: auto;
 }
+
+// TODO: can this be accomplished with ::after?
+.lib-ng-pane-tab-row-spacer {
+    flex: 0 0 auto;
+}
