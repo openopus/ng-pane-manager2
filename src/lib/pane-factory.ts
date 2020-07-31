@@ -26,8 +26,8 @@ import {
     ViewContainerRef,
     ViewRef,
 } from '@angular/core';
-import {BehaviorSubject, Observable, Subscription} from 'rxjs';
-import {map, switchMap} from 'rxjs/operators';
+import {BehaviorSubject, merge, Observable, Subscription} from 'rxjs';
+import {filter, map, switchAll, switchMap} from 'rxjs/operators';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
 import {
@@ -175,6 +175,15 @@ export class PaneFactory<X> {
      */
     private readonly leafHeaders:
         Map<string, BehaviorSubject<PaneHeaderStyle|undefined>> = new Map();
+    /**
+     * The resize event streams of all currently rendered leaf nodes, stored by
+     * leaf pane ID.
+     *
+     * Intended for use with `getLeafResizeStream`, which pipes the stream
+     * through `switchAll`.
+     */
+    private readonly leafResizeStreams:
+        Map<string, BehaviorSubject<Observable<undefined>>> = new Map();
     /** All RxJS subscriptions associated with the current layout */
     private readonly layoutSubscriptions: Subscription[] = [];
     /** All hit testing information for the currently rendered components */
@@ -227,11 +236,40 @@ export class PaneFactory<X> {
     }
 
     /**
+     * Returns an observable reference to the stream of pane resize events of a
+     * leaf node, or creates a placeholder one if no stream is currently
+     * registered.
+     *
+     * Note that values returned by this function are valid across layout
+     * changes as long as the leaf with the specified ID was not removed during
+     * the change.
+     * @param id the ID of the leaf node (_not_ template) to retrieve the resize
+     *           stream for
+     * @param nextWith an inner stream of events to switch the current stream to
+     */
+    private getLeafResizeStream(id: string,
+                                nextWith: Observable<undefined>): Observable<undefined> {
+        let entry = this.leafResizeStreams.get(id);
+
+        if (entry === undefined) {
+            entry = new BehaviorSubject<Observable<undefined>>(nextWith);
+            this.leafResizeStreams.set(id, entry);
+        }
+        else {
+            entry.next(nextWith);
+        }
+
+        return entry.pipe(switchAll());
+    }
+
+    /**
      * Collect all the necessary information to render the contents of a leaf
      * pane.
      * @param layout the name of the template to produce
+     * @param onResize a stream of resize events for the associated pane
      */
-    private renderLeafTemplate(layout: LeafLayout<X>): Observable<LeafNodeTemplate<X>|undefined> {
+    private renderLeafTemplate(layout: LeafLayout<X>, onResize: Observable<undefined>):
+        Observable<LeafNodeTemplate<X>|undefined> {
         const $info = this.templateService.get(layout.template);
 
         return $info.pipe(map(info => {
@@ -253,6 +291,7 @@ export class PaneFactory<X> {
                         requestAnimationFrame(_ => header.next(val));
                     }
                 },
+                onResize,
             };
 
             return [template, {$implicit, extra: layout.extra}];
@@ -349,10 +388,12 @@ export class PaneFactory<X> {
      * @param container the container to render the leaf in
      * @param withId the layout node corresponding to the leaf
      * @param pane the pane container containing the leaf
+     * @param onResize a stream of resize events for the pane
      */
     private placeLeaf(container: ViewContainerRef,
                       withId: ChildWithId<X, LeafLayout<X>>,
-                      pane: NgPaneComponent<X>): ComponentRef<NgPaneLeafComponent<X>> {
+                      pane: NgPaneComponent<X>,
+                      onResize: Observable<undefined>): ComponentRef<NgPaneLeafComponent<X>> {
         const {child: layout, id} = withId;
         let component: ComponentRef<NgPaneLeafComponent<X>>|undefined;
         let hostView: ViewRef|undefined;
@@ -383,8 +424,10 @@ export class PaneFactory<X> {
         inst.pane   = pane;
         inst.layout = layout;
 
+        const stream = this.getLeafResizeStream(layout.id, onResize);
+
         this.layoutSubscriptions.push(
-            this.renderLeafTemplate(layout).subscribe(t => inst.template = t));
+            this.renderLeafTemplate(layout, stream).subscribe(t => inst.template = t));
 
         this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
             s => this.setPaneDropTarget(id, inst.el, s)));
@@ -416,9 +459,11 @@ export class PaneFactory<X> {
      * Render a split branch pane.
      * @param container the container to render the split branch in
      * @param withId the layout node corresponding to the split branch
+     * @param onResize a stream of resize events for the pane
      */
-    private placeSplit(container: ViewContainerRef, withId: ChildWithId<X, SplitLayout<X>>):
-        ComponentRef<NgPaneSplitComponent<X>> {
+    private placeSplit(container: ViewContainerRef,
+                       withId: ChildWithId<X, SplitLayout<X>>,
+                       onResize: Observable<undefined>): ComponentRef<NgPaneSplitComponent<X>> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.splitFactory);
         const inst                = component.instance;
@@ -432,7 +477,12 @@ export class PaneFactory<X> {
                                      {stem: layout, index: i - 1});
             }
 
-            const pane = this.placePane(inst.renderer.viewContainer, layout.childId(i));
+            const pane = this.placePane(inst.renderer.viewContainer,
+                                        layout.childId(i),
+                                        merge(onResize,
+                                              layout.resizeEvents.pipe(filter(({index}) => index ===
+                                                                                           i),
+                                                                       map(_ => undefined))));
 
             pane.instance.ratio = layout.ratios[i];
 
@@ -451,15 +501,21 @@ export class PaneFactory<X> {
      * Render a tabbed branch pane.
      * @param container the container to render the tabbed branch in
      * @param withId the layout node associated with the tabbed branch
+     * @param onResize a stream of resize events for the pane
      */
-    private placeTabbed(container: ViewContainerRef, withId: ChildWithId<X, TabbedLayout<X>>):
-        ComponentRef<NgPaneTabbedComponent<X>> {
+    private placeTabbed(container: ViewContainerRef,
+                        withId: ChildWithId<X, TabbedLayout<X>>,
+                        onResize: Observable<undefined>): ComponentRef<NgPaneTabbedComponent<X>> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.tabbedFactory);
         const inst                = component.instance;
 
         for (let i = 0; i < layout.children.length; i += 1) {
-            const pane = this.placePane(inst.renderer.viewContainer, layout.childId(i), true);
+            const pane = this.placePane(
+                inst.renderer.viewContainer,
+                layout.childId(i),
+                merge(onResize, layout.$currentTab.pipe(filter(t => t === i), map(_ => undefined))),
+                true);
 
             pane.instance.hidden = true;
 
@@ -659,6 +715,7 @@ export class PaneFactory<X> {
                 if (val.hostView.destroyed) {
                     val.component.destroy();
                     this.leafHeaders.delete(key);
+                    this.leafResizeStreams.delete(key);
                     remove.push(key);
                 }
             }
@@ -672,9 +729,11 @@ export class PaneFactory<X> {
      * @param container the container to render the pane in
      * @param childId the layout node ID corresponding to the pane
      * @param skipHeader disable rendering the header of this pane
+     * @param onResize a stream of resize events for the pane
      */
     public placePane(container: ViewContainerRef,
                      childId: ChildLayoutId<X>,
+                     onResize: Observable<undefined>,
                      skipHeader: boolean = false): ComponentRef<NgPaneComponent<X>> {
         const component = container.createComponent(this.paneFactory);
 
@@ -692,14 +751,21 @@ export class PaneFactory<X> {
 
         switch (child.type) {
         case LayoutType.Leaf:
-            inst.content = this.placeLeaf(inst.renderer.viewContainer, {child, id: childId}, inst);
+            inst.content = this.placeLeaf(inst.renderer.viewContainer,
+                                          {child, id: childId},
+                                          inst,
+                                          onResize);
             break;
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            inst.content = this.placeSplit(inst.renderer.viewContainer, {child, id: childId});
+            inst.content = this.placeSplit(inst.renderer.viewContainer,
+                                           {child, id: childId},
+                                           onResize);
             break;
         case LayoutType.Tabbed:
-            inst.content = this.placeTabbed(inst.renderer.viewContainer, {child, id: childId});
+            inst.content = this.placeTabbed(inst.renderer.viewContainer,
+                                            {child, id: childId},
+                                            onResize);
             break;
         }
 

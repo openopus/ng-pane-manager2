@@ -25,9 +25,11 @@ import {
     ElementRef,
     EventEmitter,
     Input,
+    OnDestroy,
     Output,
     ViewChild,
 } from '@angular/core';
+import {Subject} from 'rxjs';
 
 import {DropTarget} from '../drag-and-drop';
 import {NgPaneLeafTemplateService} from '../ng-pane-leaf-templates.service';
@@ -47,7 +49,7 @@ import {LayoutType, RootLayout} from '../pane-layout/module';
     template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-manager.component.scss'],
 })
-export class NgPaneManagerComponent<X> {
+export class NgPaneManagerComponent<X> implements OnDestroy {
     /** Provides a view container to render into */
     @ViewChild(NgPaneRendererDirective, {static: true})
     private readonly renderer!: NgPaneRendererDirective;
@@ -56,6 +58,8 @@ export class NgPaneManagerComponent<X> {
     private _layout: RootLayout<X> = new RootLayout(undefined);
     /** See `dropTargets` */
     private _dropTargets: Map<ElementRef<Element>, DropTarget<X>> = new Map();
+    /** A stream of resize events to send to all panes */
+    private readonly onResize: Subject<undefined> = new Subject();
     /** The root component of the current layout */
     private pane: ComponentRef<NgPaneComponent<X>>|undefined;
     /** The pane factory used for rendering all inner components */
@@ -96,6 +100,11 @@ export class NgPaneManagerComponent<X> {
     }
 
     /**
+     * Clean up all resources used by this pane manager.
+     */
+    public ngOnDestroy(): void { this.onResize.complete(); }
+
+    /**
      * Constructs a map from native elements to drag-and-drop information.  Used
      * for hit testing during drag-and-drop.
      */
@@ -106,6 +115,11 @@ export class NgPaneManagerComponent<X> {
 
         return ret;
     }
+
+    /**
+     * Notify all child panes that a resize of the host pane manager occurred.
+     */
+    public notifyResize(): void { this.onResize.next(undefined); }
 
     /**
      * Apply one or more changes to the rendered layout as a single operation.
@@ -136,7 +150,9 @@ export class NgPaneManagerComponent<X> {
         this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
 
         try {
-            this.pane = this.factory.placePane(this.renderer.viewContainer, newLayout.childId());
+            this.pane = this.factory.placePane(this.renderer.viewContainer,
+                                               newLayout.childId(),
+                                               this.onResize);
 
             let emitChange = true;
 

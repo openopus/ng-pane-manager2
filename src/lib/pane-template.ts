@@ -87,6 +87,8 @@ export interface LeafNodeContext<X> {
     $implicit: {
         /** The header style of this node.  Can be read or written. */
         header: PaneHeaderStyle;
+        /** A stream of resize events for the pane associated with this node. */
+        readonly onResize: Observable<undefined>;
     };
     /** The layout data for this node */
     extra: X;

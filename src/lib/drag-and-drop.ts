@@ -19,6 +19,7 @@
  *********************************************************************************/
 
 import {Component, ComponentRef, HostListener} from '@angular/core';
+import {BehaviorSubject} from 'rxjs';
 
 import {averageTouchPos, beginMouseDrag, beginTouchDrag, DragCancelFn} from './begin-drag';
 import {
@@ -454,7 +455,8 @@ export class PaneDragContext<X> {
                 (factory, renderer) => {
                     // TODO: make sure pane is non-interactable
                     const pane = factory.placePane(renderer.viewContainer,
-                                                   layout.intoRoot().childId());
+                                                   layout.intoRoot().childId(),
+                                                   new BehaviorSubject(undefined));
 
                     {
                         const inst = pane.instance;
