@@ -19,21 +19,6 @@
  ******************************************************************************************************/
 
 :host {
-    transition: 0.2s cubic-bezier(0.175, 0.75, 0.35, 1.0);
-    transition-property: left, top, width, height, opacity, border-width;
     position: fixed;
     box-sizing: border-box;
-    background: rgba(#07f, 0.25);
-    border: 1px solid #07f;
-    opacity: 0;
-
-    &.lib-ng-pane-drop-highlight-visible { opacity: 1; }
-
-    &[data-lib-ng-pane-drop-emphasize=left] {
-        border-left-width: 5px;
-    }
-
-    &[data-lib-ng-pane-drop-emphasize=right] {
-        border-right-width: 5px;
-    }
 }

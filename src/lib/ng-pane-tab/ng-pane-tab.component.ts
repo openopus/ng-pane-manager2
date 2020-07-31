@@ -44,7 +44,6 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
                     (click)="close()"></button>
         </ng-container>
     </ng-container>`,
-    styleUrls: ['./ng-pane-tab.component.scss'],
 })
 export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> extends
     ClosablePaneComponent<X, T> {
