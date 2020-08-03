@@ -41,6 +41,36 @@ export class NgPaneLeafTemplateService<X> {
     /** Registered leaf templates, stored by name */
     private readonly templates:
         Map<string, BehaviorSubject<LeafTemplateInfo<X>|undefined>> = new Map();
+    /**
+     * Whether a prune operation is currently scheduled.\
+     * See `schedulePrune`.
+     */
+    private pruneScheduled: boolean = false;
+
+    /**
+     * Schedules a pruning operation to remove dead entries with no observers.
+     */
+    private schedulePrune(): void {
+        if (!this.pruneScheduled) {
+            this.pruneScheduled = true;
+
+            requestAnimationFrame(_ => {
+                let remove;
+                for (const [key, val] of this.templates) {
+                    if (val.value === undefined && val.observers.length === 0) {
+                        if (remove === undefined) { remove = [key]; }
+                        else {
+                            remove.push(key);
+                        }
+                    }
+                }
+
+                if (remove !== undefined) { remove.forEach(k => this.templates.delete(k)); }
+
+                this.pruneScheduled = false;
+            });
+        }
+    }
 
     /**
      * Retrieve the template with the given name.
@@ -48,6 +78,8 @@ export class NgPaneLeafTemplateService<X> {
      */
     public get(name: string): Observable<LeafTemplateInfo<X>|undefined> {
         const entry = this.templates.get(name);
+
+        this.schedulePrune();
 
         if (entry !== undefined) { return entry; }
 
@@ -99,8 +131,12 @@ export class NgPaneLeafTemplateService<X> {
 
         if (entry === undefined || entry.value === undefined) { return false; }
 
-        entry.next(undefined);
+        if (entry.observers.length === 0) {
+            entry.next(undefined);
 
-        return true;
+            return true;
+        }
+
+        return this.templates.delete(name);
     }
 }

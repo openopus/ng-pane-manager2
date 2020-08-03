@@ -22,7 +22,7 @@
 import * as chai from 'chai';
 import fc from 'fast-check';
 
-import {clipDenormPos, EPSILON} from '../util';
+import {EPSILON} from '../util';
 
 import {LayoutGravity, LayoutType} from './layout-base';
 import {
@@ -32,7 +32,7 @@ import {
     RootLayout,
 } from './layout-core';
 import {childArb, layoutDepthArb} from './layout-core.spec';
-import {saveLayoutGravity} from './layout-template';
+import {saveLayout, saveLayoutGravity} from './layout-template';
 import {childFromId, ChildLayoutId} from './layout-util';
 
 /** Find the element with the pseudo-gravity described by its expected child nodes. */
@@ -199,54 +199,46 @@ function assertProperGravity<X>(_prev: RootLayout<X>, next: RootLayout<X>): void
  * @param next the pane to check
  */
 function assertNoBadRatios<X>(prev: RootLayout<X>, next: RootLayout<X>): void {
-    const TINY        = 0.07;
-    const TINY_PARENT = 10;
-    const HUGE        = 1e3;
+    const TINY = 0.1;
+    const HUGE = 1e3;
 
-    const findBad = (pane: PaneLayout<X>, fac: [number, number], tiny: number[], huge: number[]):
-        void      => {
-            const [x, y] = fac;
+    const findBad = (pane: PaneLayout<X>, tiny: number[], huge: number[]): void => {
+        switch (pane.type) {
+        case LayoutType.Leaf: break;
+        case LayoutType.Root:
+            if (pane.layout !== undefined) { findBad(pane.layout, tiny, huge); }
+            break;
+        case LayoutType.Horiz:
+            for (const [child, ratio] of pane.children.map(
+                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                if (ratio > HUGE) { huge.push(ratio); }
 
-            switch (pane.type) {
-            case LayoutType.Leaf: break;
-            case LayoutType.Root:
-                if (pane.layout !== undefined) { findBad(pane.layout, fac, tiny, huge); }
-                break;
-            case LayoutType.Horiz:
-                for (const [child, ratio] of pane.children.map(
-                         (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
-                    if (ratio > HUGE) { huge.push(ratio); }
+                if (ratio < TINY * pane.ratioSum / pane.children.length) { tiny.push(ratio); }
 
-                    if (ratio * x < TINY * pane.ratioSum) { tiny.push(ratio); }
-
-                    if (ratio * x >= TINY * pane.ratioSum * TINY_PARENT) {
-                        findBad(child, [x * ratio / clipDenormPos(pane.ratioSum), y], tiny, huge);
-                    }
-                }
-                break;
-            case LayoutType.Vert:
-                for (const [child, ratio] of pane.children.map(
-                         (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
-                    if (ratio > HUGE) { huge.push(ratio); }
-
-                    if (ratio * y < TINY * pane.ratioSum) { tiny.push(ratio); }
-
-                    if (ratio * y >= TINY * pane.ratioSum * TINY_PARENT) {
-                        findBad(child, [x, y * ratio / clipDenormPos(pane.ratioSum)], tiny, huge);
-                    }
-                }
-                break;
-            case LayoutType.Tabbed:
-                for (const child of pane.children) { findBad(child, fac, tiny, huge); }
-                break;
+                findBad(child, tiny, huge);
             }
-        };
+            break;
+        case LayoutType.Vert:
+            for (const [child, ratio] of pane.children.map(
+                     (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {
+                if (ratio > HUGE) { huge.push(ratio); }
+
+                if (ratio < TINY * pane.ratioSum / pane.children.length) { tiny.push(ratio); }
+
+                findBad(child, tiny, huge);
+            }
+            break;
+        case LayoutType.Tabbed:
+            for (const child of pane.children) { findBad(child, tiny, huge); }
+            break;
+        }
+    };
 
     const [prevTiny, prevHuge] = [[], []];
     const [nextTiny, nextHuge] = [[], []];
 
-    findBad(prev, [1, 1], prevTiny, prevHuge);
-    findBad(next, [1, 1], nextTiny, nextHuge);
+    findBad(prev, prevTiny, prevHuge);
+    findBad(next, nextTiny, nextHuge);
 
     chai.expect(nextHuge.length,
                 `layout change introduced a huge ratio: ${JSON.stringify(nextHuge)} vs ${
@@ -297,7 +289,8 @@ function assertAddByGravity(start: RootLayout<undefined>,
         catch (e) {
             throw new Error(`adding panes failed at step ${i + 1} (gravity ${
                 saveLayoutGravity(gravity)}):\n${e}\nCurrent layout: ${
-                JSON.stringify(layout)}\nFailed layout: ${JSON.stringify(next)}`);
+                JSON.stringify(saveLayout(layout, x => x))}\nFailed layout: ${
+                JSON.stringify(next !== undefined ? saveLayout(next, x => x) : next)}`);
         }
     }
 }
@@ -339,12 +332,9 @@ describe('PaneLayout.withChildByGravity', () => {
 
     it('should not create very small or very big ratios', () => {
         fc.assert(fc.property(
-                      layoutDepthArb.chain(childArb).map(c => c.intoRoot()),
-                      fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))),
-                      (layout,
-                       gravs) => { assertAddByGravity(layout, gravs, assertNoBadRatios, false); }),
-                  // TODO
-                  {seed: 346744235, path: '66:317:0:7', endOnFailure: true});
+            layoutDepthArb.chain(childArb).map(c => c.intoRoot()),
+            fc.array(fc.oneof(...GRAVITIES.map(g => fc.constant(g)))),
+            (layout, gravs) => { assertAddByGravity(layout, gravs, assertNoBadRatios, false); }));
 
         expect().nothing();
     });

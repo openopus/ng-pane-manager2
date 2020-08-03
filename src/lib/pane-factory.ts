@@ -26,7 +26,7 @@ import {
     ViewContainerRef,
     ViewRef,
 } from '@angular/core';
-import {BehaviorSubject, merge, Observable, Subscription} from 'rxjs';
+import {BehaviorSubject, merge, Observable, of, Subscription} from 'rxjs';
 import {filter, map, switchAll, switchMap} from 'rxjs/operators';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
@@ -256,6 +256,8 @@ export class PaneFactory<X> {
             this.leafResizeStreams.set(id, entry);
         }
         else {
+            // TODO: suppress this for panes when we know the size didn't change
+            entry.next(of(undefined));
             entry.next(nextWith);
         }
 
@@ -480,6 +482,7 @@ export class PaneFactory<X> {
             const pane = this.placePane(inst.renderer.viewContainer,
                                         layout.childId(i),
                                         merge(onResize,
+                                              layout.ratioSumChanged.pipe(map(_ => undefined)),
                                               layout.resizeEvents.pipe(filter(({index}) => index ===
                                                                                            i),
                                                                        map(_ => undefined))));
@@ -511,11 +514,12 @@ export class PaneFactory<X> {
         const inst                = component.instance;
 
         for (let i = 0; i < layout.children.length; i += 1) {
-            const pane = this.placePane(
-                inst.renderer.viewContainer,
-                layout.childId(i),
-                merge(onResize, layout.$currentTab.pipe(filter(t => t === i), map(_ => undefined))),
-                true);
+            const pane = this.placePane(inst.renderer.viewContainer,
+                                        layout.childId(i),
+                                        merge(onResize.pipe(filter(_ => layout.currentTab === i)),
+                                              layout.$currentTab.pipe(filter(t => t === i),
+                                                                      map(_ => undefined))),
+                                        true);
 
             pane.instance.hidden = true;
 

@@ -198,13 +198,24 @@ export interface ResizeEvent {
     readonly ratio: number;
 }
 
+// NOTE: TypeScript hates this, edit with caution.
+/**
+ * Flatten an array non-recursively.  Used below.
+ * @param arr the array to flatten
+ */
+function flatten<T>(arr: (T|readonly T[]|undefined)[]): T[] {
+    return arr.filter(e => e !== undefined)
+               .reduce((l, r) => (l as T[]).concat(r as T | readonly T[]), []) as T[];
+}
+
 /**
  * A layout with its children stacked horizontally or vertically
  */
-// @dynamic
 export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
     /** See `resizeEvents` */
     private readonly _resizeEvents: Subject<ResizeEvent> = new Subject();
+    /** See `ratioSumChanged` */
+    private readonly _ratioSumChanged: Subject<number> = new Subject();
     /** See `ratioSum` */
     private _ratioSum: number;
 
@@ -215,16 +226,8 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
 
     /** A stream of resize events, notifying when the ratio of a child changes */
     public get resizeEvents(): Observable<ResizeEvent> { return this._resizeEvents; }
-
-    // NOTE: TypeScript hates this, edit with caution.
-    /**
-     * Flatten an array non-recursively.  Used below.
-     * @param arr the array to flatten
-     */
-    private static flatten<T>(arr: (T|readonly T[]|undefined)[]): T[] {
-        return arr.filter(e => e !== undefined)
-                   .reduce((l, r) => (l as T[]).concat(r as T | readonly T[]), []) as T[];
-    }
+    /** A stream of events indicating if the denominator of all ratios change */
+    public get ratioSumChanged(): Observable<number> { return this._ratioSumChanged; }
 
     /**
      * Construct a new split branch node.
@@ -269,6 +272,8 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
 
                 this._ratioSum = this._ratios.length;
 
+                this._ratioSumChanged.next(this._ratioSum);
+
                 return true;
             }
 
@@ -282,6 +287,8 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             this._ratioSum = 1;
 
             for (let i = 0; i < this._ratios.length; i += 1) { this._ratios[i] /= sum; }
+
+            this._ratioSumChanged.next(this._ratioSum);
 
             return true;
         }
@@ -329,6 +336,7 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         }
         else {
             this._resizeEvents.next({index, ratio});
+            this._ratioSumChanged.next(this._ratioSum);
         }
     }
 
@@ -510,14 +518,13 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
             return undefined;
         }
 
-        const flatChildren = SplitLayout.flatten(newChildren);
+        const flatChildren = flatten(newChildren);
 
         if (flatChildren.length === 1) { return flatChildren[0]; }
 
         return new SplitLayout(this.type,
                                flatChildren,
-                               newRatios !== undefined ? SplitLayout.flatten(newRatios)
-                                                       : this._ratios,
+                               newRatios !== undefined ? flatten(newRatios) : this._ratios,
                                this.gravity,
                                this.group,
                                true);
@@ -563,11 +570,11 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
                                     remove: number,
                                     add: readonly      unknown[]|undefined,
                                     children: readonly unknown[]): number {
-        let ret = currentTab;
+        if (currentTab < idx) { return currentTab; }
 
-        ret -= currentTab - Math.max(0, Math.min(remove, ret - idx + 1));
+        let ret = Math.max(idx - 1, currentTab - remove);
 
-        if (ret >= idx && add !== undefined) { ret += add.length; }
+        if (add !== undefined) { ret += add.length; }
 
         ret = Math.max(0, Math.min(children.length - 1, ret));
 
@@ -694,10 +701,10 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
      * Recursively simplify this node tree.
      */
     public simplifyDeep(): PaneLayout<X>|undefined {
-        let newChildren: (ChildLayout<X>|undefined)[]|undefined;
+        let newChildren: (ChildLayout<X>|readonly ChildLayout<X>[]|undefined)[]|undefined;
 
         this.children.forEach((child, idx) => {
-            let newChild;
+            let newChild: ChildLayout<X>|readonly ChildLayout<X>[]|undefined;
 
             const simplified = child.simplifyDeep();
 
@@ -709,7 +716,11 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
 
             // Branches with no children will skip this block, leaving newChild
             // to be undefined.
-            if (next.type === LayoutType.Leaf || next.children.length !== 0) { newChild = next; }
+            if (next.type === LayoutType.Leaf || next.children.length !== 0) {
+                newChild = next;
+
+                if (next.type === LayoutType.Tabbed) { newChild = next.children; }
+            }
 
             if (!Object.is(newChild, child)) {
                 if (newChildren === undefined) { newChildren = this.children.slice(); }
@@ -724,7 +735,7 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
             return undefined;
         }
 
-        const flatChildren = newChildren.filter(c => c !== undefined) as ChildLayout<X>[];
+        const flatChildren = flatten(newChildren);
 
         if (flatChildren.length === 1) { return flatChildren[0]; }
 

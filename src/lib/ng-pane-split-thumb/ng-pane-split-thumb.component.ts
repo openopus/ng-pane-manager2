@@ -134,8 +134,6 @@ export class NgPaneSplitThumbComponent<X> {
 
         const state = this.makeDragState(evt.clientX, evt.clientY);
         beginMouseDrag(evt, (x, y) => this.onDragDelta(x, y, state));
-
-        // TODO: this won't work at all with touch
     }
 
     /**

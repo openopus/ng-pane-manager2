@@ -21,7 +21,7 @@
 import {Component, ElementRef, ViewChild} from '@angular/core';
 import {Observable, Subscription} from 'rxjs';
 
-import {DraggablePaneComponent} from '../drag-and-drop';
+import {ClosablePaneComponent} from '../closable';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneTabComponent} from '../ng-pane-tab/ng-pane-tab.component';
 import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
@@ -50,7 +50,6 @@ interface TabbedExtra<X> {
     current: number|undefined;
 }
 
-// TODO: make this inherit ClosablePaneComponent instead of Draggable
 /**
  * A row of tabs, corresponding to either a pane with a header mode of
  * `AlwaysTab` or the children of a tabbed branch pane.
@@ -60,7 +59,7 @@ interface TabbedExtra<X> {
     template: `<ng-container libNgPaneRenderer></ng-container>
 <div class="lib-ng-pane-tab-row-spacer"></div>`,
 })
-export class NgPaneTabRowComponent<X> extends DraggablePaneComponent<X> {
+export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
     /** Extra information.  See `SimpleExtra` and `TabbedExtra` */
     private extra!: SimpleExtra<X>|TabbedExtra<X>|undefined;
 

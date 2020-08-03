@@ -805,11 +805,6 @@ export class PaneDragContext<X> {
 
         let replace: ChildLayout<X>;
 
-        // TODO: this may be an issue that needs to be fixed in the logic for
-        //       spliceChildren, but should gravity/group be inherited?  This
-        //       depends on whether gravity/group needs to be applied to just
-        //       a single node or to all the nodes it contains
-
         switch (this.dropInfo.orientation) {
         case DropOrientation.Left:
             replace = new SplitLayout(LayoutType.Horiz,

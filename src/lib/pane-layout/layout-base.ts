@@ -229,6 +229,7 @@ export abstract class LayoutBase<X> {
                 const addRatio       = pct * pg.pane.ratioSum;
                 let extraSum         = 0;
                 let netFixChange     = 0;
+                let minExtra;
 
                 for (const [{stem, index}, fac] of fixRatios) {
                     if (Object.is(stem, pg.pane)) { fixIdcs.set(index, fac); }
@@ -238,11 +239,18 @@ export abstract class LayoutBase<X> {
                     const fac = fixIdcs.get(index);
                     if (fac !== undefined) { netFixChange += ratio * (1 - fac); }
                     else {
+                        if (minExtra === undefined || ratio < minExtra) { minExtra = ratio; }
+
                         extraSum += ratio;
                     }
                 }
 
-                const extraFactor = Math.max(0,
+                const minExtraPct = minExtra !== undefined
+                                        ? minExtra / clipDenormPos(pg.pane.ratioSum)
+                                        : 0;
+
+                const TINY        = 0.1;
+                const extraFactor = Math.max(TINY / Math.max(TINY, minExtraPct),
                                              (netFixChange - addRatio) / clipDenormPos(extraSum) +
                                                  1);
 
@@ -327,11 +335,18 @@ export abstract class LayoutBase<X> {
     public withDescendant(well: ChildLayoutId<X>, desc: ChildLayout<X>): PaneLayout<X>|undefined {
         const child = childFromId(well);
 
+        let find = child;
         let replace;
 
         switch (child.type) {
         case LayoutType.Leaf:
-            replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
+            if (well.stem.type === LayoutType.Tabbed) {
+                find    = well.stem;
+                replace = well.stem.withChild(undefined, desc, true);
+            }
+            else {
+                replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
+            }
             break;
         // TODO: This may cause undesired behavior.  The more intuitive
         //       approach may be to descend and create a tab in a child
@@ -348,7 +363,7 @@ export abstract class LayoutBase<X> {
         case LayoutType.Tabbed: replace = child.withChild(undefined, desc, true); break;
         }
 
-        const transposed = this.transposeDeep(child, replace);
+        const transposed = this.transposeDeep(find, replace);
 
         if (transposed === undefined) { throw new Error('failed to drop descendant into well'); }
 

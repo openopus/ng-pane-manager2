@@ -68,7 +68,6 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     /** Event emitter for when the rendered layout is changed. */
     @Output() public readonly layoutChange: EventEmitter<RootLayout<X>> = new EventEmitter();
 
-    // TODO: make this two-way bindable
     /**
      * The current layout being rendered.  This can be changed using the
      * accessor, and is automatically updated when the layout is changed by the
