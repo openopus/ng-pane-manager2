@@ -38,8 +38,8 @@ interface SimpleExtra<X> {
  * Extra information for a real tab row with multiple tabs.
  */
 interface TabbedExtra<X> {
-    /** Mut be undefined, used for type checking */
-    tab?: undefined;
+    /** Disallows `tab` as a property name.  Used for type checking. */
+    tab?: never;
     /** The style information for this pane */
     style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>|undefined;
     /** Subscription for current tab changes */

@@ -44,8 +44,8 @@ export interface LayoutTemplateBase {
  * Template for a leaf layout node.
  */
 export interface LeafLayoutTemplate<T> extends LayoutTemplateBase {
-    /** Split mode.  Must be undefined, used for type checking. */
-    split?: undefined;
+    /** Disallowss `split` as a property name.  Used for type checking. */
+    split?: never;
     /** The unique identifier of this node */
     id: string;
     /** The template name of this node */

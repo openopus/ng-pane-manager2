@@ -92,10 +92,10 @@ const enum PseudoGravityType {
 type PseudoGravity<X> = {
     /** No panel could be located with the specified pseudo-gravity */
     type: PseudoGravityType.None;
-    /** Must remain undefined */
-    pane?: undefined;
-    /** Must remain undefined */
-    id?: undefined;
+    /** Disallows `pane` as a property name.  Used for type checking. */
+    pane?: never;
+    /** Disallows `id` as a property name.  Used for type checking. */
+    id?: never;
 }|{
     /**
      * Only one pane was located, and should be treated as a container with one
