@@ -391,11 +391,13 @@ export class PaneFactory<X> {
      * @param withId the layout node corresponding to the leaf
      * @param pane the pane container containing the leaf
      * @param onResize a stream of resize events for the pane
+     * @param skipDropTarget set to true to disable registering a drop target
      */
     private placeLeaf(container: ViewContainerRef,
                       withId: ChildWithId<X, LeafLayout<X>>,
                       pane: NgPaneComponent<X>,
-                      onResize: Observable<undefined>): ComponentRef<NgPaneLeafComponent<X>> {
+                      onResize: Observable<undefined>,
+                      skipDropTarget: boolean): ComponentRef<NgPaneLeafComponent<X>> {
         const {child: layout, id} = withId;
         let component: ComponentRef<NgPaneLeafComponent<X>>|undefined;
         let hostView: ViewRef|undefined;
@@ -431,8 +433,10 @@ export class PaneFactory<X> {
         this.layoutSubscriptions.push(
             this.renderLeafTemplate(layout, stream).subscribe(t => inst.template = t));
 
-        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-            s => this.setPaneDropTarget(id, inst.el, s)));
+        if (!skipDropTarget) {
+            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+                s => this.setPaneDropTarget(id, inst.el, s)));
+        }
 
         return component;
     }
@@ -462,10 +466,12 @@ export class PaneFactory<X> {
      * @param container the container to render the split branch in
      * @param withId the layout node corresponding to the split branch
      * @param onResize a stream of resize events for the pane
+     * @param skipDropTarget set to true to disable registering a drop target
      */
     private placeSplit(container: ViewContainerRef,
                        withId: ChildWithId<X, SplitLayout<X>>,
-                       onResize: Observable<undefined>): ComponentRef<NgPaneSplitComponent<X>> {
+                       onResize: Observable<undefined>,
+                       skipDropTarget: boolean): ComponentRef<NgPaneSplitComponent<X>> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.splitFactory);
         const inst                = component.instance;
@@ -485,7 +491,9 @@ export class PaneFactory<X> {
                                               layout.ratioSumChanged.pipe(map(_ => undefined)),
                                               layout.resizeEvents.pipe(filter(({index}) => index ===
                                                                                            i),
-                                                                       map(_ => undefined))));
+                                                                       map(_ => undefined))),
+                                        undefined,
+                                        skipDropTarget);
 
             pane.instance.ratio = layout.ratios[i];
 
@@ -494,8 +502,10 @@ export class PaneFactory<X> {
 
         inst.resizeEvents = layout.resizeEvents;
 
-        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-            s => this.setPaneDropTarget(id, inst.el, s)));
+        if (!skipDropTarget) {
+            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+                s => this.setPaneDropTarget(id, inst.el, s)));
+        }
 
         return component;
     }
@@ -505,10 +515,12 @@ export class PaneFactory<X> {
      * @param container the container to render the tabbed branch in
      * @param withId the layout node associated with the tabbed branch
      * @param onResize a stream of resize events for the pane
+     * @param skipDropTarget set to true to disable registering a drop target
      */
     private placeTabbed(container: ViewContainerRef,
                         withId: ChildWithId<X, TabbedLayout<X>>,
-                        onResize: Observable<undefined>): ComponentRef<NgPaneTabbedComponent<X>> {
+                        onResize: Observable<undefined>,
+                        skipDropTarget: boolean): ComponentRef<NgPaneTabbedComponent<X>> {
         const {child: layout, id} = withId;
         const component           = container.createComponent(this.tabbedFactory);
         const inst                = component.instance;
@@ -519,7 +531,8 @@ export class PaneFactory<X> {
                                         merge(onResize.pipe(filter(_ => layout.currentTab === i)),
                                               layout.$currentTab.pipe(filter(t => t === i),
                                                                       map(_ => undefined))),
-                                        true);
+                                        true,
+                                        skipDropTarget);
 
             pane.instance.hidden = true;
 
@@ -528,8 +541,10 @@ export class PaneFactory<X> {
 
         inst.$currentTab = layout.$currentTab;
 
-        this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-            s => this.setPaneDropTarget(id, inst.el, s)));
+        if (!skipDropTarget) {
+            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+                s => this.setPaneDropTarget(id, inst.el, s)));
+        }
 
         return component;
     }
@@ -539,12 +554,12 @@ export class PaneFactory<X> {
      * @param container the container to render the header in
      * @param withId the layout node corresponding to the header
      * @param style the style information for the header
+     * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeHeader(
-        container: ViewContainerRef,
-        withId: ChildWithId<X>,
-        style: PaneHeaderStyle<PaneHeaderMode.Visible>,
-        ): ComponentInst<NgPaneHeaderComponent<X>> {
+    private placeHeader(container: ViewContainerRef,
+                        withId: ChildWithId<X>,
+                        style: PaneHeaderStyle<PaneHeaderMode.Visible>,
+                        skipDropTarget: boolean): ComponentInst<NgPaneHeaderComponent<X>> {
         const component = container.createComponent(this.headerFactory, 0);
         const inst      = component.instance;
 
@@ -552,7 +567,9 @@ export class PaneFactory<X> {
         inst.childId = withId.id;
         inst.style   = style;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
+        if (!skipDropTarget) {
+            this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
+        }
 
         return {component, container, hostView: component.hostView};
     }
@@ -565,16 +582,19 @@ export class PaneFactory<X> {
      *           be set by the caller.
      * @param container the container to render the tab in
      * @param withId the layout node corresponding to the tab
+     * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeTab(container: ViewContainerRef,
-                     withId: ChildWithId<X>): ComponentInst<NgPaneTabComponent<X>> {
+    private placeTab(container: ViewContainerRef, withId: ChildWithId<X>, skipDropTarget: boolean):
+        ComponentInst<NgPaneTabComponent<X>> {
         const component = container.createComponent(this.tabFactory);
         const inst      = component.instance;
 
         inst.manager = this.manager;
         inst.childId = withId.id;
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: withId.id});
+        if (!skipDropTarget) {
+            this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: withId.id});
+        }
 
         return {component, container, hostView: component.hostView};
     }
@@ -585,12 +605,12 @@ export class PaneFactory<X> {
      * @param container the container to render the tab row in
      * @param withId the layout node corresponding to the tab row
      * @param style the header style information for the tab row
+     * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeTabRow(
-        container: ViewContainerRef,
-        withId: ChildWithId<X>,
-        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
-        ): ComponentInst<NgPaneTabRowComponent<X>> {
+    private placeTabRow(container: ViewContainerRef,
+                        withId: ChildWithId<X>,
+                        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
+                        skipDropTarget: boolean): ComponentInst<NgPaneTabRowComponent<X>> {
         const component = container.createComponent(this.tabRowFactory, 0);
         const inst      = component.instance;
 
@@ -602,14 +622,15 @@ export class PaneFactory<X> {
         if (layout.type === LayoutType.Tabbed) {
             layout.children.forEach((subchild, childIndex) => {
                 const tab  = this.placeTab(inst.renderer.viewContainer,
-                                          {child: subchild, id: layout.childId(childIndex)});
+                                          {child: subchild, id: layout.childId(childIndex)},
+                                          skipDropTarget);
                 const pane = this.panes.get(subchild);
 
                 if (pane === undefined) { throw new Error('no pane found to match tab'); }
 
                 pane.instance.header = {type: PaneHeaderType.Tab, header: tab};
 
-                this.updatePaneHeader(pane.instance);
+                this.updatePaneHeader(pane.instance, skipDropTarget);
 
                 inst.tabs.push(tab.component.instance);
             });
@@ -618,14 +639,18 @@ export class PaneFactory<X> {
             inst.$currentTab = layout.$currentTab;
         }
         else {
-            const tab  = this.placeTab(component.instance.renderer.viewContainer, withId);
+            const tab  = this.placeTab(component.instance.renderer.viewContainer,
+                                      withId,
+                                      skipDropTarget);
             inst.tab   = tab.component.instance as NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
             inst.style = style;
 
             tab.component.instance.active = true;
         }
 
-        this.dropTargets.set(inst.el, {type: DropTargetType.TabRow, id: withId.id});
+        if (!skipDropTarget) {
+            this.dropTargets.set(inst.el, {type: DropTargetType.TabRow, id: withId.id});
+        }
 
         return {component, container, hostView: component.hostView};
     }
@@ -633,8 +658,9 @@ export class PaneFactory<X> {
     /**
      * Update the header of a pane, re-rendering it if necessary.
      * @param pane the pane to update the header for
+     * @param skipDropTarget set to true to disable registering a drop target
      */
-    private updatePaneHeader(pane: NgPaneComponent<X>): void {
+    private updatePaneHeader(pane: NgPaneComponent<X>, skipDropTarget: boolean): void {
         if (pane.header.type === PaneHeaderType.Skip) { return; }
 
         const withId = ChildWithId.fromId(pane.childId);
@@ -661,16 +687,17 @@ export class PaneFactory<X> {
                         type: PaneHeaderType.Header,
                         header: this.placeHeader(pane.renderer.viewContainer,
                                                  withId,
-                                                 style as PaneHeaderStyle<PaneHeaderMode.Visible>),
+                                                 style as PaneHeaderStyle<PaneHeaderMode.Visible>,
+                                                 skipDropTarget),
                     };
                     break;
                 case PaneHeaderType.TabRow:
                     pane.header = {
                         type: PaneHeaderType.TabRow,
-                        header:
-                            this.placeTabRow(pane.renderer.viewContainer,
-                                             withId,
-                                             style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>),
+                        header: this.placeTabRow(pane.renderer.viewContainer,
+                                                 withId,
+                                                 style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
+                                                 skipDropTarget),
                     };
                     break;
                 case PaneHeaderType.Tab: throw new Error('unreachable');
@@ -732,13 +759,15 @@ export class PaneFactory<X> {
      * Render a pane container.
      * @param container the container to render the pane in
      * @param childId the layout node ID corresponding to the pane
-     * @param skipHeader disable rendering the header of this pane
      * @param onResize a stream of resize events for the pane
+     * @param skipHeader disable rendering the header of this pane
+     * @param skipDropTarget set to true to disable registering a drop target
      */
     public placePane(container: ViewContainerRef,
                      childId: ChildLayoutId<X>,
                      onResize: Observable<undefined>,
-                     skipHeader: boolean = false): ComponentRef<NgPaneComponent<X>> {
+                     skipHeader: boolean     = false,
+                     skipDropTarget: boolean = false): ComponentRef<NgPaneComponent<X>> {
         const component = container.createComponent(this.paneFactory);
 
         const inst = component.instance;
@@ -755,25 +784,25 @@ export class PaneFactory<X> {
 
         switch (child.type) {
         case LayoutType.Leaf:
-            inst.content = this.placeLeaf(inst.renderer.viewContainer,
-                                          {child, id: childId},
-                                          inst,
-                                          onResize);
+            inst.content = this.placeLeaf(
+                inst.renderer.viewContainer, {child, id: childId}, inst, onResize, skipDropTarget);
             break;
         case LayoutType.Horiz:
         case LayoutType.Vert:
             inst.content = this.placeSplit(inst.renderer.viewContainer,
                                            {child, id: childId},
-                                           onResize);
+                                           onResize,
+                                           skipDropTarget);
             break;
         case LayoutType.Tabbed:
             inst.content = this.placeTabbed(inst.renderer.viewContainer,
                                             {child, id: childId},
-                                            onResize);
+                                            onResize,
+                                            skipDropTarget);
             break;
         }
 
-        this.updatePaneHeader(inst);
+        this.updatePaneHeader(inst, skipDropTarget);
 
         return component;
     }

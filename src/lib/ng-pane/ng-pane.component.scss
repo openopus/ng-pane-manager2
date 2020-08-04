@@ -31,5 +31,6 @@
     &.lib-ng-pane-floating {
         position: fixed;
         z-index: 9001;
+        pointer-events: none;
     }
 }

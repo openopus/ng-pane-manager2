@@ -182,7 +182,7 @@ export class PaneDragContext<X> {
     private hoverAction: HoverAction<X> = {type: HoverActionType.None};
 
     /**
-     * Compute the orientation of a dropped panel given the posisition of a drag
+     * Compute the orientation of a dropped panel given the position of a drag
      * over the panel's client rectangle.
      * @param x the X coordinate of the drag
      * @param y the Y coordinate of the drag
@@ -210,7 +210,7 @@ export class PaneDragContext<X> {
     }
 
     /**
-     * Compute the orientation of a dropped panel given the posisition of a drag
+     * Compute the orientation of a dropped panel given the position of a drag
      * over the panel's client rectangle.
      *
      * Unlike `computeDropOrientation`, this function will never return
@@ -373,6 +373,7 @@ export class PaneDragContext<X> {
         let floatingPct = 0.5;
 
         switch (this.id.stem.type) {
+        case LayoutType.Root: return false;
         case LayoutType.Horiz:
         case LayoutType.Vert: {
             const {layout, removed, removedRatio} = this.id.stem.withoutChild(this.id.index);
@@ -385,15 +386,12 @@ export class PaneDragContext<X> {
             const stem = this.id.stem;
 
             // Find the index of the neighbor with the smallest ratio
-            // TODO: this can be cleaned up if TypeScript ever introduces a
-            //       cleaner reduce signature
-            const minId = ([this.id.index - 1, this.id.index + 1].filter(
-                               i => i >= 0 && i < stem.children.length) as (number | undefined)[])
-                              .reduce((m, i) => m === undefined ||
-                                                        stem.ratios[i as number] < stem.ratios[m]
-                                                    ? i
-                                                    : m,
-                                      undefined);
+            const minId = [this.id.index - 1, this.id.index + 1]
+                              .filter(i => i >= 0 && i < stem.children.length)
+                              .reduce<number|undefined>(
+                                  (m, i) => m === undefined || stem.ratios[i] < stem.ratios[m] ? i
+                                                                                               : m,
+                                  undefined);
 
             // If we have a neighbor, donate our ratio to them.  The floating
             // panel ratio will be derived from our size compared to theirs.
@@ -426,10 +424,6 @@ export class PaneDragContext<X> {
         }
         }
 
-        if (newLayout === undefined || floating === undefined) {
-            throw new Error('failed to detach pane - this should never happen');
-        }
-
         const transposed = this.manager.layout.transposeDeep(this.id.stem, newLayout);
 
         if (transposed === undefined) { return false; }
@@ -453,10 +447,11 @@ export class PaneDragContext<X> {
                     return transposed.intoRoot();
                 },
                 (factory, renderer) => {
-                    // TODO: make sure pane is non-interactable
                     const pane = factory.placePane(renderer.viewContainer,
                                                    layout.intoRoot().childId(),
-                                                   new BehaviorSubject(undefined));
+                                                   new BehaviorSubject(undefined),
+                                                   undefined,
+                                                   true);
 
                     {
                         const inst = pane.instance;
@@ -530,7 +525,6 @@ export class PaneDragContext<X> {
             // TODO: debounce this if it becomes a performance issue
             const targetMap = this.manager.collectNativeDropTargets();
 
-            // TODO: remove elements that belong to the floating pane
             // NOTE: children in this array should appear before their parents
             //       in order for the code below to work correctly
             const targets = document.elementsFromPoint(x, y)
