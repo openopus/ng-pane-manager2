@@ -237,6 +237,12 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
     }
 
     /**
+     * Replace the current root with a new layout.  Mutates `this.root`.
+     * @param layout the layout to switch the current root to
+     */
+    public set(layout: PaneLayout<X>): void { this.transact(_ => layout.intoRoot()); }
+
+    /**
      * Add the given children to the current root.  Mutates `this.root`.
      * @param children the list of children to add, in order
      */
