@@ -7,7 +7,6 @@ import {
     RootLayout,
 } from '@openopus/angular-pane-manager';
 
-// TODO: write a tutorial to accompany this
 /** The root app component */
 @Component({
     selector: 'app-root',

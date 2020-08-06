@@ -24,8 +24,6 @@ import {BehaviorSubject} from 'rxjs';
 import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {LeafNodeContext, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
 
-
-
 /**
  * Stores the attached content as a named template for leaf panes.
  */
@@ -58,6 +56,7 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
                        _viewContainer: ViewContainerRef,
                        private readonly templateService: NgPaneLeafTemplateService<X>) {}
 
+    // TODO: unregister the template on destroy
     /** Register the pane template with the pane manager */
     public ngAfterContentInit(): void {
         if (this.name === undefined) { throw new Error(`pane template missing 'named' keyword`); }

@@ -4,14 +4,13 @@ This project is a spiritual successor to [`ng-pane-manager`], ported for use wit
 
 ![screenshot](https://raw.githubusercontent.com/rookie1024/angular-pane-manager-example/master/etc/screenshot.png)
 
-<!--TODO: write the rest of the demos-->
 Demos of `angular-pane-manager` can be found in the `examples` folder, showcasing different uses of the library.
 
 The repository [`angular-pane-manager-example`] houses the original Angular workspace for this project, and shows off some more complex examples used to test and develop features of the library itself.
 
-## Installing
+## Getting Started
 
-To get started, add `@openopus/angular-pane-manager` to your project with your package manager of choice.
+To install this library, add `@openopus/angular-pane-manager` to your project with your package manager of choice.  A tutorial on how to get started with the library can be found under `examples/01-simple`.
 
 ## Styling
 
