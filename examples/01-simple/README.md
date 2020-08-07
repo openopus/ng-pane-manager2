@@ -1,5 +1,7 @@
 # Example 1: `simple`
 
+<!-- TODO: proofread and add screenshots -->
+
 This tutorial serves to accompany the code in this folder, going over the basics of getting started with `angular-pane-manager`.
 
 ## Create a New Project

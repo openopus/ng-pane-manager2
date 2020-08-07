@@ -14,6 +14,7 @@ import {Subject} from 'rxjs';
 import {debounceTime} from 'rxjs/operators';
 
 // TODO: write a tutorial to accompany this
+// TODO: save the layout on tab changes and resized
 /** The root app component */
 @Component({
     selector: 'app-root',
