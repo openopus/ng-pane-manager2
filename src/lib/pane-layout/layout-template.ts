@@ -22,8 +22,6 @@ import {SplitLayout, TabbedLayout} from './branch-layout';
 import {LayoutGravity, LayoutType} from './layout-base';
 import {ChildLayout, LeafLayout, PaneLayout} from './layout-core';
 
-// TODO: create helper functions to construct common layout templates
-
 /** A template for any kind of layout */
 export type LayoutTemplate<T> = SplitLayoutTemplate<T>|TabLayoutTemplate<T>|LeafLayoutTemplate<T>;
 
@@ -44,7 +42,7 @@ export interface LayoutTemplateBase {
  * Template for a leaf layout node.
  */
 export interface LeafLayoutTemplate<T> extends LayoutTemplateBase {
-    /** Disallowss `split` as a property name.  Used for type checking. */
+    /** Disallows `split` as a property name.  Used for type checking. */
     split?: never;
     /** The unique identifier of this node */
     id: string;
@@ -101,7 +99,7 @@ export function loadLayoutGravity(gravity: GravityTemplate|undefined): LayoutGra
  */
 export function loadLayout<T, X>(template: LayoutTemplate<T>,
                                  loadExtra: (extra: T) => X): ChildLayout<X> {
-    const recurse = (tmpl: LayoutTemplate<T>) => loadLayout(tmpl, loadExtra);
+    const recurse = (next: LayoutTemplate<T>) => loadLayout(next, loadExtra);
 
     switch (template.split) {
     case undefined:

@@ -29,7 +29,8 @@ import {
     Output,
     ViewChild,
 } from '@angular/core';
-import {Subject} from 'rxjs';
+import {BehaviorSubject, Observable, of, Subject} from 'rxjs';
+import {map, switchAll} from 'rxjs/operators';
 
 import {DropTarget} from '../drag-and-drop';
 import {NgPaneLeafTemplateService} from '../ng-pane-leaf-templates.service';
@@ -57,7 +58,10 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     /** See `layout` */
     private _layout: RootLayout<X> = new RootLayout(undefined);
     /** See `dropTargets` */
-    private _dropTargets: Map<ElementRef<Element>, DropTarget<X>> = new Map();
+    private _dropTargets: Map<ElementRef<HTMLElement>, DropTarget<X>> = new Map();
+    /** See `layoutUpdate` */
+    private readonly _layoutUpdate:
+        BehaviorSubject<Observable<RootLayout<X>>> = new BehaviorSubject(of());
     /** A stream of resize events to send to all panes */
     private readonly onResize: Subject<undefined> = new Subject();
     /** The root component of the current layout */
@@ -67,6 +71,16 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
 
     /** Event emitter for when the rendered layout is changed. */
     @Output() public readonly layoutChange: EventEmitter<RootLayout<X>> = new EventEmitter();
+
+    /**
+     * Event emitter for when minor updates to the layout occur, such as tab
+     * changes or resized.
+     *
+     * The value passed is always the current layout, which will be equal to the
+     * value of the last `layoutChange` event.
+     */
+    @Output()
+    public readonly layoutUpdate: Observable<RootLayout<X>> = this._layoutUpdate.pipe(switchAll());
 
     /**
      * The current layout being rendered.  This can be changed using the
@@ -146,7 +160,8 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
 
         const oldPane = this.pane;
 
-        this.factory.notifyLayoutChangeStart(this._dropTargets = new Map());
+        const {targets, layoutUpdate} = this.factory.notifyLayoutChangeStart();
+        this._dropTargets             = targets;
 
         try {
             this.pane = this.factory.placePane(this.renderer.viewContainer,
@@ -157,7 +172,14 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
 
             if (after !== undefined) { emitChange = after(this.factory, this.renderer); }
 
-            if (emitChange) { this.layoutChange.emit(this._layout); }
+            if (emitChange) {
+                this.layoutChange.emit(this._layout);
+
+                // Freeze the value of the events so that the layout passed does
+                // not update until the next time layoutChange.emit is called
+                const layout = this._layout;
+                this._layoutUpdate.next(layoutUpdate.pipe(map(_ => layout)));
+            }
         }
         finally {
             if (oldPane !== undefined) { oldPane.destroy(); }

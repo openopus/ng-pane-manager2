@@ -26,7 +26,7 @@ import {
     ViewContainerRef,
     ViewRef,
 } from '@angular/core';
-import {BehaviorSubject, merge, Observable, of, Subscription} from 'rxjs';
+import {BehaviorSubject, merge, Observable, of, Subject, Subscription} from 'rxjs';
 import {filter, map, switchAll, switchMap} from 'rxjs/operators';
 
 import {DropTarget, DropTargetType} from './drag-and-drop';
@@ -187,7 +187,9 @@ export class PaneFactory<X> {
     /** All RxJS subscriptions associated with the current layout */
     private readonly layoutSubscriptions: Subscription[] = [];
     /** All hit testing information for the currently rendered components */
-    private dropTargets!: Map<ElementRef<Element>, DropTarget<X>>;
+    private dropTargets!: Map<ElementRef<HTMLElement>, DropTarget<X>>;
+    /** Single event stream for minor layout update events on all rendered panes */
+    private layoutUpdate: Subject<undefined> = new Subject();
 
     /**
      * Construct a new pane factory.
@@ -346,7 +348,7 @@ export class PaneFactory<X> {
      * @param style the header style of the pane
      */
     private setPaneDropTarget(id: ChildLayoutId<X>,
-                              el: ElementRef<Element>,
+                              el: ElementRef<HTMLElement>,
                               style: PaneHeaderStyle): void {
         this.dropTargets.set(el, {
             type: style.headerMode === PaneHeaderMode.Hidden ? DropTargetType.PaneNoTab
@@ -507,6 +509,9 @@ export class PaneFactory<X> {
                 s => this.setPaneDropTarget(id, inst.el, s)));
         }
 
+        merge(layout.resizeEvents, layout.ratioSumChanged)
+            .subscribe(_ => this.layoutUpdate.next(undefined));
+
         return component;
     }
 
@@ -545,6 +550,8 @@ export class PaneFactory<X> {
             this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
                 s => this.setPaneDropTarget(id, inst.el, s)));
         }
+
+        layout.$currentTab.subscribe(_ => this.layoutUpdate.next(undefined));
 
         return component;
     }
@@ -725,14 +732,24 @@ export class PaneFactory<X> {
      * Initialize the pane factory for rendering a layout.
      * @param dropTargets empty map of drag-and-drop hit targets to populate
      */
-    public notifyLayoutChangeStart(dropTargets: Map<ElementRef<HTMLElement>, DropTarget<X>>): void {
-        this.dropTargets = dropTargets;
+    public notifyLayoutChangeStart(): {
+        /** A map of drop targets to be populated by the pane factory */
+        targets: Map<ElementRef<HTMLElement>, DropTarget<X>>;
+        /** A stream of minor update events for the current layout */
+        layoutUpdate: Observable<undefined>;
+    } {
+        this.layoutUpdate.complete();
+
+        this.dropTargets  = new Map();
+        this.layoutUpdate = new Subject();
 
         this.panes.clear();
 
         for (const sub of this.layoutSubscriptions) { sub.unsubscribe(); }
 
         this.layoutSubscriptions.splice(0, this.layoutSubscriptions.length);
+
+        return {targets: this.dropTargets, layoutUpdate: this.layoutUpdate};
     }
 
     /**

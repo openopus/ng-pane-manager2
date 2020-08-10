@@ -18,18 +18,26 @@
  *
  **********************************************************************************************/
 
-import {AfterContentInit, Directive, Input, TemplateRef, ViewContainerRef} from '@angular/core';
+import {
+    AfterContentInit,
+    Directive,
+    Input,
+    OnDestroy,
+    TemplateRef,
+    ViewContainerRef,
+} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
 import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {LeafNodeContext, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
+
 
 /**
  * Stores the attached content as a named template for leaf panes.
  */
 // tslint:disable-next-line directive-selector
 @Directive({selector: '[ngPaneTemplate]'})
-export class NgPaneTemplateDirective<X> implements AfterContentInit {
+export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
     /** See `ngPaneTemplateNamed` */
     private name: string|undefined;
     /** See `ngPaneTemplateWithHeader` */
@@ -56,8 +64,7 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
                        _viewContainer: ViewContainerRef,
                        private readonly templateService: NgPaneLeafTemplateService<X>) {}
 
-    // TODO: unregister the template on destroy
-    /** Register the pane template with the pane manager */
+    /** Register the pane template */
     public ngAfterContentInit(): void {
         if (this.name === undefined) { throw new Error(`pane template missing 'named' keyword`); }
 
@@ -71,5 +78,12 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit {
         }
 
         this.templateService.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
+    }
+
+    /** Attempt to unregister the template */
+    public ngOnDestroy(): void {
+        if (this.name === undefined) { return; }
+
+        this.templateService.unregisterLeafTemplate(this.name, this.templateRef);
     }
 }

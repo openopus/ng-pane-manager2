@@ -123,13 +123,17 @@ export class NgPaneLeafTemplateService<X> {
     /**
      * Removes the leaf template with the given name.
      * @param name the name of the template to remove
-     *
+     * @param template if provided, only unregister if the template matches this
+     *                 value
      * @returns whether a matching template was found
      */
-    public unregisterLeafTemplate(name: string): boolean {
+    public unregisterLeafTemplate(name: string,
+                                  template?: TemplateRef<LeafNodeContext<X>>): boolean {
         const entry = this.templates.get(name);
 
         if (entry === undefined || entry.value === undefined) { return false; }
+
+        if (template !== undefined && !Object.is(entry.value.template, template)) { return false; }
 
         if (entry.observers.length === 0) {
             entry.next(undefined);
