@@ -13,13 +13,12 @@ import {
 import {Subject} from 'rxjs';
 import {debounceTime} from 'rxjs/operators';
 
-// TODO: write a tutorial to accompany this
-// TODO: save the layout on tab changes and resized
 /** The root app component */
 @Component({
     selector: 'app-root',
     template: `
-    <ng-pane-manager id="manager" class="ng-theme-default" [(layout)]="layout"></ng-pane-manager>
+    <ng-pane-manager id="manager" class="ng-theme-default" [(layout)]="layout"
+                     (layoutUpdate)="requestAutosave.next(undefined)"></ng-pane-manager>
     <div *ngPaneTemplate="let pane named 'toolbar' withHeader toolbarHeader">
         <em>Toolbar</em>
         <p>
@@ -122,29 +121,34 @@ export class AppComponent {
         this.layout  = result.unwrap();
     }
 
+    /**
+     * Add a new `foo` panel to the given layout builder.
+     * @param b the layout builder to use
+     * @param id the ID number of this panel, or undefined for the next available
+     */
+    private addFoo(b: LayoutBuilder<any>, id: number = this.nextMainId): void {
+        b.add(b.leaf(`foo${id}`, 'foo', {id}, 'main'));
+
+        this.nextMainId = id + 1;
+        while (this.layout.findChild(c => c.type === LayoutType.Leaf &&
+                                          c.id === `foo${this.nextMainId}`) !== undefined) {
+            this.nextMainId += 1;
+        }
+    }
+
     /** Reset the layout to a default value */
     public resetLayout(): void {
         const result = LayoutBuilder.empty<any>().build(b => {
-            b.add(b.leaf('foo0', 'foo', {id: 0}, 'main'));
+            this.addFoo(b, 0);
             b.add(b.leaf('bar', 'bar', {}, 'right'));
             b.add(b.leaf('toolbar', 'toolbar', {}, 'header'));
         });
 
         this.layout = result.unwrap();
-
-        this.nextMainId = 1;
     }
 
     /** Add a new main panel */
-    public addMain(): void {
-        this.modifyLayout(
-            b => { b.add(b.leaf(`foo${this.nextMainId}`, 'foo', {id: this.nextMainId}, 'main')); });
-
-        do {
-            this.nextMainId += 1;
-        } while (this.layout.findChild(c => c.type === LayoutType.Leaf &&
-                                            c.id === `foo${this.nextMainId}`) !== undefined);
-    }
+    public addMain(): void { this.modifyLayout(this.addFoo.bind(this)); }
 
     /** Open or close the sidebar, depending on if it is already visible */
     public toggleSide(): void {

@@ -9,7 +9,6 @@ import {
 } from '@openopus/angular-pane-manager';
 import {timer} from 'rxjs';
 
-// TODO: write a tutorial to accompany this
 /** The root app component */
 @Component({
     selector: 'app-root',
@@ -58,9 +57,6 @@ export class AppComponent implements AfterContentInit {
 
     /** Header style for the pane `toolbar` */
     public toolbarHeader: PaneHeaderStyle = headerStyle('hidden', 'Toolbar', undefined, false);
-
-    /** Header style for the pane `foo` */
-    public fooHeader: PaneHeaderStyle = headerStyle('visible', 'Foo', undefined, false);
 
     /** Header style for the pane `bar` */
     public barHeader: PaneHeaderStyle = headerStyle('visible', 'Bar', undefined, false);
