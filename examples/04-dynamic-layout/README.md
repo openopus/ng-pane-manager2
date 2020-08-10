@@ -1,7 +1,5 @@
 # Example 4: `dynamic-layout`
 
-<!-- TODO: proofread and add screenshots -->
-
 This tutorial builds on the code of the `simple` demo, extending it with controls to add and remove panes from the layout, as well as the ability to persist the current layout.
 
 ## Set Up Persistent Storage
@@ -19,6 +17,7 @@ The `layout` attribute of the pane manager component is updated when panes are c
 ```html
 <!-- app.component.html -->
 
+<!-- make the binding to layout two-way -->
 <ng-pane-manager id="manager" class="ng-theme-default" [(layout)]="layout"></ng-pane-manager>
 ```
 
@@ -27,7 +26,7 @@ The `layout` attribute of the pane manager component is updated when panes are c
 
 export class AppComponent {
     // Set this to change the layout without saving
-    private _layout: RootLayout<any> = new RootLayout(undefined);
+    private _layout = new RootLayout<any>(undefined);
 
     // Set this to change the layout and save it
     get layout(): RootLayout<any> { return this._layout; }
@@ -38,7 +37,13 @@ export class AppComponent {
         this._layout = val;
         this.saveLayout();
     }
-    ...
+
+    constructor() {
+        const result = LayoutBuilder.empty<any>().build(b => ...);
+
+        // Change this to use _layout, just for the time being
+        this._layout = result.unwrap();
+    }
 
     saveLayout() {
         throw new Error('Not yet implemented');
@@ -47,6 +52,8 @@ export class AppComponent {
 ```
 
 If you run the code now, you will notice that the exception is not thrown when a pane is initially dragged — only when it is dropped.  The pane manager suppresses sending an event when a drag starts to avoid storing a layout with a missing pane, since the detached pane does not exist in the layout for the duration of the drag.
+
+![You hate to see it...](etc/screenshot-error.gif)
 
 ## Load the Layout
 
@@ -68,14 +75,18 @@ export class AppComponent {
             const result = LayoutBuilder.empty<any>().build(b => {
                 b.set(b.loadSimple(template as LayoutTemplate<any>));
             });
-        });
 
-        this._layout = result.unwrap();
+            this._layout = result.unwrap();
+        });
     }
 }
 ```
 
-This presents an immediate problem — if there is no layout saved, it will crash.  To fix this, add a fallback clause for if the result of the builder is an error:
+This presents an immediate problem — if there is no layout saved, it will crash.
+
+![This won't do at all...](etc/screenshot-no-load.png)
+
+To fix this, add a fallback clause for if the result of the builder is an error:
 
 ```ts
 // app.component.ts
@@ -94,7 +105,7 @@ constructor(private readonly storage: StorageMap) {
     });
 }
 
-resetLayout(): void {
+resetLayout() {
     const result = LayoutBuilder.empty<any>().build(b => {
         b.add(b.leaf('foo', 'foo', undefined, 'main'));
         b.add(b.leaf('bar', 'bar', undefined, 'right'));
@@ -152,6 +163,8 @@ export class AppComponent {
 
 Rather than directly calling `saveLayout` from the event handler, it is preferable to instead debounce the stream of events with something like RxJS's `debounceTime` operator, as events such as pane resizes will occur many times a second.  The other advantage to using a dedicated `Subject` for requesting a layout save is that other components or event handlers can trigger an autosave as well using the same mechanism.
 
+![Don't forget to add a GDPR banner!](etc/screenshot-save-load.gif)
+
 ## Adding Panes
 
 Since it will be possible to add new panes to the layout, the templates for these panes can now allow them to be closed.  To do this, just change the values of `fooHeader` and `barHeader` to the following:
@@ -163,7 +176,11 @@ fooHeader: PaneHeaderStyle = headerStyle('visible', 'Foo', undefined, true);
 barHeader: PaneHeaderStyle = headerStyle('visible', 'Bar', undefined, true);
 ```
 
-Changing the parameter `closable` to `true` both renders a visible close button on these panes and allows middle-clicking the header to close them.  The next step is adding buttons for opening new panes.  Add the following to the toolbar template:
+Changing the parameter `closable` to `true` both renders a visible close button on these panes and allows middle-clicking the header to close them.
+
+![Sign your X on the line...](etc/screenshot-closable.png)
+
+The next step is adding buttons for opening new panes.  Add the following to the toolbar template:
 
 ```html
 <!-- app.component.html -->
@@ -172,10 +189,10 @@ Changing the parameter `closable` to `true` both renders a visible close button 
     <em>Toolbar</em>
     <p>
         <button (click)="resetLayout()">Reset Layout</button>
-        <span style="display: block; width: 2rem"></span>
+        <span style="display: inline-block; width: 2rem"></span>
         <button (click)="addMain()">Add Main Panel</button>
-        <span style="display: block; width: 1rem"></span>
-        <button (click)="toggleSide()">Toggle Sidebar</span>
+        <span style="display: inline-block; width: 1rem"></span>
+        <button (click)="toggleSide()">Toggle Sidebar</button>
     </p>
 </div>
 ```
@@ -204,6 +221,8 @@ toggleSide() {
 ```
 
 The `modifyLayout` method simplifies using a layout builder to update the currently-rendered layout and save the changes.
+
+![Remember when toolbars were a thing?](etc/screenshot-new-toolbar.png)
 
 Now, there is another problem at hand — the toolbar is the only way to manually reset the layout, but if the user somehow manages to load a layout with no toolbar, then there is no way to reset it.  To remedy this, add the following `if` statement to the layout builder block of the constructor:
 
@@ -238,14 +257,14 @@ private makeFoo(b: LayoutBuilder<any>) {
 
     do {
         ++this.nextMainId;
-    } while (b.layout.findChild(c => c.type === LayoutType.Leaf &&
+    } while (b.root.findChild(c => c.type === LayoutType.Leaf &&
                                      c.id === `foo${this.nextMainId}`) !== undefined);
 }
 ...
 
 resetLayout() {
     const result = LayoutBuilder.empty<any>().build(b => {
-        this.addFoo(b);
+        this.makeFoo(b);
         b.add(b.leaf('bar', 'bar', undefined, 'right'));
         b.add(b.leaf('toolbar', 'toolbar', undefined, 'header'));
     });
@@ -269,9 +288,11 @@ To allow for the `foo` panels to differentiate themselves, the ID number is pass
 </div>
 ```
 
+![Oh, foo...](etc/screenshot-addmain.png)
+
 ### `addSide`
 
-Since only one sidebar is generally necessary in an app, the `toggleSide` method should not add another one if a sidebar is currently open.  To do this, add a check similar to the ones for `toolbar` in the constructor and `foo${ID}` in the `makeFoo` method:
+Since only one sidebar is generally necessary in an app, the `toggleSide` method should not add another one if a sidebar is currently open.  To accomplish this, add a check to `toggleSide` similar to the ones for `toolbar` in the constructor and `foo${ID}` in `makeFoo`:
 
 ```ts
 // app.component.ts
@@ -299,3 +320,5 @@ else {
 The method `LayoutBuilder.sub` internally calls the method `LayoutBase.transposeDeep`, which recursively searches the tree for the first occurrence of the left-hand argument (using reference equality) and returns a new layout with the occurrence replaced with the right-hand argument.  If no matching node was found, the method fails and returns `undefined`, which will cause the layout builder to fail immediately.
 
 And with that, you can now toggle, add, and remove panes!  This example could be combined with the `custom-header` demo to create an instanced template component that can be added or removed at will from the layout.  The `angular-pane-manager-example` repo contains an implementation of such a component that wraps around a Monaco code editor to provide a pseudo-text-editor interface.
+
+![It looks just like the real thing!](etc/screenshot-final.gif)

@@ -1,7 +1,5 @@
 # Example 2: `custom-header`
 
-<!-- TODO: proofread and add screenshots -->
-
 This tutorial builds on the code of the `simple` demo, extending it with a component that can override the default template header for its pane.
 
 ## Create the Component
@@ -19,16 +17,17 @@ To actually display a custom header, the component needs to output an observable
 ```ts
 // custom-header.component.ts
 
+import { Output } from '@angular/core';
 import { headerStyle, PaneHeaderStyle } from '@openopus/angular-pane-manager';
 import { BehaviorSubject, Observable } from 'rxjs';
 ...
 
 export class CustomHeaderComponent {
-    private readonly $header: BehaviorSubject<PaneHeaderStyle> = new BehaviorSubject(
+    private readonly $header = new BehaviorSubject<PaneHeaderStyle>(
         headerStyle('alwaysTab', 'Custom Header', undefined, false));
 
     @Output()
-    public get header(): Observable<PaneHeaderStyle> {
+    get header(): Observable<PaneHeaderStyle> {
         return this.$header.asObservable();
     }
 
@@ -51,7 +50,7 @@ Replace the two leaf templates `foo` and `bar` in the template for `AppComponent
 
 Here the template variables are used to pass data from the component back out to the pane manager.  For more information on the template variables available to leaf templates and the types of these variables, check out the interface `LeafNodeContext`.  All leaf node templates are instantiated with a context of this type, and it provides access to some more advanced features.
 
-The `header` field of the `pane` template variable (which is bound to the `$implicit` field of `LeafNodeContext`) provides read-write access to the header of the pane — it can be read to retrieve the current pane header and written to update it with a new value for the current pane, without affecting any other panes.
+The `header` field of the `pane` template variable (which is bound to the `$implicit` field of `LeafNodeContext`) provides read-write access to the header of the pane — it can be read to retrieve the current pane header and written to update it with a new value for the current pane, without affecting any other panes.  Here it is written to when a value is available for the `$header` field of `CustomHeaderComponent`.
 
 Now that the templates have changed, the fields `fooHeader` and `barHeader` can be removed and the layout can be updated in the constructor:
 
@@ -61,8 +60,13 @@ Now that the templates have changed, the fields `fooHeader` and `barHeader` can 
 const result = LayoutBuilder.empty<any>().build(b => {
     b.add(b.leaf('foo', 'custom-header', undefined, 'main'));
     b.add(b.leaf('bar', 'custom-header', undefined, 'right'));
+    b.add(b.leaf('toolbar', 'toolbar', undefined, 'header'));
 });
 ```
+
+You should now have the following:
+
+![It lives!](etc/screenshot-initial.png)
 
 ## Add Custom Titles
 
@@ -71,9 +75,9 @@ To actually customize the title, an `Observable` can be given as the title param
 ```ts
 // custom-header.component.ts
 
-private readonly $title: BehaviorSubject<string> = new BehaviorSubject('');
+private readonly $title = new BehaviorSubject<string>('');
 // Update the value of $header with the new title
-private readonly $header: BehaviorSubject<PaneHeaderStyle> = new BehaviorSubject(
+private readonly $header = new BehaviorSubject<PaneHeaderStyle>(
     headerStyle('alwaysTab', this.$title, undefined, false));
 ```
 
@@ -81,21 +85,24 @@ Then, to allow modifying the title from an HTML template, expose the value of th
 
 ```ts
 // custom-header.component.ts
-@Input()
-public get title(): string { return this.$title.value; }
 
-public set title(val: string) { this.$title.next(val); }
+import { Input } from '@angular/core';
+...
+
+@Input()
+get title(): string { return this.$title.value; }
+
+set title(val: string) { this.$title.next(val); }
 ```
 
 Now the leaf template can be modified to use this new input:
 
 ```html
 <app-custom-header *ngPaneTemplate="let pane named 'custom-header'; let extra = extra"
-                   (header)="pane.header = $event"
-                   [title]="extra.title"></app-custom-header>
+                   (header)="pane.header = $event" [title]="extra.title"></app-custom-header>
 ```
 
-The main thing to note here is the introduction of the template variable `extra`.  This is the third parameter of the constructor for a leaf layout node, and it allows you to pass data directly from the layout data structure to a leaf node template, making them useful for linked instancing.  For this demo, you'll need to add a `title` field to the extra data of the two leaf nodes using the `custom-header` template:
+The main thing to note here is the introduction of the template variable `extra`.  This is the third parameter of the constructor for a leaf layout node, and it allows you to pass data directly from the layout data structure to a leaf node template, making them useful for linked instancing.  For this demo, you'll need to add a `title` field to the extra data of the two leaf nodes that are using the `custom-header` template:
 
 ```ts
 // app.component.ts
@@ -103,5 +110,15 @@ The main thing to note here is the introduction of the template variable `extra`
 b.add(b.leaf('foo', 'custom-header', {title: 'Foo'}, 'main'));
 b.add(b.leaf('bar', 'custom-header', {title: 'Bar'}, 'right'));
 ```
+
+Finally, the template for `CustomHeaderComponent` can be updated:
+
+```html
+<!-- custom-header.component.ts -->
+
+<p>My custom header is <strong>{{title}}</strong>!</p>
+```
+
+![...and they said it couldn't be done...](etc/screenshot-final.png)
 
 And now you can create multiple different panels using the same template.  The use of the `extra` field can of course be expanded beyond this, and is the primary way to create multiple instances of the same template with different contents (for instance, a text editor template with different files).

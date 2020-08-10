@@ -1,7 +1,5 @@
 # Example 1: `simple`
 
-<!-- TODO: proofread and add screenshots -->
-
 This tutorial serves to accompany the code in this folder, going over the basics of getting started with `angular-pane-manager`.
 
 ## Create a New Project
@@ -13,7 +11,7 @@ $ ng new my-project
 $ cd my-project
 ```
 
-This will create a new folder named `myProject` and initialize an Angular workspace with the same name inside it.
+This will create a new folder named `my-project` and initialize an Angular workspace with the same name inside it.
 
 **NOTE:** It's important that you install SCSS as a style preprocessor for this project if you want to use the default pane manager stylesheet.
 
@@ -47,7 +45,7 @@ export class AppModule { }
 
 ## Add an Empty Pane Manager
 
-Add an empty pane manager component to the template for `AppComponent`:
+Delete the default template for `AppComponent` and add an empty pane manager to it:
 
 ```html
 <!-- app.component.html -->
@@ -64,7 +62,7 @@ import { RootLayout } from '@openopus/angular-pane-manager';
 ...
 
 export class AppComponent {
-    layout: RootLayout<any> = new RootLayout(undefined);
+    layout = new RootLayout<any>(undefined);
     ...
 }
 ```
@@ -98,7 +96,11 @@ Adding the following to the root stylesheet will also ensure no gaps end up on t
 }
 ```
 
-If you build and run the project with `ng serve` and inspect the page in your browser, you should find a `ng-pane-manager` tag with no child content.  Time to fix that!
+If you build and run the project with `ng serve` and inspect the page in your browser, you should find a `ng-pane-manager` tag with no child content:
+
+![Just a blank pane, nothing to see here...](etc/screenshot-blank.png)
+
+Time to fix that!
 
 ## Add a Leaf Template
 
@@ -121,6 +123,8 @@ To actually display a leaf with this template, update the current layout in the 
 ```ts
 // app.component.ts
 
+import { LayoutBuilder } from '@openopus/angular-pane-manager';
+
 constructor() {
     const result = LayoutBuilder.empty<any>().build(b => {
         b.add(b.leaf('foo', 'foo', undefined, 'main'));
@@ -130,9 +134,11 @@ constructor() {
 }
 ```
 
-If all went well, the page should now display the contents of the `foo` template.
+If all went well, the page should now display the contents of the `foo` template:
 
-The `LayoutBuilder` class is not an essential requirement of constructing a layout (in fact, you can even assemble the layout tree yourself), but it provides trivial error-checking for much of the underlying `PaneLayout` API to make simple layout operations easier.  It wraps the provided callback in a try-catch block and returns a result that has either an `ok` field or and `err` field representing either the final layout or an exception that was thrown (if you've ever used Rust's `Result` type you'll be familiar with this paradigm).  Also similar to Rust is the `unwrap` method of the result value, which will either return the result or throw the error, depending on which is present.
+![Hello world!](etc/screenshot-hello.png)
+
+The `LayoutBuilder` class is not an essential requirement of constructing a layout (in fact, you can even assemble the layout tree yourself), but it provides trivial error-checking for much of the underlying `PaneLayout` API to make simple layout operations easier.  It wraps the provided callback in a try-catch block and returns a result that has either an `ok` field or and `err` field (if you've ever used Rust's `Result` type you'll be familiar with this paradigm).  If the callback returned successfully the `ok` field will contain the resulting root layout from the builder, but if an error occurred it will be contained in `err` and `ok` will not be present.  Also similar to Rust is the `unwrap` method of the result value, which will either return the layout or throw the error, depending on which is present.
 
 ## Styling
 
@@ -145,6 +151,8 @@ Because the pane manager has no styles enabled by default, the next step is to d
      ]
 ```
 
+**NOTE:** If you have `ng serve` running in the background, you may have to restart it for this change to take effect.
+
 To use the default cosmetic style rules from this stylesheet, add the `ng-theme-default` class to the pane manager component:
 
 ```html
@@ -153,9 +161,26 @@ To use the default cosmetic style rules from this stylesheet, add the `ng-theme-
 <ng-pane-manager id="manager" class="ng-theme-default" [layout]="layout"></ng-pane-manager>
 ```
 
+And then, if you're not a fan of Times New Roman (or whatever serif font your system uses), you can add the following to the global stylesheet to spice things up a bit:
+
+```scss
+// styles.scss
+
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap");
+
+:root, html, body {
+    ...
+    font-family: Roboto, sans-serif;
+}
+```
+
+Et voilà!  The pane contents should now have new colors:
+
+![Someone once told me that dark themes will make my product look more professional](etc/screenshot-themed.png)
+
 ## Add a Header
 
-At this point, the panel being rendered has no header.  Headers are useful not only for giving your panel a visual header bar, but also allowing you to control the titles of tabs, drag panes around to modify the layout, and display a close button for closable panels.  To add header information to the `foo` template, you can use the `withHeader` keyword of the `ngPaneTemplate` directive:
+At this point, the panel being rendered has no header.  Headers are useful not only for giving your panel a visual header bar, but also allowing you to control the titles of tabs, enabling the user to drag panes around to modify the layout, and displaying a close button for closable panels.  To add header information to the `foo` template, you can use the `withHeader` keyword of the `ngPaneTemplate` directive:
 
 ```html
 <!-- app.component.html -->
@@ -169,15 +194,17 @@ It is possible to construct a header object within the directive attribute, but 
 ```ts
 // app.component.ts
 
-import { headerStyle, PaneHeaderStyle } from '@openopus/angular-pane-manager';
+import { headerStyle } from '@openopus/angular-pane-manager';
 ...
 
-fooHeader: PaneHeaderStyle = headerStyle('visible', 'Foo', undefined, false);
+fooHeader = headerStyle('visible', 'Foo', undefined, false);
 ```
 
-`PaneHeaderStyle` objects have observable titles and icons, which allow for more complex behavior when controlled by another component.  The `headerStyle` function provides an easy way to create simpler `PaneHeaderStyle` objects.  For more complex objects you may opt to construct them yourself instead (for an example of this, check out the `custom-header` demo).
+This snippet creates a new header with `Foo` as its title, `undefined` for no icon, and no close button:  (You do not necessarily have to prevent closing this pane, but there is no way to reopen it.)
 
-This snippet creates a new header with `Foo` as its title, `undefined` for no icon, and no close button.  (You do not necessarily have to prevent closing this pane, but there is no way to reopen it.)
+![And then there were two.](etc/screenshot-header.png)
+
+`PaneHeaderStyle` objects have observable titles and icons, which allow for more advanced behavior when controlled by another component.  The `headerStyle` function provides an easy way to create simpler `PaneHeaderStyle` objects.  For more complex use cases you may opt to construct them yourself instead (for an example of this, check out the `custom-header` demo).
 
 ## Add More Panes
 
@@ -210,6 +237,8 @@ constructor() {
     this.layout = result.unwrap();
 }
 ```
+
+![They say three's a crowd, but...](etc/screenshot-multipane.png)
 
 A couple interesting things to note here are the toolbar header style and the way panes are dropped into the layout.
 

@@ -4,7 +4,7 @@ This project is a spiritual successor to [`ng-pane-manager`], ported for use wit
 
 ![screenshot](https://raw.githubusercontent.com/rookie1024/angular-pane-manager-example/master/etc/screenshot.png)
 
-Demos of `angular-pane-manager` can be found in the `examples` folder, showcasing different uses of the library.
+Demos of `angular-pane-manager` can be found in the [`examples` folder], showcasing different uses of the library.
 
 The repository [`angular-pane-manager-example`] houses the original Angular workspace for this project, and shows off some more complex examples used to test and develop features of the library itself.
 
@@ -30,4 +30,5 @@ This stylesheet is also a good reference point for creating your own pane manage
 To build and test this repository, you can clone the Angular workspace it was originally generated in from the repo [`angular-pane-manager-example`].
 
 [`ng-pane-manager`]: https://github.com/opuslogica/ng-pane-manager
+[`examples` folder]: https://github.com/openopus/ng-pane-manager2/tree/master/examples
 [`angular-pane-manager-example`]: https://github.com/rookie1024/angular-pane-manager-example

@@ -1,7 +1,5 @@
 # Example 3: `dynamic-templates`
 
-<!-- TODO: proofread and add screenshots -->
-
 This tutorial builds on the code of the `simple` demo, extending it with dynamically-updated leaf node templates.
 
 ## Remove the Static Templates
@@ -33,9 +31,9 @@ Change the leaf node `foo` to use a new template, called `dynamic`:
 
 constructor() {
     const result = LayoutBuilder.empty<any>().build(b => {
-        b.add(b.leaf('foo', 'dynamic', {}, 'main'));
-        b.add(b.leaf('bar', 'bar', {}, 'right'));
-        b.add(b.leaf('toolbar', 'toolbar', {}, 'header'));
+        b.add(b.leaf('foo', 'dynamic', undefined, 'main'));
+        b.add(b.leaf('bar', 'bar', undefined, 'right'));
+        b.add(b.leaf('toolbar', 'toolbar', undefined, 'header'));
     });
 
     this.layout = result.unwrap();
@@ -97,7 +95,7 @@ export class AppComponent {
     ...
 ```
 
-Finally, inject the `NgPaneLeafTemplateService` from the constructor of `AppComponent`, and use it to register a different template for `dynamic` on a timer:
+Finally, use the injected service to register a different template for `dynamic` on a timer.  It's important to use `AfterContentInit` here to ensure that the templates are ready:
 
 ```ts
 import { AfterContentInit } from '@angular/core';
@@ -123,3 +121,5 @@ export class AppComponent implements AfterContentInit {
 ```
 
 And now, the main panel changes every two seconds.  While this specific use case would be served by using an overridden pane header combined with the `ngTemplateOutlet` directive, the template service can be used to allow for more complex leaf template loading logic.
+
+![Remember those old web ads that were just GIF slideshows?](etc/screenshot-final.gif)
