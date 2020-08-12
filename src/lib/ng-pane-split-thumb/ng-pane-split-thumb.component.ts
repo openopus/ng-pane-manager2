@@ -21,6 +21,7 @@
 import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
 
 import {averageTouchPos, beginMouseDrag, beginTouchDrag} from '../begin-drag';
+import {PaneFactory} from '../pane-factory';
 import {ChildLayoutId, LayoutType, SplitLayout} from '../pane-layout/module';
 import {clipDenormPos} from '../util';
 
@@ -44,8 +45,8 @@ interface DragState {
     styleUrls: ['./ng-pane-split-thumb.component.scss'],
 })
 export class NgPaneSplitThumbComponent<X> {
-    /** The native element owned by the split panel itself */
-    public splitEl!: ElementRef<HTMLElement>;
+    /** The pane factory of this pane manager */
+    public factory!: PaneFactory<X>;
     /**
      * The ID of the first child of the split bordering this thumb.\
      * For horizontal splits this is the left child, and for vertical splits it
@@ -66,7 +67,7 @@ export class NgPaneSplitThumbComponent<X> {
      * Construct a new branch split thumb.
      * @param el injected for use in computing pixel scale factor
      */
-    public constructor(private readonly el: ElementRef<HTMLElement>) {}
+    public constructor(public readonly el: ElementRef<HTMLElement>) {}
 
     /**
      * Compute the initial drag state from a drag start event.
@@ -79,24 +80,31 @@ export class NgPaneSplitThumbComponent<X> {
             lastPos: -1,
         };
 
-        const branchRect = this.splitEl.nativeElement.getClientRects()[0];
-        const selfRect   = this.el.nativeElement.getClientRects()[0];
+        const layout   = this.childId.stem;
+        const stemRect = this.factory.getPaneRect(layout);
 
-        const layout = this.childId.stem;
+        if (stemRect === undefined) { throw new Error('failed to find stem bounding rect'); }
 
-        // TODO: some of these calculations are a little weird because moveSplit
-        //       doesn't consider the width of thumbs
+        const siblingRects = [];
+
+        for (const child of layout.children) {
+            const rect = this.factory.getPaneRect(child);
+            if (rect === undefined) { throw new Error('failed to find sibling bounding rect'); }
+            siblingRects.push(rect);
+        }
+
+        // NOTE: because thumbs take up space on screen but moveSplit does not
+        //       consider them for calculation, the total width of the stem
+        //       element cannot be used directly.
         switch (layout.type) {
         case LayoutType.Horiz:
             state.scaleFactor = layout.ratioSum /
-                                clipDenormPos(branchRect.width -
-                                              selfRect.width * (layout.ratios.length - 1));
+                                clipDenormPos(siblingRects.reduce((s, r) => s + r.width, 0));
             state.lastPos = clientX;
             break;
         case LayoutType.Vert:
             state.scaleFactor = layout.ratioSum /
-                                clipDenormPos(branchRect.height -
-                                              selfRect.height * (layout.ratios.length - 1));
+                                clipDenormPos(siblingRects.reduce((s, r) => s + r.height, 0));
             state.lastPos = clientY;
             break;
         }

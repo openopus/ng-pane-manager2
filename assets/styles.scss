@@ -156,6 +156,7 @@ ng-pane-manager {
             box-sizing: border-box;
             border: 1px solid;
             opacity: 0;
+            z-index: 11;
 
             &.lib-ng-pane-drop-highlight-visible {
                 opacity: 1;

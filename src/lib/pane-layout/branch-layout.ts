@@ -343,7 +343,7 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
     /**
      * Move the split between two children, adjusting both their ratios
      * accordingly.
-     * @param firstIdx the index of the first child neighborind this split
+     * @param firstIdx the index of the first child neighboring this split
      * @param amount the quantity to shift the child ratios by
      */
     public moveSplit(firstIdx: number, amount: number): void {
@@ -430,8 +430,9 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
      * Remove the child at the given index from the list of children.
      * @param index the index of the child to remove, or `undefined` for the end
      *              of the list
+     * @param ratios if provided, the new ratios for the resulting layout
      */
-    public withoutChild(index: number|undefined): {
+    public withoutChild(index: number|undefined, ratios?: number[]): {
         /** The resulting layout */
         layout: SplitLayout<X>;
         /** The removed child */
@@ -439,7 +440,8 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         /** The ratio of the removed child */
         removedRatio: number;
     } {
-        const {layout, removed, removedRatios} = this.spliceChildren(index, 1);
+        const {layout, removed, removedRatios} = this.spliceChildren(
+            index, 1, undefined, ratios, ratios !== undefined);
 
         return {layout, removed: removed[0], removedRatio: removedRatios[0]};
     }

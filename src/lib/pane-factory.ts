@@ -446,19 +446,22 @@ export class PaneFactory<X> {
     /**
      * Render a split branch thumb.
      * @param container the container to render the thumb in
-     * @param splitEl the element associated with the parent split branch node
      * @param childId the layout node ID corresponding to the neighboring child
+     * @param skipDropTarget set to true to disable registering a drop target
      */
     private placeSplitThumb(container: ViewContainerRef,
-                            splitEl: ElementRef<HTMLElement>,
-                            childId: ChildLayoutId<X, SplitLayout<X>>):
-        ComponentRef<NgPaneSplitThumbComponent<X>> {
+                            childId: ChildLayoutId<X, SplitLayout<X>>,
+                            skipDropTarget: boolean): ComponentRef<NgPaneSplitThumbComponent<X>> {
         const component = container.createComponent(this.splitThumbFactory);
         const inst      = component.instance;
 
-        inst.splitEl = splitEl;
+        inst.factory = this;
         inst.childId = childId;
         inst.vert    = childId.stem.type === LayoutType.Vert;
+
+        if (!skipDropTarget) {
+            this.dropTargets.set(inst.el, {type: DropTargetType.SplitThumb, id: childId});
+        }
 
         return component;
     }
@@ -483,8 +486,8 @@ export class PaneFactory<X> {
         for (let i = 0; i < layout.children.length; i += 1) {
             if (i !== 0) {
                 this.placeSplitThumb(inst.renderer.viewContainer,
-                                     inst.el,
-                                     {stem: layout, index: i - 1});
+                                     {stem: layout, index: i - 1},
+                                     skipDropTarget);
             }
 
             const pane = this.placePane(inst.renderer.viewContainer,
@@ -717,15 +720,15 @@ export class PaneFactory<X> {
     }
 
     /**
-     * Get the client rectangles for a pane.
+     * Get the bounding client rectangle for a pane.
      * @param layout the layout corresponding to the pane
      */
-    public getPaneRects(layout: ChildLayout<X>): DOMRectList|undefined {
+    public getPaneRect(layout: ChildLayout<X>): DOMRect|undefined {
         const pane = this.panes.get(layout);
 
         if (pane === undefined) { return undefined; }
 
-        return (pane.location.nativeElement as Element).getClientRects();
+        return (pane.location.nativeElement as Element).getBoundingClientRect();
     }
 
     /**
