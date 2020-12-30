@@ -18,8 +18,8 @@
  *
  ***********************************************************************************************/
 
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {BrowserModule} from '@angular/platform-browser';
 
 import {ClosablePaneComponent} from './closable';
 import {DraggablePaneComponent} from './drag-and-drop';
@@ -60,7 +60,7 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
         NgPaneRendererDirective,
         NgPaneTemplateDirective,
     ],
-    imports: [BrowserModule],
+    imports: [CommonModule],
     exports: [NgPaneManagerComponent, NgPaneTemplateDirective],
     entryComponents: [],
 })
