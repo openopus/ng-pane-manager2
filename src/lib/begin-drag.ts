@@ -29,15 +29,172 @@ export type DragCancelFn = (isAbort: boolean) => void;
  * Callback for handling mouse movement during a drag.
  * @param clientX the client X position of the cursor
  * @param clientY the client Y position of the cursor
+ * @param modifiers any modifiers that were pressed when the drag ended
  * @param cancel callback to indicate the drag should be cancelled or aborted
  */
-export type DragDeltaHandler = (clientX: number, clientY: number, cancel: DragCancelFn) => void;
+export type DragDeltaHandler = (clientX: number,
+                                clientY: number,
+                                modifiers: DragModifiers,
+                                cancel: DragCancelFn) => void;
 
 /**
  * Callback for handling the end of a drag.
  * @param isAbort indicates if the current drag ended in an error
+ * @param modifiers any modifiers that were pressed when the drag ended
  */
-export type DragEndHandler = (isAbort: boolean) => void;
+export type DragEndHandler = (isAbort: boolean, modifiers: DragModifiers) => void;
+
+/** Convenience wrapper for modifier keys */
+export interface DragModifiers {
+    /** The Alt key (Option on Mac) */
+    alt: boolean;
+    /** The Ctrl key */
+    ctrl: boolean;
+    /** The Meta key (Win on Windows, Command on Mac) */
+    meta: boolean;
+    /** The Shift key */
+    shift: boolean;
+}
+
+/** Common context for all drag operations */
+interface DragCtx {
+    /** Attempt to run the drag handler */
+    tryDelta(x: number, y: number, evt: MouseEvent|TouchEvent): void;
+
+    /**
+     * Add cleanup code for when the drag ends.\
+     * **NOTE:** Will not store more than one handler!
+     */
+    catchRelease(handler: () => void): void;
+
+    /** Request a drag end */
+    cancel(isAbort: boolean, evt: MouseEvent|TouchEvent): void;
+}
+
+const EVT_OPTS: EventListenerOptions&{
+    /** Because EventListenerOptions didn't have this */
+    passive: boolean;
+}
+= {
+    capture: true,
+    passive: false,
+};
+
+/** Generate a wrapper object for event modifier keys */
+function getMods(evt: MouseEvent|KeyboardEvent|TouchEvent,
+                 override?: [string, boolean]): DragModifiers {
+    const ret = {
+        alt: evt.altKey,
+        ctrl: evt.ctrlKey,
+        meta: evt.metaKey,
+        shift: evt.shiftKey,
+    };
+
+    // Sometimes key events don't have the changed key set correctly in the modifiers.
+    // So here we are...
+    if (override !== undefined) {
+        const [key, val] = override;
+
+        switch (key) {
+        case 'Alt': ret.alt = val; break;
+        case 'Ctrl': ret.ctrl = val; break;
+        case 'Meta':
+        case 'OS': ret.meta = val; break;
+        case 'Shift': ret.shift = val; break;
+        }
+    }
+
+    return Object.freeze(ret);
+}
+
+/** Returns true if the given value for `evt.key` is a modifier key */
+function isModifier(key: string): boolean {
+    switch (key) {
+    case 'Alt':
+    case 'Control':
+    case 'Meta':
+    case 'OS':
+    case 'Shift': return true;
+    default: return false;
+    }
+}
+
+/** Creates a drag context containing common drag logic */
+function makeCtx(startX: number,
+                 startY: number,
+                 delta: DragDeltaHandler|undefined,
+                 end: DragEndHandler|undefined): DragCtx {
+    let lastX = startX;
+    let lastY = startY;
+    let release: (() => void)|undefined;
+
+    // Convenience functions and exports
+    let cancel: (isAbort: boolean, modifiers: DragModifiers) => void;
+    const tryDelta = (x: number, y: number, modifiers: () => DragModifiers) => {
+        if (delta !== undefined) {
+            try {
+                const mods = modifiers();
+
+                delta(x, y, mods, a => cancel(a, mods));
+            }
+            catch (e) {
+                console.error(e);
+                cancel(true, modifiers());
+            }
+        }
+
+        lastX = x;
+        lastY = y;
+    };
+    const catchRelease = (handler: () => void) => { release = handler; };
+
+    // Event handlers
+    const selectStart = (evt: Event) => evt.preventDefault();
+    const keyDown = (evt: KeyboardEvent) => {
+        if (evt.key === 'Escape') { cancel(true, getMods(evt, [evt.key, true])); }
+        else if (isModifier(evt.key)) {
+            tryDelta(lastX, lastY, () => getMods(evt, [evt.key, true]));
+        }
+        else {
+            return;
+        }
+
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+    };
+    const keyUp = (evt: KeyboardEvent) => {
+        if (isModifier(evt.key)) { tryDelta(lastX, lastY, () => getMods(evt, [evt.key, false])); }
+        else {
+            return;
+        }
+
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+    };
+
+    // The cancel function
+    cancel = (isAbort: boolean, modifiers: DragModifiers) => {
+        try {
+            if (end !== undefined) { end(isAbort, modifiers); }
+        }
+        finally {
+            window.removeEventListener('selectstart', selectStart, EVT_OPTS);
+            window.removeEventListener('keydown', keyDown, EVT_OPTS);
+            window.removeEventListener('keyup', keyUp, EVT_OPTS);
+            if (release !== undefined) { release(); }
+        }
+    };
+
+    window.addEventListener('selectstart', selectStart, EVT_OPTS);
+    window.addEventListener('keydown', keyDown, EVT_OPTS);
+    window.addEventListener('keyup', keyUp, EVT_OPTS);
+
+    return {
+        tryDelta: (x, y, e) => tryDelta(x, y, () => getMods(e)),
+        catchRelease,
+        cancel: (a, e) => cancel(a, getMods(e)),
+    };
+}
 
 // TODO: investigate backing off on some of the preventDefault/stopPropagation
 //       calls in this and beginTouchDrag
@@ -54,59 +211,36 @@ export type DragEndHandler = (isAbort: boolean) => void;
 export function beginMouseDrag(downEvt: MouseEvent,
                                delta: DragDeltaHandler|undefined,
                                end?: DragEndHandler): void {
-    const opts   = {capture: true, passive: false};
     const button = downEvt.button;
 
-    let cancel: (isAbort: boolean) => void;
+    const {tryDelta, catchRelease, cancel} = makeCtx(downEvt.clientX, downEvt.clientY, delta, end);
+
     const mouseDown = (evt: MouseEvent) => {
         evt.preventDefault();
         evt.stopImmediatePropagation();
     };
     const mouseMove = (evt: MouseEvent) => {
         // If no delta handler is specified, just perform a dummy drag
-        try {
-            if (delta !== undefined) { delta(evt.clientX, evt.clientY, cancel); }
-        }
-        catch (e) {
-            console.error(e);
-            cancel(true);
-        }
+        tryDelta(evt.clientX, evt.clientY, evt);
 
         evt.preventDefault();
         evt.stopPropagation();
     };
-    const selectStart = (evt: Event) => evt.preventDefault();
     const mouseUp = (evt: MouseEvent) => {
         if (evt.button !== button) { return; }
 
-        cancel(false);
-    };
-    const keyDown = (evt: KeyboardEvent) => {
-        if (evt.key === 'Escape') {
-            cancel(true);
-
-            evt.preventDefault();
-            evt.stopImmediatePropagation();
-        }
-    };
-    cancel = (isAbort: boolean) => {
-        try {
-            if (end !== undefined) { end(isAbort); }
-        }
-        finally {
-            window.removeEventListener('mousedown', mouseDown, opts);
-            window.removeEventListener('mousemove', mouseMove, opts);
-            window.removeEventListener('selectstart', selectStart, opts);
-            window.removeEventListener('mouseup', mouseUp, opts);
-            window.removeEventListener('keydown', keyDown, opts);
-        }
+        cancel(false, evt);
     };
 
-    window.addEventListener('mousedown', mouseDown, opts);
-    window.addEventListener('mousemove', mouseMove, opts);
-    window.addEventListener('selectstart', selectStart, opts);
-    window.addEventListener('mouseup', mouseUp, opts);
-    window.addEventListener('keydown', keyDown, opts);
+    catchRelease(() => {
+        window.removeEventListener('mousedown', mouseDown, EVT_OPTS);
+        window.removeEventListener('mousemove', mouseMove, EVT_OPTS);
+        window.removeEventListener('mouseup', mouseUp, EVT_OPTS);
+    });
+
+    window.addEventListener('mousedown', mouseDown, EVT_OPTS);
+    window.addEventListener('mousemove', mouseMove, EVT_OPTS);
+    window.addEventListener('mouseup', mouseUp, EVT_OPTS);
 }
 
 /**
@@ -142,7 +276,6 @@ export function beginTouchDrag(startEvt: TouchEvent,
                                delta: DragDeltaHandler|undefined,
                                end?: DragEndHandler): void {
     const target  = startEvt.target;
-    const opts    = {capture: true, passive: false};
     const touches = new Map();
 
     for (let i = 0; i < startEvt.touches.length; i += 1) {
@@ -161,7 +294,9 @@ export function beginTouchDrag(startEvt: TouchEvent,
         return true;
     };
 
-    let cancel: (isAbort: boolean) => void;
+    const [startX, startY]                 = averageTouchPos(startEvt);
+    const {tryDelta, catchRelease, cancel} = makeCtx(startX, startY, delta, end);
+
     const touchStart = (evt: TouchEvent) => {
         evt.preventDefault();
         evt.stopImmediatePropagation();
@@ -169,22 +304,12 @@ export function beginTouchDrag(startEvt: TouchEvent,
     const touchMove = (evt: TouchEvent) => {
         if (!sameTouches(evt.touches)) { return; }
 
-        // If no delta handler is specified, just perform a dummy drag
-        try {
-            if (delta !== undefined) {
-                const [x, y] = averageTouchPos(evt);
-                delta(x, y, cancel);
-            }
-        }
-        catch (e) {
-            console.error(e);
-            cancel(true);
-        }
+        const [x, y] = averageTouchPos(evt);
+        tryDelta(x, y, evt);
 
         evt.preventDefault();
         evt.stopPropagation();
     };
-    const selectStart = (evt: Event) => evt.preventDefault();
     const touchEnd = (evt: TouchEvent) => {
         for (let i = 0; i < evt.changedTouches.length; i += 1) {
             const touch = evt.changedTouches.item(i) as Touch;
@@ -192,55 +317,39 @@ export function beginTouchDrag(startEvt: TouchEvent,
             touches.delete(touch.identifier);
         }
 
-        if (touches.size === 0) { cancel(false); }
+        if (touches.size === 0) { cancel(false, evt); }
     };
     const touchCancel = (evt: TouchEvent) => {
         for (let i = 0; i < evt.changedTouches.length; i += 1) {
             const touch = evt.changedTouches.item(i) as Touch;
 
             if (touches.has(touch.identifier)) {
-                cancel(true);
+                cancel(true, evt);
 
                 return;
             }
         }
     };
-    const keyDown = (evt: KeyboardEvent) => {
-        if (evt.key === 'Escape') {
-            cancel(true);
 
-            evt.preventDefault();
-            evt.stopImmediatePropagation();
+    catchRelease(() => {
+        window.removeEventListener('touchstart', touchStart, EVT_OPTS);
+        window.removeEventListener('touchmove', touchMove, EVT_OPTS);
+        window.removeEventListener('touchend', touchEnd, EVT_OPTS);
+        window.removeEventListener('touchcancel', touchCancel, EVT_OPTS);
+        if (target !== null) {
+            target.removeEventListener('touchmove', touchMove as EventListener, EVT_OPTS);
+            target.removeEventListener('touchend', touchEnd as EventListener, EVT_OPTS);
+            target.removeEventListener('touchcancel', touchCancel as EventListener, EVT_OPTS);
         }
-    };
-    cancel = (isAbort: boolean) => {
-        try {
-            if (end !== undefined) { end(isAbort); }
-        }
-        finally {
-            window.removeEventListener('touchstart', touchStart, opts);
-            window.removeEventListener('touchmove', touchMove, opts);
-            window.removeEventListener('selectstart', selectStart, opts);
-            window.removeEventListener('touchend', touchEnd, opts);
-            window.removeEventListener('touchcancel', touchCancel, opts);
-            window.removeEventListener('keydown', keyDown, opts);
-            if (target !== null) {
-                target.removeEventListener('touchmove', touchMove as EventListener, opts);
-                target.removeEventListener('touchend', touchEnd as EventListener, opts);
-                target.removeEventListener('touchcancel', touchCancel as EventListener, opts);
-            }
-        }
-    };
+    });
 
-    window.addEventListener('touchstart', touchStart, opts);
-    window.addEventListener('touchmove', touchMove, opts);
-    window.addEventListener('selectstart', selectStart, opts);
-    window.addEventListener('touchend', touchEnd, opts);
-    window.addEventListener('touchcancel', touchCancel, opts);
-    window.addEventListener('keydown', keyDown, opts);
+    window.addEventListener('touchstart', touchStart, EVT_OPTS);
+    window.addEventListener('touchmove', touchMove, EVT_OPTS);
+    window.addEventListener('touchend', touchEnd, EVT_OPTS);
+    window.addEventListener('touchcancel', touchCancel, EVT_OPTS);
     if (target !== null) {
-        target.addEventListener('touchmove', touchMove as EventListener, opts);
-        target.addEventListener('touchend', touchEnd as EventListener, opts);
-        target.addEventListener('touchcancel', touchCancel as EventListener, opts);
+        target.addEventListener('touchmove', touchMove as EventListener, EVT_OPTS);
+        target.addEventListener('touchend', touchEnd as EventListener, EVT_OPTS);
+        target.addEventListener('touchcancel', touchCancel as EventListener, EVT_OPTS);
     }
 }

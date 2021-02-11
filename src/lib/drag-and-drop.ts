@@ -21,7 +21,13 @@
 import {Component, ComponentRef, HostListener} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
-import {averageTouchPos, beginMouseDrag, beginTouchDrag, DragCancelFn} from './begin-drag';
+import {
+    averageTouchPos,
+    beginMouseDrag,
+    beginTouchDrag,
+    DragCancelFn,
+    DragModifiers,
+} from './begin-drag';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
@@ -174,6 +180,18 @@ interface TabSwitchHoverAction<X> {
 
 /** Contains any type of hover action. */
 type HoverAction<X> = NoneHoverAction|TabSwitchHoverAction<X>;
+
+/** Input data for computing drop info */
+interface DropInfoContext<X> {
+    /** List of applicable targets under the cursor */
+    targets: [Element, DropTarget<X>][];
+}
+
+/** Options for modifying drag and drop behavior */
+interface DropOptions {
+    /** Forces the nearest leaf to form a new split panel inside a group */
+    forceGroupedSplit: boolean;
+}
 
 /**
  * Provides an implementation of the callbacks needed for `beginMouseDrag` that
@@ -429,7 +447,10 @@ export class PaneDragContext<X> {
      * Drag motion callback.\
      * See `begin-drag.ts`
      */
-    private dragDelta(clientX: number, clientY: number, cancel: DragCancelFn): void {
+    private dragDelta(clientX: number,
+                      clientY: number,
+                      modifiers: DragModifiers,
+                      cancel: DragCancelFn): void {
         if (this.floatingInfo === undefined) {
             const DEADBAND = 5;
 
@@ -442,7 +463,9 @@ export class PaneDragContext<X> {
             }
         }
 
-        this.computeDropInfo(clientX, clientY);
+        this.computeDropInfo(clientX, clientY, {
+            forceGroupedSplit: modifiers.shift,
+        });
 
         this.updateFloatingPane(clientX, clientY);
         this.updateDropHighlight();
@@ -592,8 +615,9 @@ export class PaneDragContext<X> {
      * Compute the information necessary to drop the floating pane.
      * @param x the current X coordinate of the drag
      * @param y the current Y coordinate of the drag
+     * @param opts any extra options that affect drop behavior
      */
-    private computeDropInfo(x: number, y: number): void {
+    private computeDropInfo(x: number, y: number, opts: DropOptions): void {
         if (this.floatingInfo === undefined) { return; }
 
         const MARGIN = 8;
@@ -608,181 +632,39 @@ export class PaneDragContext<X> {
 
         const outerRect = this.manager.el.nativeElement.getBoundingClientRect();
 
-        if (x >= (outerRect.left + MARGIN) && x < (outerRect.right - MARGIN) &&
-            y >= (outerRect.top + MARGIN) && y < (outerRect.bottom - MARGIN)) {
-            // TODO: debounce this if it becomes a performance issue
-            const targetMap = this.manager.collectNativeDropTargets();
+        let targets: [Element, DropTarget<X>][]|undefined;
+        const getTargets = () => {
+            if (targets === undefined) {
+                // TODO: debounce this if it becomes a performance issue
+                const targetMap = this.manager.collectNativeDropTargets();
 
-            // NOTE: children in this array should appear before their parents
-            //       in order for the code below to work correctly
-            const targets = document.elementsFromPoint(x, y)
-                                .filter(e => targetMap.has(e))
-                                .map(e => [e, targetMap.get(e)] as [Element, DropTarget<X>]);
-
-            if (targets.length === 0) {
-                this.dropInfo = undefined;
-
-                return;
+                // NOTE: children in this array should appear before their parents
+                //       in order for the code below to work correctly
+                targets = document.elementsFromPoint(x, y)
+                              .filter(e => targetMap.has(e))
+                              .map(e => [e, targetMap.get(e)] as [Element, DropTarget<X>]);
             }
 
-            let targetIdx = targets.length - 1;
+            return targets;
+        };
+        const ctx = {get targets(): [Element, DropTarget<X>][] { return getTargets(); }};
 
-            // TODO: it might be a good idea to make this configurable
-            // This loop sets targetIdx to either 0 or the index of the
-            // outermost tabbed container found in the tree.  This has the
-            // effect of preventing splits from being created inside tabbed
-            // branch panes.
-            for (; targetIdx > 0; targetIdx -= 1) {
-                const [, target] = targets[targetIdx];
+        if (this.manager.layout.layout === undefined) { this.dropInfo = undefined; }
+        else if (opts.forceGroupedSplit) {
+            const [info, action] = this.computeDropInfoForceGroupedSplit(x, y, ctx);
 
-                if (childFromId(target.id).type === LayoutType.Tabbed) { break; }
-            }
-
-            // Run an additional search within the innermost disregarded
-            // containers to see if there is a header or tab bar we can drop
-            // the current container on.  This allows tabs to be created in
-            // cases where the above loop would otherwise prevent interacting
-            // with certain panes, without allowing splits to be created.
-            // NOTE: this is also essential to make tab elements targetable, as
-            //       they show up before tabbed containers in the list and will
-            //       always have an index < targetIdx
-            tabCheck: for (let i = 0; i < targetIdx; i += 1) {
-                const [, target] = targets[i];
-
-                switch (target.type) {
-                case DropTargetType.Header:
-                case DropTargetType.TabRow:
-                case DropTargetType.Tab: targetIdx = i; break tabCheck;
-                }
-            }
-
-            {
-                const [element, target] = targets[targetIdx];
-                const layout            = childFromId(target.id);
-
-                switch (target.type) {
-                case DropTargetType.Pane: {
-                    const orientation = PaneDragContext.computeDropOrientation(
-                        x, y, element.getBoundingClientRect());
-
-                    if (orientation === undefined) { this.dropInfo = undefined; }
-                    else if (orientation === DropOrientation.Tabbed) {
-                        this.dropInfo = {
-                            orientation: DropOrientation.Tabbed,
-                            layout,
-                            element,
-                            tab: layout.type === LayoutType.Tabbed ? layout.currentTab + 1 : 1,
-                            isAfter: undefined,
-                        };
-                    }
-                    else {
-                        this.dropInfo = {
-                            orientation,
-                            layout,
-                            element,
-                            splitId: PaneDragContext.getSplitId(target.id),
-                        };
-                    }
-                    break;
-                }
-                case DropTargetType.PaneNoTab: {
-                    const orientation = PaneDragContext.computeSplitDropOrientation(
-                        x, y, element.getBoundingClientRect());
-
-                    this.dropInfo = orientation === undefined ? undefined : {
-                        orientation,
-                        layout,
-                        element,
-                        splitId: PaneDragContext.getSplitId(target.id),
-                    };
-                    break;
-                }
-                case DropTargetType.Header: {
-                    const isAfter = PaneDragContext.computeTabIsAfter(
-                        x, y, element.getBoundingClientRect());
-
-                    this.dropInfo = isAfter === undefined ? undefined : {
-                        orientation: DropOrientation.Tabbed,
-                        layout,
-                        element,
-                        tab: isAfter ? 1 : 0,
-                        isAfter,
-                    };
-                    break;
-                }
-                case DropTargetType.TabRow:
-                    this.dropInfo = {
-                        orientation: DropOrientation.Tabbed,
-                        layout,
-                        element,
-                        tab: layout.type === LayoutType.Tabbed ? layout.children.length : 1,
-                        isAfter: undefined,
-                    };
-                    break;
-                case DropTargetType.Tab: {
-                    const isAfter = PaneDragContext.computeTabIsAfter(
-                        x, y, element.getBoundingClientRect());
-
-                    if (isAfter === undefined) { this.dropInfo = undefined; }
-                    else if (target.id.stem.type === LayoutType.Tabbed) {
-                        const {stem, index} = target.id;
-
-                        if (target.id.stem.currentTab !== target.id.index) {
-                            if (this.hoverAction.type === HoverActionType.TabSwitch &&
-                                Object.is(this.hoverAction.layout, stem) &&
-                                this.hoverAction.index === index) {
-                                nextHoverAction = undefined;
-                            }
-                            else {
-                                const handle = this.runHoverAction(() => stem.currentTab = index);
-
-                                nextHoverAction =
-                                    {type: HoverActionType.TabSwitch, layout: stem, index, handle};
-                            }
-                        }
-
-                        this.dropInfo = {
-                            orientation: DropOrientation.Tabbed,
-                            layout: stem,
-                            element,
-                            tab: isAfter ? index + 1 : index,
-                            isAfter,
-                        };
-                    }
-                    else {
-                        this.dropInfo = {
-                            orientation: DropOrientation.Tabbed,
-                            layout,
-                            element,
-                            tab: isAfter ? 1 : 0,
-                            isAfter,
-                        };
-                    }
-                    break;
-                }
-                case DropTargetType.SplitThumb: {
-                    let orientation: DropOrientation.BetweenHoriz|DropOrientation.BetweenVert;
-
-                    switch (target.id.stem.type) {
-                    case LayoutType.Horiz: orientation = DropOrientation.BetweenHoriz; break;
-                    case LayoutType.Vert: orientation = DropOrientation.BetweenVert; break;
-                    default:
-                        throw new Error(
-                            'split thumb target had non-split stem - this shouldn\'t happen');
-                    }
-
-                    this.dropInfo = {
-                        orientation,
-                        layout: target.id.stem,
-                        element,
-                        index: target.id.index,
-                    };
-                    break;
-                }
-                }
-            }
+            this.dropInfo   = info;
+            nextHoverAction = action;
         }
-        else if (this.manager.layout.layout !== undefined) {
+        else if (x >= (outerRect.left + MARGIN) && x < (outerRect.right - MARGIN) &&
+                 y >= (outerRect.top + MARGIN) && y < (outerRect.bottom - MARGIN)) {
+            const [info, action] = this.computeDropInfoDefault(x, y, ctx);
+
+            this.dropInfo   = info;
+            nextHoverAction = action;
+        }
+        else {
+            // Perform a split with the root
             const orientation = PaneDragContext.computeSplitDropOrientation(x, y, outerRect);
 
             this.dropInfo = orientation === undefined ? undefined : {
@@ -792,9 +674,6 @@ export class PaneDragContext<X> {
                 splitId: undefined,
             };
         }
-        else {
-            this.dropInfo = undefined;
-        }
 
         if (nextHoverAction !== undefined) {
             if (this.hoverAction.type !== HoverActionType.None) {
@@ -803,6 +682,210 @@ export class PaneDragContext<X> {
 
             this.hoverAction = nextHoverAction;
         }
+    }
+
+    /** Compute drop info, using default behavior */
+    private computeDropInfoDefault(x: number, y: number, ctx: DropInfoContext<X>):
+        [DropInfo<X>|undefined, HoverAction<X>|undefined] {
+        let dropInfo: DropInfo<X>|undefined;
+        /** See `nextHoverAction` inside `computeDropInfo` */
+        let nextHoverAction: HoverAction<X>|undefined;
+
+        const targets = ctx.targets;
+
+        if (targets.length === 0) { return [dropInfo, nextHoverAction]; }
+
+        let targetIdx = targets.length - 1;
+
+        // TODO: it might be a good idea to make this configurable
+        // This loop sets targetIdx to either 0 or the index of the
+        // outermost tabbed container found in the tree.  This has the
+        // effect of preventing splits from being created inside tabbed
+        // branch panes.
+        for (; targetIdx > 0; targetIdx -= 1) {
+            const [, target] = targets[targetIdx];
+
+            if (childFromId(target.id).type === LayoutType.Tabbed) { break; }
+        }
+
+        // Run an additional search within the innermost disregarded
+        // containers to see if there is a header or tab bar we can drop
+        // the current container on.  This allows tabs to be created in
+        // cases where the above loop would otherwise prevent interacting
+        // with certain panes, without allowing splits to be created.
+        // NOTE: this is also essential to make tab elements targetable, as
+        //       they show up before tabbed containers in the list and will
+        //       always have an index < targetIdx
+        tabCheck: for (let i = 0; i < targetIdx; i += 1) {
+            const [, target] = targets[i];
+
+            switch (target.type) {
+            case DropTargetType.Header:
+            case DropTargetType.TabRow:
+            case DropTargetType.Tab: targetIdx = i; break tabCheck;
+            }
+        }
+
+        {
+            const [element, target] = targets[targetIdx];
+            const layout            = childFromId(target.id);
+
+            switch (target.type) {
+            case DropTargetType.Pane: {
+                const orientation = PaneDragContext.computeDropOrientation(
+                    x, y, element.getBoundingClientRect());
+
+                if (orientation === undefined) { dropInfo = undefined; }
+                else if (orientation === DropOrientation.Tabbed) {
+                    dropInfo = {
+                        orientation: DropOrientation.Tabbed,
+                        layout,
+                        element,
+                        tab: layout.type === LayoutType.Tabbed ? layout.currentTab + 1 : 1,
+                        isAfter: undefined,
+                    };
+                }
+                else {
+                    dropInfo = {
+                        orientation,
+                        layout,
+                        element,
+                        splitId: PaneDragContext.getSplitId(target.id),
+                    };
+                }
+                break;
+            }
+            case DropTargetType.PaneNoTab: {
+                const orientation = PaneDragContext.computeSplitDropOrientation(
+                    x, y, element.getBoundingClientRect());
+
+                dropInfo = orientation === undefined ? undefined : {
+                    orientation,
+                    layout,
+                    element,
+                    splitId: PaneDragContext.getSplitId(target.id),
+                };
+                break;
+            }
+            case DropTargetType.Header: {
+                const isAfter = PaneDragContext.computeTabIsAfter(x,
+                                                                  y,
+                                                                  element.getBoundingClientRect());
+
+                dropInfo = isAfter === undefined ? undefined : {
+                    orientation: DropOrientation.Tabbed,
+                    layout,
+                    element,
+                    tab: isAfter ? 1 : 0,
+                    isAfter,
+                };
+                break;
+            }
+            case DropTargetType.TabRow:
+                dropInfo = {
+                    orientation: DropOrientation.Tabbed,
+                    layout,
+                    element,
+                    tab: layout.type === LayoutType.Tabbed ? layout.children.length : 1,
+                    isAfter: undefined,
+                };
+                break;
+            case DropTargetType.Tab: {
+                const isAfter = PaneDragContext.computeTabIsAfter(x,
+                                                                  y,
+                                                                  element.getBoundingClientRect());
+
+                if (isAfter === undefined) { dropInfo = undefined; }
+                else if (target.id.stem.type === LayoutType.Tabbed) {
+                    const {stem, index} = target.id;
+
+                    if (target.id.stem.currentTab !== target.id.index) {
+                        if (this.hoverAction.type === HoverActionType.TabSwitch &&
+                            Object.is(this.hoverAction.layout, stem) &&
+                            this.hoverAction.index === index) {
+                            nextHoverAction = undefined;
+                        }
+                        else {
+                            const handle = this.runHoverAction(() => stem.currentTab = index);
+
+                            nextHoverAction =
+                                {type: HoverActionType.TabSwitch, layout: stem, index, handle};
+                        }
+                    }
+
+                    dropInfo = {
+                        orientation: DropOrientation.Tabbed,
+                        layout: stem,
+                        element,
+                        tab: isAfter ? index + 1 : index,
+                        isAfter,
+                    };
+                }
+                else {
+                    dropInfo = {
+                        orientation: DropOrientation.Tabbed,
+                        layout,
+                        element,
+                        tab: isAfter ? 1 : 0,
+                        isAfter,
+                    };
+                }
+                break;
+            }
+            case DropTargetType.SplitThumb: {
+                let orientation: DropOrientation.BetweenHoriz|DropOrientation.BetweenVert;
+
+                switch (target.id.stem.type) {
+                case LayoutType.Horiz: orientation = DropOrientation.BetweenHoriz; break;
+                case LayoutType.Vert: orientation = DropOrientation.BetweenVert; break;
+                default:
+                    throw new Error(
+                        'split thumb target had non-split stem - this shouldn\'t happen');
+                }
+
+                dropInfo = {
+                    orientation,
+                    layout: target.id.stem,
+                    element,
+                    index: target.id.index,
+                };
+                break;
+            }
+            }
+        }
+
+        return [dropInfo, nextHoverAction];
+    }
+
+    /** Compute drop info, forcing the creation of a split with the closest pane inside a group */
+    private computeDropInfoForceGroupedSplit(x: number, y: number, ctx: DropInfoContext<X>):
+        [DropInfo<X>|undefined, HoverAction<X>|undefined] {
+        let dropInfo: DropInfo<X>|undefined;
+        // Left as a stub in case this method needs to change the hover action
+        /** See `nextHoverAction` inside `computeDropInfo` */
+        const nextHoverAction: HoverAction<X>|undefined = undefined;
+
+        const targets = ctx.targets;
+
+        if (targets.length === 0) { return [dropInfo, nextHoverAction]; }
+
+        const [element, target] = targets[0];
+
+        // TODO: create a group pane instead of just a normal split
+
+        if (target.type === DropTargetType.Pane || target.type === DropTargetType.PaneNoTab) {
+            const orientation = PaneDragContext.computeSplitDropOrientation(
+                x, y, element.getBoundingClientRect());
+
+            dropInfo = orientation === undefined ? undefined : {
+                orientation,
+                layout: childFromId(target.id),
+                element,
+                splitId: PaneDragContext.getSplitId(target.id),
+            };
+        }
+
+        return [dropInfo, nextHoverAction];
     }
 
     /**

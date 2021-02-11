@@ -142,6 +142,9 @@ export class NgPaneSplitThumbComponent<X> {
 
         const state = this.makeDragState(evt.clientX, evt.clientY);
         beginMouseDrag(evt, (x, y) => this.onDragDelta(x, y, state));
+
+        evt.preventDefault();
+        evt.stopPropagation();
     }
 
     /**
@@ -152,5 +155,8 @@ export class NgPaneSplitThumbComponent<X> {
         const [startX, startY] = averageTouchPos(evt);
         const state            = this.makeDragState(startX, startY);
         beginTouchDrag(evt, (x, y) => this.onDragDelta(x, y, state));
+
+        evt.preventDefault();
+        evt.stopPropagation();
     }
 }
