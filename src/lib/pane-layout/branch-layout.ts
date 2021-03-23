@@ -485,9 +485,11 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
 
             const next = simplified !== undefined ? simplified : child;
 
-            // Branches with no children will skip this block, leaving newChild
-            // to be undefined.
-            if (next.type === LayoutType.Leaf || next.children.length !== 0) {
+            // Branches and groups with no children will skip this block,
+            // leaving newChild to be undefined.
+            if (next.type === LayoutType.Leaf ||
+                (next.type === LayoutType.Group ? next.split !== undefined
+                                                : next.children.length !== 0)) {
                 newChild = next;
 
                 if (next.type === this.type) {
@@ -716,9 +718,11 @@ export class TabbedLayout<X> extends BranchLayoutBase<X, TabbedLayout<X>> {
 
             const next = simplified !== undefined ? simplified : child;
 
-            // Branches with no children will skip this block, leaving newChild
-            // to be undefined.
-            if (next.type === LayoutType.Leaf || next.children.length !== 0) {
+            // Branches and groups with no children will skip this block,
+            // leaving newChild to be undefined.
+            if (next.type === LayoutType.Leaf ||
+                (next.type === LayoutType.Group ? next.split !== undefined
+                                                : next.children.length !== 0)) {
                 newChild = next;
 
                 if (next.type === LayoutType.Tabbed) { newChild = next.children; }

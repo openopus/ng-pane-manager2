@@ -33,6 +33,8 @@ import {childFromId, ChildLayoutId} from './layout-util';
 export const enum LayoutType {
     /** A root layout node */
     Root,
+    /** A group layout node for a split with a header */
+    Group,
     /** A split branch node, oriented horizontally */
     Horiz,
     /** A split branch node, oriented vertically */
@@ -208,13 +210,17 @@ export abstract class LayoutBase<X> {
 
             const invPct = 1 - pct;
             replace      = paneIdx < pseudoIdx
-                          ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
-                          : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]);
+                               ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
+                               : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]);
             break;
         case PseudoGravityType.Real:
-            if (pg.pane.type === LayoutType.Root) {
+            switch (pg.pane.type) {
+            case LayoutType.Root:
                 throw new Error(
                     'multiple children reporting one root as a parent - this shouldn\'t happen');
+            case LayoutType.Group:
+                throw new Error(
+                    'multiple children reporting one group as a parent - this shouldn\'t happen');
             }
 
             const idx = pg.pane.locateChild(pane, order);
@@ -347,6 +353,12 @@ export abstract class LayoutBase<X> {
             else {
                 replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
             }
+            break;
+        case LayoutType.Group:
+            replace = child.map(
+                s => s.withChild(undefined,
+                                 desc,
+                                 s.children.length > 0 ? s.ratioSum / s.children.length : 1));
             break;
         // TODO: This may cause undesired behavior.  The more intuitive
         //       approach may be to descend and create a tab in a child

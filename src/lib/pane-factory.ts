@@ -33,6 +33,7 @@ import {DropTarget, DropTargetType} from './drag-and-drop';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
+import {NgPaneGroupComponent} from './ng-pane-group/ng-pane-group.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
@@ -49,6 +50,7 @@ import {
     ChildLayout,
     ChildLayoutId,
     ChildWithId,
+    GroupLayout,
     LayoutType,
     LeafLayout,
     SplitLayout,
@@ -149,6 +151,8 @@ export class PaneFactory<X> {
     private readonly leafFactory: ComponentFactory<NgPaneLeafComponent<X>>;
     /** Factory for pane containers */
     private readonly paneFactory: ComponentFactory<NgPaneComponent<X>>;
+    /** Factory for group panes */
+    private readonly groupFactory: ComponentFactory<NgPaneGroupComponent<X>>;
     /** Factory for split branch panes */
     private readonly splitFactory: ComponentFactory<NgPaneSplitComponent<X>>;
     /** Factory for split branch thumbs */
@@ -206,6 +210,8 @@ export class PaneFactory<X> {
                            ComponentFactory<NgPaneLeafComponent<X>>;
         this.paneFactory = cfr.resolveComponentFactory(NgPaneComponent) as
                            ComponentFactory<NgPaneComponent<X>>;
+        this.groupFactory = cfr.resolveComponentFactory(NgPaneGroupComponent) as
+                            ComponentFactory<NgPaneGroupComponent<X>>;
         this.splitFactory = cfr.resolveComponentFactory(NgPaneSplitComponent) as
                             ComponentFactory<NgPaneSplitComponent<X>>;
         this.splitThumbFactory = cfr.resolveComponentFactory(NgPaneSplitThumbComponent) as
@@ -323,6 +329,13 @@ export class PaneFactory<X> {
                     closable: true,
                 };
             }))));
+        case LayoutType.Group:
+            return new BehaviorSubject({
+                headerMode: PaneHeaderMode.Visible,
+                title: new BehaviorSubject('TODO Group Header'),
+                icon: new BehaviorSubject(undefined),
+                closable: false,
+            });
         case LayoutType.Horiz:
         case LayoutType.Vert:
             return new BehaviorSubject({
@@ -434,6 +447,36 @@ export class PaneFactory<X> {
 
         this.layoutSubscriptions.push(
             this.renderLeafTemplate(layout, stream).subscribe(t => inst.template = t));
+
+        if (!skipDropTarget) {
+            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
+                s => this.setPaneDropTarget(id, inst.el, s)));
+        }
+
+        return component;
+    }
+
+    /**
+     * Render a grouped split pane.
+     * @param container the container to render the group in
+     * @param withId the layout node corresponding to the group
+     * @param onResize a stream of resize events for the pane
+     * @param skipDropTarget set to true to disable registering a drop target
+     */
+    private placeGroup(container: ViewContainerRef,
+                       withId: ChildWithId<X, GroupLayout<X>>,
+                       onResize: Observable<undefined>,
+                       skipDropTarget: boolean): ComponentRef<NgPaneGroupComponent<X>> {
+        const {child: layout, id} = withId;
+        const component           = container.createComponent(this.groupFactory);
+        const inst                = component.instance;
+
+        if (layout.split !== undefined) {
+            const split = this.placePane(
+                inst.renderer.viewContainer, layout.childId(), onResize, undefined, skipDropTarget);
+
+            inst.split = split.instance;
+        }
 
         if (!skipDropTarget) {
             this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
@@ -806,6 +849,12 @@ export class PaneFactory<X> {
         case LayoutType.Leaf:
             inst.content = this.placeLeaf(
                 inst.renderer.viewContainer, {child, id: childId}, inst, onResize, skipDropTarget);
+            break;
+        case LayoutType.Group:
+            inst.content = this.placeGroup(inst.renderer.viewContainer,
+                                           {child, id: childId},
+                                           onResize,
+                                           skipDropTarget);
             break;
         case LayoutType.Horiz:
         case LayoutType.Vert:

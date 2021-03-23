@@ -60,10 +60,21 @@ function sameTemplate<T>(lhs: LayoutTemplate<T>,
                sameExtra(lhs.extra, anyRhs.extra);
     }
 
-    if (lhs.children.length !== anyRhs.children.length) { return false; }
+    if (lhs.split === 'group') {
+        if (lhs.child === undefined || anyRhs.child === undefined) {
+            if (!Object.is(lhs.child, anyRhs.child)) { return false; }
+        }
+        else if (!sameTemplate(lhs.child, anyRhs.child, sameExtra)) {
+            return false;
+        }
+    }
+    else {
 
-    for (let i = 0; i < lhs.children.length; i += 1) {
-        if (!sameTemplate(lhs.children[i], anyRhs.children[i], sameExtra)) { return false; }
+        if (lhs.children.length !== anyRhs.children.length) { return false; }
+
+        for (let i = 0; i < lhs.children.length; i += 1) {
+            if (!sameTemplate(lhs.children[i], anyRhs.children[i], sameExtra)) { return false; }
+        }
     }
 
     switch (lhs.split) {
@@ -112,6 +123,14 @@ function sameLayout<T>(lhs: PaneLayout<T>,
             if (!Object.is(lhs.layout, anyRhs.layout)) { return false; }
         }
         else if (!sameLayout(lhs.layout, anyRhs.layout, sameExtra)) {
+            return false;
+        }
+        break;
+    case LayoutType.Group:
+        if (lhs.split === undefined || anyRhs.split === undefined) {
+            if (!Object.is(lhs.split, anyRhs.split)) { return false; }
+        }
+        else if (!sameLayout(lhs.split, anyRhs.split, sameExtra)) {
             return false;
         }
         break;

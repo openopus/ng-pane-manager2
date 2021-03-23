@@ -57,15 +57,23 @@ export class ChildWithId<X, C extends ChildLayout<X> = ChildLayout<X>> {
  * @param id the ID of the child layout
  */
 export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> {
-    if (stem.type === LayoutType.Root) {
+    switch (stem.type) {
+    case LayoutType.Root: {
         if (stem.layout === undefined) { throw new Error('root layout is empty'); }
 
         if (index !== 0) { throw new Error(`invalid root child index ${index} - must be 0`); }
 
         return stem.layout;
     }
+    case LayoutType.Group: {
+        if (stem.split === undefined) { throw new Error('group layout is empty'); }
 
-    return stem.children[index];
+        if (index !== 0) { throw new Error(`invalid group child index ${index} - must be 0`); }
+
+        return stem.split;
+    }
+    default: return stem.children[index];
+    }
 }
 
 /**
@@ -73,7 +81,9 @@ export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> 
  * @param id the ID of the child layout
  */
 export function childIdValid<X>({stem, index}: ChildLayoutId<X>): boolean {
-    if (stem.type === LayoutType.Root) { return stem.layout !== undefined && index === 0; }
-
-    return index >= 0 && stem.children.length > index;
+    switch (stem.type) {
+    case LayoutType.Root: return stem.layout !== undefined && index === 0;
+    case LayoutType.Group: return stem.split !== undefined && index === 0;
+    default: return index >= 0 && stem.children.length > index;
+    }
 }

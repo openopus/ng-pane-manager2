@@ -162,7 +162,10 @@ export const childLayoutIdArb:
     fc.Memo<ChildLayoutId<any>> = fc.memo(n => stemArb(n).chain(stem => fc.record({
     stem: fc.constant(stem),
     index: fc.frequency({arbitrary: fc.integer(0, Number.MAX_SAFE_INTEGER), weight: 1}, {
-        arbitrary: fc.integer(0, stem.type === LayoutType.Root ? 1 : stem.children.length),
+        arbitrary: fc.integer(0,
+                              stem.type === LayoutType.Root || stem.type === LayoutType.Group
+                                  ? 1
+                                  : stem.children.length),
         weight: 4,
     }),
 })));

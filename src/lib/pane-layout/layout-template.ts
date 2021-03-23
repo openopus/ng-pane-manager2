@@ -20,10 +20,11 @@
 
 import {SplitLayout, TabbedLayout} from './branch-layout';
 import {LayoutGravity, LayoutType} from './layout-base';
-import {ChildLayout, LeafLayout, PaneLayout} from './layout-core';
+import {ChildLayout, GroupLayout, LeafLayout, PaneLayout} from './layout-core';
 
 /** A template for any kind of layout */
-export type LayoutTemplate<T> = SplitLayoutTemplate<T>|TabLayoutTemplate<T>|LeafLayoutTemplate<T>;
+export type LayoutTemplate<T> = GroupLayoutTemplate<T>|SplitLayoutTemplate<T>|TabLayoutTemplate<T>|
+    LeafLayoutTemplate<T>;
 
 /** Stringified versions of the layout gravities */
 export type GravityTemplate = 'header'|'left'|'main'|'bottom'|'right'|'footer';
@@ -50,6 +51,16 @@ export interface LeafLayoutTemplate<T> extends LayoutTemplateBase {
     template: string;
     /** The data for this leaf passed to the template */
     extra: T;
+}
+
+/**
+ * Template for a grouped split layout node.
+ */
+export interface GroupLayoutTemplate<T> extends LayoutTemplateBase {
+    /** Split mode.  Must be `'group'`, used for type checking. */
+    split: 'group';
+    /** The child split node of this group node. */
+    child: SplitLayoutTemplate<T>|undefined;
 }
 
 /**
@@ -108,6 +119,15 @@ export function loadLayout<T, X>(template: LayoutTemplate<T>,
                               loadExtra(template.extra),
                               loadLayoutGravity(template.gravity),
                               template.group);
+    case 'group':
+        const split = template.child !== undefined ? recurse(template.child) : undefined;
+
+        if (!(split === undefined || split.type === LayoutType.Horiz ||
+              split.type === LayoutType.Vert)) {
+            throw new Error('invalid child for grouped split template');
+        }
+
+        return new GroupLayout(split, loadLayoutGravity(template.gravity), template.group);
     case 'horiz':
         return new SplitLayout(LayoutType.Horiz,
                                template.children.map(recurse),
@@ -158,6 +178,19 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
         if (layout.layout === undefined) { throw new Error('root layout is empty'); }
 
         return recurse(layout.layout);
+    case LayoutType.Group:
+        const child = layout.split !== undefined ? recurse(layout.split) : undefined;
+
+        if (!(child === undefined || child.split === 'horiz' || child.split === 'vert')) {
+            throw new Error('invalid grouped split node - this shouldn\'t happen');
+        }
+
+        return {
+            split: 'group',
+            child,
+            gravity: saveLayoutGravity(layout.gravity),
+            group: layout.group,
+        };
     case LayoutType.Leaf:
         return {
             id: layout.id,

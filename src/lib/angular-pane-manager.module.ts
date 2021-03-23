@@ -26,6 +26,7 @@ import {DraggablePaneComponent} from './drag-and-drop';
 import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
+import {NgPaneGroupComponent} from './ng-pane-group/ng-pane-group.component';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
@@ -49,6 +50,7 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
         DraggablePaneComponent,
         NgPaneComponent,
         NgPaneDropHighlightComponent,
+        NgPaneGroupComponent,
         NgPaneHeaderComponent,
         NgPaneLeafComponent,
         NgPaneManagerComponent,

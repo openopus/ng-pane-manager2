@@ -19,6 +19,7 @@
  *************************************************************************************/
 
 import {Component, ComponentRef, HostBinding, ViewChild} from '@angular/core';
+import {NgPaneGroupComponent} from '../ng-pane-group/ng-pane-group.component';
 
 import {NgPaneLeafComponent} from '../ng-pane-leaf/ng-pane-leaf.component';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
@@ -64,7 +65,6 @@ export class NgPaneComponent<X> {
     /** The header for this pane */
     public header: PaneHeader<X> = {type: PaneHeaderType.None};
     /** The content of this pane */
-    public content:
-        ComponentRef<NgPaneSplitComponent<X>|NgPaneLeafComponent<X>|NgPaneTabbedComponent<X>>|
-        undefined;
+    public content: ComponentRef<NgPaneGroupComponent<X>|NgPaneSplitComponent<X>|
+                                 NgPaneLeafComponent<X>|NgPaneTabbedComponent<X>>|undefined;
 }

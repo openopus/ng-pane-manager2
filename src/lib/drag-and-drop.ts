@@ -37,6 +37,7 @@ import {
     childFromId,
     ChildLayout,
     ChildLayoutId,
+    GroupLayout,
     LayoutType,
     RootLayout,
     SplitLayout,
@@ -130,6 +131,8 @@ interface SplitDropInfo<X> extends DropInfoBase<
     DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom> {
     /** The ID of the current child if it belongs to a split */
     splitId: ChildLayoutId<X, SplitLayout<X>>|undefined;
+    /** Whether to force the creation of a split group */
+    forceGroup: boolean;
 }
 
 /** Drop information for creating a tabbed layout. */
@@ -290,7 +293,8 @@ export class PaneDragContext<X> {
      * @param dropInfo the drop info for the operation
      * @param floatingInfo the floating info for the operation
      */
-    private static dropSplit<X>({orientation, element, layout, splitId}: SplitDropInfo<X>,
+    private static dropSplit<X>({orientation, element, layout, splitId, forceGroup}:
+                                    SplitDropInfo<X>,
                                 floatingInfo: FloatingInfo<X>): {
         /** The find argument of the final transpose */
         find: ChildLayout<X>;
@@ -347,7 +351,9 @@ export class PaneDragContext<X> {
             ratios.reverse();
         }
 
-        return {find: layout, replace: new SplitLayout(type, children, ratios)};
+        const split = new SplitLayout(type, children, ratios);
+
+        return {find: layout, replace: forceGroup ? new GroupLayout(split) : split};
     }
 
     /**
@@ -535,6 +541,7 @@ export class PaneDragContext<X> {
             floating  = removed;
             break;
         }
+        case LayoutType.Group:
         case LayoutType.Tabbed: {
             const {layout, removed} = this.id.stem.withoutChild(this.id.index);
 
@@ -672,6 +679,7 @@ export class PaneDragContext<X> {
                 layout: this.manager.layout.layout,
                 element: this.manager.el.nativeElement,
                 splitId: undefined,
+                forceGroup: false,
             };
         }
 
@@ -751,6 +759,7 @@ export class PaneDragContext<X> {
                         layout,
                         element,
                         splitId: PaneDragContext.getSplitId(target.id),
+                        forceGroup: false,
                     };
                 }
                 break;
@@ -764,6 +773,7 @@ export class PaneDragContext<X> {
                     layout,
                     element,
                     splitId: PaneDragContext.getSplitId(target.id),
+                    forceGroup: false,
                 };
                 break;
             }
@@ -882,6 +892,7 @@ export class PaneDragContext<X> {
                 layout: childFromId(target.id),
                 element,
                 splitId: PaneDragContext.getSplitId(target.id),
+                forceGroup: true,
             };
         }
 

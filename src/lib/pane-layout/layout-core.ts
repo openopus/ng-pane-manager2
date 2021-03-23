@@ -18,16 +18,16 @@
  *
  *******************************************************************************/
 
-import {BranchLayout} from './branch-layout';
+import {BranchLayout, SplitLayout} from './branch-layout';
 import {ChildLayoutBase, LayoutBase, LayoutGravity, LayoutType} from './layout-base';
 import {ChildLayoutId} from './layout-util';
 
 /** A layout node of any kind */
-export type PaneLayout<X> = RootLayout<X>|BranchLayout<X>|LeafLayout<X>;
+export type PaneLayout<X> = StemLayout<X>|LeafLayout<X>;
 /** A layout node containing children */
-export type StemLayout<X> = RootLayout<X>|BranchLayout<X>;
+export type StemLayout<X> = RootLayout<X>|GroupLayout<X>|BranchLayout<X>;
 /** A non-root layout node */
-export type ChildLayout<X> = BranchLayout<X>|LeafLayout<X>;
+export type ChildLayout<X> = GroupLayout<X>|BranchLayout<X>|LeafLayout<X>;
 
 /**
  * A root layout node, which contains one child and cannot be contained by any
@@ -137,6 +137,137 @@ export class RootLayout<X> extends LayoutBase<X> {
 }
 
 /**
+ * A grouped split layout node, which contains one split layout node.
+ *
+ * This node is used to render headers over split nodes and prevent them from
+ * collapsing.
+ */
+export class GroupLayout<X> extends ChildLayoutBase<X> {
+    /** The type of the layout.  Used for type checking. */
+    public readonly type: LayoutType.Group = LayoutType.Group;
+
+    /**
+     * Construct a new grouped split layout node.
+     * @param split the child layout
+     */
+    public constructor(public readonly split: SplitLayout<X>|undefined,
+                       gravity?: LayoutGravity,
+                       group?: string) {
+        super(gravity, group);
+    }
+
+    /**
+     * If this represents an empty container and child is a split layout, place the given child into
+     * this layout.
+     * @param child the child to place
+     */
+    protected tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X>|undefined {
+        if (this.split === undefined &&
+            (child.type === LayoutType.Horiz || child.type === LayoutType.Vert)) {
+            return new GroupLayout(child, this.gravity, this.group);
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Return the ID of this node's child.
+     */
+    public childId(): ChildLayoutId<X> { return {stem: this, index: 0}; }
+
+    /**
+     * Wrap this group node in a root node.
+     */
+    public intoRoot(): RootLayout<X> { return new RootLayout(this); }
+
+    /**
+     * Find a child matching the given predicate.
+     * @param pred predicate to match elements against
+     */
+    public findChild(pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X>|undefined {
+        if (this.split === undefined) { return undefined; }
+
+        if (pred(this.split)) { return this.childId(); }
+
+        return this.split.findChild(pred);
+    }
+
+    /**
+     * Remove the child of this node.
+     * @param index the index of the child to remove.  Mus be `undefined` or 0
+     */
+    public withoutChild(index: number|undefined): {
+        /** The resulting layout */
+        layout: GroupLayout<X>;
+        /** The removed child */
+        removed: SplitLayout<X>;
+    } {
+        if (this.split === undefined) {
+            throw new Error('cannot remove child of empty group layout');
+        }
+
+        if (index !== undefined && index !== 0) {
+            throw new Error(`invalid root child index ${index} - must be 0`);
+        }
+
+        return {layout: new GroupLayout(undefined, this.gravity, this.group), removed: this.split};
+    }
+
+    /**
+     * Update the contained split node of this group
+     * @param f the function to update the split layout with
+     */
+    public map(f: (c: SplitLayout<X>) => SplitLayout<X>| undefined): GroupLayout<X> {
+        if (this.split === undefined) { return this; }
+
+        return new GroupLayout(f(this.split), this.gravity, this.group);
+    }
+
+    /**
+     * Find any occurrences (by reference) of a node in the current tree and
+     * replace them with another node.
+     * @param find the node to search for
+     * @param replace the node to replace the search node with
+     */
+    public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
+        if (Object.is(this, find)) { return replace; }
+
+        const newLayout = this.split !== undefined ? this.split.transposeDeep(find, replace)
+                                                   : undefined;
+
+        if (newLayout === undefined) { return undefined; }
+
+        if (!(newLayout.type === LayoutType.Horiz || newLayout.type === LayoutType.Vert)) {
+            throw new Error('invalid transposition - grouped split attempted to become non-split');
+        }
+
+        return new GroupLayout(newLayout, this.gravity, this.group);
+    }
+
+    /**
+     * Recursively simplify this node tree.
+     */
+    public simplifyDeep(): PaneLayout<X>|undefined {
+        if (this.split === undefined) { return undefined; }
+
+        let newLayout = this.split.simplifyDeep();
+
+        if (newLayout === undefined) { return undefined; }
+
+        if (newLayout.type === LayoutType.Root) {
+            throw new Error('invalid simplification - child attempted to become root');
+        }
+
+        if (!(newLayout.type === LayoutType.Horiz || newLayout.type === LayoutType.Vert)) {
+            newLayout = new SplitLayout(
+                this.split.type, [newLayout], [1], this.split.gravity, this.split.group);
+        }
+
+        return new GroupLayout(newLayout, this.gravity, this.group);
+    }
+}
+
+/**
  * A leaf node, which contains user content but no other nodes.
  */
 export class LeafLayout<X> extends ChildLayoutBase<X> {
@@ -181,7 +312,7 @@ export class LeafLayout<X> extends ChildLayoutBase<X> {
      * Find any occurrences (by reference) of a node in the current tree and
      * replace them with another node.
      * @param find the node to search for
-     * @param replace thenode to replace the search node with
+     * @param replace the node to replace the search node with
      */
     public transposeDeep(find: PaneLayout<X>, replace: PaneLayout<X>): PaneLayout<X>|undefined {
         return Object.is(this, find) ? replace : undefined;
