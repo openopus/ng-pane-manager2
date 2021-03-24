@@ -198,50 +198,58 @@ export abstract class LayoutBase<X> {
                                        pct: number,
                                        fixRatios: Map<ChildLayoutId<X>, number>):
         PaneLayout<X>|undefined {
-        let replace;
-
         switch (pg.type) {
         case PseudoGravityType.None: return undefined;
-        case PseudoGravityType.Phantom:
+        case PseudoGravityType.Phantom: {
             const pseudoIdx = order.indexOf(pg.pane);
             const paneIdx   = order.indexOf(pane);
 
             if (pseudoIdx < 0 || paneIdx < 0) { throw new Error('invalid order array'); }
 
             const invPct = 1 - pct;
-            replace      = paneIdx < pseudoIdx
-                               ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
-                               : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]);
-            break;
+
+            return this.transposeDeep(
+                pg.pane,
+                paneIdx < pseudoIdx ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
+                                    : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]));
+        }
         case PseudoGravityType.Real:
+            let find;
+
             switch (pg.pane.type) {
             case LayoutType.Root:
                 throw new Error(
                     'multiple children reporting one root as a parent - this shouldn\'t happen');
-            case LayoutType.Group:
-                throw new Error(
-                    'multiple children reporting one group as a parent - this shouldn\'t happen');
+            case LayoutType.Group: find = pg.pane.split; break;
+            default: find = pg.pane; break;
             }
 
-            const idx = pg.pane.locateChild(pane, order);
+            // To appease TypeScript.
+            if (find === undefined) {
+                throw new Error('pseudo-gravity pane was undefined  - this shouldn\'t happen');
+            }
+
+            const idx = find.locateChild(pane, order);
 
             if (idx === undefined) { return undefined; }
 
-            switch (pg.pane.type) {
+            let replace;
+
+            switch (find.type) {
             case LayoutType.Horiz:
             case LayoutType.Vert: {
                 const fixIdcs        = new Map<number, number>();
-                const adjustedRatios = pg.pane.ratios.slice();
-                const addRatio       = pct * pg.pane.ratioSum;
+                const adjustedRatios = find.ratios.slice();
+                const addRatio       = pct * find.ratioSum;
                 let extraSum         = 0;
                 let netFixChange     = 0;
                 let minExtra;
 
                 for (const [{stem, index}, fac] of fixRatios) {
-                    if (Object.is(stem, pg.pane)) { fixIdcs.set(index, fac); }
+                    if (Object.is(stem, find)) { fixIdcs.set(index, fac); }
                 }
 
-                for (const [ratio, index] of pg.pane.ratios.map((r, i) => [r, i])) {
+                for (const [ratio, index] of find.ratios.map((r, i) => [r, i])) {
                     const fac = fixIdcs.get(index);
                     if (fac !== undefined) { netFixChange += ratio * (1 - fac); }
                     else {
@@ -251,9 +259,8 @@ export abstract class LayoutBase<X> {
                     }
                 }
 
-                const minExtraPct = minExtra !== undefined
-                                        ? minExtra / clipDenormPos(pg.pane.ratioSum)
-                                        : 0;
+                const minExtraPct = minExtra !== undefined ? minExtra / clipDenormPos(find.ratioSum)
+                                                           : 0;
 
                 const TINY        = 0.1;
                 const extraFactor = Math.max(TINY / Math.max(TINY, minExtraPct),
@@ -267,15 +274,14 @@ export abstract class LayoutBase<X> {
 
                 adjustedRatios.splice(idx, 0, addRatio);
 
-                replace = pg.pane.withChild(idx, pane, adjustedRatios);
+                replace = find.withChild(idx, pane, adjustedRatios);
                 break;
             }
-            case LayoutType.Tabbed: replace = pg.pane.withChild(idx, pane, true); break;
+            case LayoutType.Tabbed: replace = find.withChild(idx, pane, true); break;
             }
-            break;
-        }
 
-        return this.transposeDeep(pg.pane, replace);
+            return this.transposeDeep(find, replace);
+        }
     }
 
     /**

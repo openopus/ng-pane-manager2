@@ -468,8 +468,10 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
 
     /**
      * Recursively simplify this node tree.
+     * @param collapseSelf set to false to disable single-child splits
+     *                     collapsing into their children
      */
-    public simplifyDeep(): PaneLayout<X>|undefined {
+    public simplifyDeep(collapseSelf?: boolean): PaneLayout<X>|undefined {
         let newChildren: (ChildLayout<X>|readonly ChildLayout<X>[]|undefined)[]|undefined;
         let newRatios: (number|readonly number[]|undefined)[]|undefined;
 
@@ -517,14 +519,19 @@ export class SplitLayout<X> extends BranchLayoutBase<X, SplitLayout<X>> {
         });
 
         if (newChildren === undefined) {
-            if (this.children.length === 1) { return this.children[0]; }
+            if (collapseSelf !== false && this.children.length === 1) { return this.children[0]; }
 
             return undefined;
         }
 
         const flatChildren = flatten(newChildren);
 
-        if (flatChildren.length === 1) { return flatChildren[0]; }
+        if (flatChildren.length === 1) {
+            if (collapseSelf === false) { newRatios = [1]; }
+            else {
+                return flatChildren[0];
+            }
+        }
 
         return new SplitLayout(this.type,
                                flatChildren,

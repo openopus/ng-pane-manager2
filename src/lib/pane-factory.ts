@@ -472,10 +472,10 @@ export class PaneFactory<X> {
         const inst                = component.instance;
 
         if (layout.split !== undefined) {
-            const split = this.placePane(
+            const pane = this.placePane(
                 inst.renderer.viewContainer, layout.childId(), onResize, undefined, skipDropTarget);
 
-            inst.split = split.instance;
+            inst.split = pane.instance;
         }
 
         if (!skipDropTarget) {

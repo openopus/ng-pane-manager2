@@ -20,7 +20,7 @@
 
 import {SplitLayout, TabbedLayout} from './branch-layout';
 import {LayoutGravity, LayoutType} from './layout-base';
-import {ChildLayout, LeafLayout, PaneLayout, RootLayout} from './layout-core';
+import {ChildLayout, GroupLayout, LeafLayout, PaneLayout, RootLayout} from './layout-core';
 import {GravityTemplate, LayoutTemplate, loadLayout, loadLayoutGravity} from './layout-template';
 
 /** Represents a value with either a success or failure */
@@ -171,6 +171,16 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
     public leaf(id: string, template: string, extra: X, gravity?: AnyGravity, group?: string):
         LeafLayout<X> {
         return new LeafLayout(id, template, extra, getGravity(gravity), group);
+    }
+
+    /**
+     * Construct a new grouped split node.
+     * @param split the contained split node
+     * @param gravity the node gravity
+     * @param group the node group
+     */
+    public group(split: SplitLayout<X>, gravity?: AnyGravity, group?: string): GroupLayout<X> {
+        return new GroupLayout(split, getGravity(gravity), group);
     }
 
     /**

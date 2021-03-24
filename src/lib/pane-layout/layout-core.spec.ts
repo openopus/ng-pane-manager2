@@ -29,6 +29,7 @@ import {BranchLayout, SplitLayout, TabbedLayout} from './branch-layout';
 import {LayoutGravity, LayoutType} from './layout-base';
 import {
     ChildLayout,
+    GroupLayout,
     LeafLayout,
     PaneLayout,
     StemLayout,
@@ -63,7 +64,9 @@ export const groupArb = fc.oneof(fc.constant(undefined), fc.string());
 export const childArb: fc.Memo<ChildLayout<any>> = fc.memo(n => {
     if (n <= 1) { return leafArb; }
 
-    return fc.frequency({arbitrary: leafArb, weight: 1}, {arbitrary: branchArb(n), weight: 2});
+    return fc.frequency({arbitrary: leafArb, weight: 1},
+                        {arbitrary: groupPaneArb(n), weight: 1},
+                        {arbitrary: branchArb(n), weight: 3});
 });
 
 /**
@@ -82,6 +85,16 @@ export const leafArb: fc
                                               id, template, extra, gravity, group));
 
 /**
+ * Produces a grouped split node.
+ */
+export const groupPaneArb: fc.Memo<GroupLayout<any>> = fc.memo(
+    n => fc.record({
+               split: splitArb(n),
+               gravity: gravityArb,
+               group: groupArb,
+           }).map(({split, gravity, group}) => new GroupLayout(split, gravity, group)));
+
+/**
  * Produces a branch layout node.
  */
 export const branchArb:
@@ -92,7 +105,8 @@ export const branchArb:
  */
 export const stemArb: fc.Memo<StemLayout<any>> = fc.memo(
     n => fc.frequency({arbitrary: childArb(n).map(c => c.intoRoot()), weight: 1},
-                      {arbitrary: branchArb(n), weight: 2}));
+                      {arbitrary: groupPaneArb(n), weight: 1},
+                      {arbitrary: branchArb(n), weight: 3}));
 
 /**
  * Produces any kind of layout node.

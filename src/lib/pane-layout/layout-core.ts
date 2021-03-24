@@ -250,17 +250,12 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
     public simplifyDeep(): PaneLayout<X>|undefined {
         if (this.split === undefined) { return undefined; }
 
-        let newLayout = this.split.simplifyDeep();
+        const newLayout = this.split.simplifyDeep(false);
 
         if (newLayout === undefined) { return undefined; }
 
-        if (newLayout.type === LayoutType.Root) {
-            throw new Error('invalid simplification - child attempted to become root');
-        }
-
         if (!(newLayout.type === LayoutType.Horiz || newLayout.type === LayoutType.Vert)) {
-            newLayout = new SplitLayout(
-                this.split.type, [newLayout], [1], this.split.gravity, this.split.group);
+            throw new Error('invalid simplification - grouped split attempted to become non-split');
         }
 
         return new GroupLayout(newLayout, this.gravity, this.group);
