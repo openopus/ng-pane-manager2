@@ -34,6 +34,7 @@ import {
     PaneLayout,
     StemLayout,
 } from './layout-core';
+import {saveLayout} from './layout-template';
 import {childFromId, childIdValid, ChildLayoutId} from './layout-util';
 
 const MAX_LAYOUT_DEPTH = 5;
@@ -90,9 +91,13 @@ export const leafArb: fc
 export const groupPaneArb: fc.Memo<GroupLayout<any>> = fc.memo(
     n => fc.record({
                split: splitArb(n),
+               widgets: fc.string(),
                gravity: gravityArb,
                group: groupArb,
-           }).map(({split, gravity, group}) => new GroupLayout(split, gravity, group)));
+           }).map(({split,
+                    widgets,
+                    gravity,
+                    group}) => new GroupLayout(split, widgets, gravity, group)));
 
 /**
  * Produces a branch layout node.
@@ -188,33 +193,30 @@ export const childLayoutIdArb:
 /**
  * Asserts that a given layout is properly simplified.
  * @param layout the layout to check
- * @param isToplevel whether the layout is the child of another layout
+ * @param minChildCount the minimum number of children required to be in a pane
  */
 function assertSimplified<X>(layout: PaneLayout<X>,
-                             isToplevel: boolean             = true,
+                             minChildCount: number           = 0,
                              path: [PaneLayout<X>, string[]] = [layout, []]): void {
     try {
-        const recurse = (next: PaneLayout<X>, keepToplevel: boolean, pathSeg: string) => {
+        const recurse = (next: PaneLayout<X>, singleChild: boolean, pathSeg: string) => {
             const [root, subpath] = path;
 
-            return assertSimplified(next,
-                                    isToplevel && keepToplevel,
-                                    [root, subpath.concat(pathSeg)]);
+            return assertSimplified(next, singleChild ? 1 : 2, [root, subpath.concat(pathSeg)]);
         };
 
         switch (layout.type) {
         case LayoutType.Leaf: break;
         case LayoutType.Root:
-            // Root layouts don't perform as aggressive a simplification as
-            // branches, so isToplevel should be preserved.
             if (layout.layout !== undefined) { recurse(layout.layout, true, 'layout'); }
+            break;
+        case LayoutType.Group:
+            if (layout.split !== undefined) { recurse(layout.split, true, 'split'); }
             break;
         case LayoutType.Horiz:
         case LayoutType.Vert:
-            if (!isToplevel) {
-                chai.expect(layout.children.length)
-                    .to.be.greaterThan(1, 'non-toplevel layout has bad child count');
-            }
+            chai.expect(layout.children.length)
+                .to.not.be.lessThan(minChildCount, 'split layout has bad child count');
 
             for (let i = 0; i < layout.children.length; i += 1) {
                 const child: ChildLayout<X> = layout.children[i];
@@ -227,11 +229,9 @@ function assertSimplified<X>(layout: PaneLayout<X>,
 
             break;
         case LayoutType.Tabbed:
-            if (!isToplevel) {
-                chai.expect(layout.children.length)
-                    .to.be.greaterThan(1, 'non-toplevel layout has bad child count');
-            }
-
+            chai.expect(layout.children.length)
+                .to.not.be.lessThan(Math.min(minChildCount, 1),
+                                    'tabbed layout has bad child count');
             for (let i = 0; i < layout.children.length; i += 1) {
                 recurse(layout.children[i], false, i.toString());
             }
@@ -239,8 +239,12 @@ function assertSimplified<X>(layout: PaneLayout<X>,
         }
     }
     catch (e) {
-        throw new Error(
-            `path ${path[1].join('->')} of ${JSON.stringify(path[0])} not simplified:\n${e}`);
+        if (e instanceof chai.AssertionError) {
+            throw new Error(`path ${path[1].length === 0 ? '[root]' : path[1].join('->')} of ${
+                JSON.stringify(saveLayout(path[0], x => x))} not simplified:\n${e.toString()}`);
+        }
+
+        throw e;
     }
 }
 

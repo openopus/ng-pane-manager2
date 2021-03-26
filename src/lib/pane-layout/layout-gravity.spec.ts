@@ -208,6 +208,9 @@ function assertNoBadRatios<X>(prev: RootLayout<X>, next: RootLayout<X>): void {
         case LayoutType.Root:
             if (pane.layout !== undefined) { findBad(pane.layout, tiny, huge); }
             break;
+        case LayoutType.Group:
+            if (pane.split !== undefined) { findBad(pane.split, tiny, huge); }
+            break;
         case LayoutType.Horiz:
             for (const [child, ratio] of pane.children.map(
                      (c, i) => [c, pane.ratios[i]] as [ChildLayout<X>, number])) {

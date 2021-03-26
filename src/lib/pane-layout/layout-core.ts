@@ -124,15 +124,28 @@ export class RootLayout<X> extends LayoutBase<X> {
      * Recursively simplify this node tree.
      */
     public simplifyDeep(): PaneLayout<X>|undefined {
-        const newLayout = this.layout !== undefined ? this.layout.simplifyDeep() : undefined;
+        if (this.layout === undefined) { return undefined; }
 
-        if (newLayout === undefined) { return undefined; }
+        const newLayout = this.layout.simplifyDeep();
+
+        const emptyChild = (l: ChildLayout<X>) => {
+            switch (l.type) {
+            case LayoutType.Horiz:
+            case LayoutType.Vert:
+            case LayoutType.Tabbed: return l.children.length === 0;
+            default: return false;
+            }
+        };
+
+        if (newLayout === undefined) {
+            return emptyChild(this.layout) ? new RootLayout(undefined) : undefined;
+        }
 
         if (newLayout.type === LayoutType.Root) {
             throw new Error('invalid simplification - child attempted to become root');
         }
 
-        return new RootLayout(newLayout);
+        return new RootLayout(emptyChild(newLayout) ? undefined : newLayout);
     }
 }
 
@@ -257,13 +270,20 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
 
         const newLayout = this.split.simplifyDeep(false);
 
-        if (newLayout === undefined) { return undefined; }
+        if (newLayout === undefined) {
+            return this.split.children.length === 0
+                       ? new GroupLayout(undefined, this.headerWidgetId, this.gravity, this.group)
+                       : undefined;
+        }
 
         if (!(newLayout.type === LayoutType.Horiz || newLayout.type === LayoutType.Vert)) {
             throw new Error('invalid simplification - grouped split attempted to become non-split');
         }
 
-        return new GroupLayout(newLayout, this.headerWidgetId, this.gravity, this.group);
+        return new GroupLayout(newLayout.children.length === 0 ? undefined : newLayout,
+                               this.headerWidgetId,
+                               this.gravity,
+                               this.group);
     }
 }
 
