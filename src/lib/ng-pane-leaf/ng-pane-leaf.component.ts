@@ -59,7 +59,8 @@ export class NgPaneLeafComponent<X> {
         this.renderer.viewContainer.clear();
 
         if (val !== undefined) {
-            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext<X>>(...val);
+            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext<X>>(val.pane,
+                                                                               val.context);
         }
     }
 

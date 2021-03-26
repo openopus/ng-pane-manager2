@@ -353,7 +353,8 @@ export class PaneDragContext<X> {
 
         const split = new SplitLayout(type, children, ratios);
 
-        return {find: layout, replace: forceGroup ? new GroupLayout(split) : split};
+        // TODO: compute the header ID
+        return {find: layout, replace: forceGroup ? new GroupLayout(split, 'TODO') : split};
     }
 
     /**

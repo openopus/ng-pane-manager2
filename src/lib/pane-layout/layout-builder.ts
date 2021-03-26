@@ -176,11 +176,13 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
     /**
      * Construct a new grouped split node.
      * @param split the contained split node
+     * @param header the name of the node header template
      * @param gravity the node gravity
      * @param group the node group
      */
-    public group(split: SplitLayout<X>, gravity?: AnyGravity, group?: string): GroupLayout<X> {
-        return new GroupLayout(split, getGravity(gravity), group);
+    public group(split: SplitLayout<X>, header: string, gravity?: AnyGravity, group?: string):
+        GroupLayout<X> {
+        return new GroupLayout(split, header, getGravity(gravity), group);
     }
 
     /**

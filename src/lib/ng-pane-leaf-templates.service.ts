@@ -34,6 +34,13 @@ export interface LeafTemplateInfo<X> {
 }
 
 /**
+ * Optional identifying information for a leaf template.
+ */
+export type LeafTemplateInfoOpt<X> = {
+    [K in keyof LeafTemplateInfo<X>]?: LeafTemplateInfo<X>[K]
+};
+
+/**
  * Provides access to the global dictionary of pane leaf templates.
  */
 @Injectable({providedIn: 'root'})
@@ -95,20 +102,14 @@ export class NgPaneLeafTemplateService<X> {
      * template ID string.
      * @param name the name of the template, corresponding with the `template`
      *             property of leaf nodes
-     * @param header the default style information for this template
-     * @param template the content to render in leaves with this template
+     * @param info the associated information for this template
      * @param force set to true to override an existing template with this name
      */
-    public registerLeafTemplate(name: string,
-                                header: PaneHeaderStyle,
-                                template: TemplateRef<LeafNodeContext<X>>,
-                                force: boolean = false): void {
+    public add(name: string, info: LeafTemplateInfo<X>, force: boolean = false): void {
         const entry = this.templates.get(name);
 
         if (entry === undefined) {
-            this.templates.set(name,
-                               new BehaviorSubject<LeafTemplateInfo<X>|undefined>(
-                                   {template, header}));
+            this.templates.set(name, new BehaviorSubject<LeafTemplateInfo<X>|undefined>(info));
 
             return;
         }
@@ -117,23 +118,43 @@ export class NgPaneLeafTemplateService<X> {
             throw new Error(`pane template '${name}' already registered`);
         }
 
-        entry.next({template, header});
+        entry.next(info);
+    }
+
+    /**
+     * Registers a given `TemplateRef` for leaves with the corresponding
+     * template ID string.
+     * @param name the name of the template, corresponding with the `template`
+     *             property of leaf nodes
+     * @param header the default style information for this template
+     * @param template the content to render in leaves with this template
+     * @param force set to true to override an existing template with this name
+     * @deprecated use `add(name, {header, template}, force)` instead
+     */
+    public registerLeafTemplate(name: string,
+                                header: PaneHeaderStyle,
+                                template: TemplateRef<LeafNodeContext<X>>,
+                                force: boolean = false): void {
+        this.add(name, {header, template}, force);
     }
 
     /**
      * Removes the leaf template with the given name.
      * @param name the name of the template to remove
-     * @param template if provided, only unregister if the template matches this
-     *                 value
-     * @returns whether a matching template was found
+     * @param info only unregister if the template matches any fields provided
+     *             here
+     * @returns whether a matching template was found and removed
      */
-    public unregisterLeafTemplate(name: string,
-                                  template?: TemplateRef<LeafNodeContext<X>>): boolean {
-        const entry = this.templates.get(name);
+    public remove(name: string, info: LeafTemplateInfoOpt<X>): boolean {
+        const {template, header} = info;
+        const entry              = this.templates.get(name);
 
         if (entry === undefined || entry.value === undefined) { return false; }
 
-        if (template !== undefined && !Object.is(entry.value.template, template)) { return false; }
+        if (template !== undefined && !Object.is(entry.value.template, template) ||
+            header !== undefined && !Object.is(entry.value.header.widgets, header.widgets)) {
+            return false;
+        }
 
         if (entry.observers.length === 0) {
             entry.next(undefined);
@@ -142,5 +163,18 @@ export class NgPaneLeafTemplateService<X> {
         }
 
         return this.templates.delete(name);
+    }
+
+    /**
+     * Removes the leaf template with the given name.
+     * @param name the name of the template to remove
+     * @param template if provided, only unregister if the template matches this
+     *                 value
+     * @returns whether a matching template was found
+     * @deprecated use `remove(name, {template?})` instead
+     */
+    public unregisterLeafTemplate(name: string,
+                                  template?: TemplateRef<LeafNodeContext<X>>): boolean {
+        return this.remove(name, {template});
     }
 }

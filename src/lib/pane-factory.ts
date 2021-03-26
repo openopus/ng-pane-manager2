@@ -34,6 +34,7 @@ import {
     NgPaneDropHighlightComponent,
 } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
 import {NgPaneGroupComponent} from './ng-pane-group/ng-pane-group.component';
+import {NgPaneHeaderTemplateService} from './ng-pane-header-templates.service';
 import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
 import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
 import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
@@ -56,7 +57,12 @@ import {
     SplitLayout,
     TabbedLayout,
 } from './pane-layout/module';
-import {LeafNodeTemplate, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
+import {
+    HeaderWidgetTemplate,
+    LeafNodeTemplate,
+    PaneHeaderMode,
+    PaneHeaderStyle,
+} from './pane-template';
 
 /**
  * Used to identify different values of `NgPaneComponent.header`
@@ -201,7 +207,8 @@ export class PaneFactory<X> {
      * @param cfr needed to resolve inner component factories
      */
     public constructor(private readonly manager: NgPaneManagerComponent<X>,
-                       private readonly templateService: NgPaneLeafTemplateService<X>,
+                       private readonly leafTemplateService: NgPaneLeafTemplateService<X>,
+                       private readonly headerTemplateService: NgPaneHeaderTemplateService<X>,
                        cfr: ComponentFactoryResolver) {
         this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
         this.headerFactory        = cfr.resolveComponentFactory(NgPaneHeaderComponent) as
@@ -280,7 +287,7 @@ export class PaneFactory<X> {
      */
     private renderLeafTemplate(layout: LeafLayout<X>, onResize: Observable<undefined>):
         Observable<LeafNodeTemplate<X>|undefined> {
-        const $info = this.templateService.get(layout.template);
+        const $info = this.leafTemplateService.get(layout.template);
 
         return $info.pipe(map(info => {
             if (info === undefined) { return undefined; }
@@ -304,7 +311,27 @@ export class PaneFactory<X> {
                 onResize,
             };
 
-            return [template, {$implicit, extra: layout.extra}];
+            return {pane: template, context: {$implicit, extra: layout.extra}};
+        }));
+    }
+
+    /**
+     * Collect all necessary information to render the contents of a custom
+     * pane header.
+     * @param layout the layout to render a header for
+     */
+    private renderHeaderTemplate(layout: ChildLayout<X>):
+        Observable<HeaderWidgetTemplate<X>|undefined> {
+        const $info = this.headerTemplateService.get(undefined as any);
+
+        return $info.pipe(map(info => {
+            if (info === undefined) { return undefined; }
+
+            const {title, controls} = info;
+
+            const $implicit = {};
+
+            return {title, controls, context: {$implicit, layout}};
         }));
     }
 
@@ -316,7 +343,7 @@ export class PaneFactory<X> {
         // TODO: correctly calculate branch header style
         switch (layout.type) {
         case LayoutType.Leaf:
-            const $info = this.templateService.get(layout.template);
+            const $info = this.leafTemplateService.get(layout.template);
 
             return $info.pipe(switchMap(info => this.initLeafHeader(layout.id).pipe(map(header => {
                 if (header !== undefined) { return header; }

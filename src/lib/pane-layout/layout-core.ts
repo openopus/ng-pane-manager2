@@ -148,9 +148,11 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
 
     /**
      * Construct a new grouped split layout node.
+     * @param headerWidgetId the string identifier of the header widgets to use
      * @param split the child layout
      */
     public constructor(public readonly split: SplitLayout<X>|undefined,
+                       public readonly headerWidgetId: string,
                        gravity?: LayoutGravity,
                        group?: string) {
         super(gravity, group);
@@ -164,7 +166,7 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
     protected tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X>|undefined {
         if (this.split === undefined &&
             (child.type === LayoutType.Horiz || child.type === LayoutType.Vert)) {
-            return new GroupLayout(child, this.gravity, this.group);
+            return new GroupLayout(child, this.headerWidgetId, this.gravity, this.group);
         }
 
         return undefined;
@@ -210,7 +212,10 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
             throw new Error(`invalid root child index ${index} - must be 0`);
         }
 
-        return {layout: new GroupLayout(undefined, this.gravity, this.group), removed: this.split};
+        return {
+            layout: new GroupLayout(undefined, this.headerWidgetId, this.gravity, this.group),
+            removed: this.split,
+        };
     }
 
     /**
@@ -220,7 +225,7 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
     public map(f: (c: SplitLayout<X>) => SplitLayout<X>| undefined): GroupLayout<X> {
         if (this.split === undefined) { return this; }
 
-        return new GroupLayout(f(this.split), this.gravity, this.group);
+        return new GroupLayout(f(this.split), this.headerWidgetId, this.gravity, this.group);
     }
 
     /**
@@ -241,7 +246,7 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
             throw new Error('invalid transposition - grouped split attempted to become non-split');
         }
 
-        return new GroupLayout(newLayout, this.gravity, this.group);
+        return new GroupLayout(newLayout, this.headerWidgetId, this.gravity, this.group);
     }
 
     /**
@@ -258,7 +263,7 @@ export class GroupLayout<X> extends ChildLayoutBase<X> {
             throw new Error('invalid simplification - grouped split attempted to become non-split');
         }
 
-        return new GroupLayout(newLayout, this.gravity, this.group);
+        return new GroupLayout(newLayout, this.headerWidgetId, this.gravity, this.group);
     }
 }
 

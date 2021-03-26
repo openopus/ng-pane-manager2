@@ -59,8 +59,10 @@ export interface LeafLayoutTemplate<T> extends LayoutTemplateBase {
 export interface GroupLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Must be `'group'`, used for type checking. */
     split: 'group';
-    /** The child split node of this group node. */
+    /** The child split node of this group node */
     child: SplitLayoutTemplate<T>|undefined;
+    /** The template name of this node's header */
+    header: string;
 }
 
 /**
@@ -127,7 +129,10 @@ export function loadLayout<T, X>(template: LayoutTemplate<T>,
             throw new Error('invalid child for grouped split template');
         }
 
-        return new GroupLayout(split, loadLayoutGravity(template.gravity), template.group);
+        return new GroupLayout(split,
+                               template.header,
+                               loadLayoutGravity(template.gravity),
+                               template.group);
     case 'horiz':
         return new SplitLayout(LayoutType.Horiz,
                                template.children.map(recurse),
@@ -188,6 +193,7 @@ export function saveLayout<X, T>(layout: PaneLayout<X>,
         return {
             split: 'group',
             child,
+            header: layout.headerWidgetId,
             gravity: saveLayoutGravity(layout.gravity),
             group: layout.group,
         };

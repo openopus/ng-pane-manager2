@@ -20,6 +20,7 @@
 
 import {TemplateRef} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
+import {ChildLayout} from './pane-layout/module';
 
 // TODO: add size constraints/no-resize mode? Perhaps fixed sizes, too
 /** The display format of a pane header */
@@ -38,19 +39,39 @@ export type StringHeaderMode = 'hidden'|'visible'|'alwaysTab';
 /**
  * Style information for a pane header.
  */
-export interface PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
+export type PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> = BasicPaneHeaderStyle<T>|
+    CustomPaneHeaderStyle<T>;
+
+/**
+ * Style information for a pane header with no custom widgets.
+ */
+export interface BasicPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
     /** The display mode for this header */
     headerMode: T;
     /** The title for this header */
     title: Observable<string>;
     /** The icon for this header, or `undefined` for no icon */
     icon: Observable<string|undefined>;
+    /** Should always be undefined.  See `CustomPaneHeaderStyle` for more information */
+    widgets?: never;
     /** Whether this pane can be closed */
     closable: boolean;
 }
 
 /**
- * Construct a pane header style object.
+ * Style information for a pane header using custom widgets.
+ */
+export interface CustomPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
+    /** The display mode for this header */
+    headerMode: T;
+    /** The unique string identifier for the widget template to use */
+    widgets: string;
+    /** Whether this pane can be closed */
+    closable: boolean;
+}
+
+/**
+ * Construct a basic pane header style object.
  * @param header the display mode for the header
  * @param title the title for the header
  * @param icon the icon for the header, or `undefined` for no icon
@@ -73,7 +94,7 @@ export function headerStyle(
 
     return {
         headerMode,
-        title: typeof                      title === 'string' ? new BehaviorSubject(title) : title,
+        title: typeof title === 'string' ? new BehaviorSubject(title) : title,
         icon: icon === undefined || typeof icon === 'string' ? new BehaviorSubject(icon) : icon,
         closable,
     };
@@ -94,8 +115,43 @@ export interface LeafNodeContext<X> {
     extra: X;
 }
 
+/**
+ * Context passed to the `TemplateRef`s of a set of header widgets.
+ */
+export interface HeaderWidgetContext<X> {
+    /** The widget data itself */
+    $implicit: {
+        // TODO: who needs what?
+    };
+    /** The layout data for this node */
+    layout: ChildLayout<X>;
+}
+
 /** The information needed to render the contents of a leaf node. */
-export type LeafNodeTemplate<X> = [TemplateRef<LeafNodeContext<X>>, LeafNodeContext<X>];
+export interface LeafNodeTemplate<X> {
+    /** The template for the panel */
+    pane: TemplateRef<LeafNodeContext<X>>;
+    /** The context provided to both templates when rendering. */
+    context: LeafNodeContext<X>;
+}
+
+/** The information needed to render custom header widgets for a node. */
+export interface HeaderWidgetTemplate<X> {
+    /**
+     * The controls for the title of the pane.  On a normal pane, this is the
+     * left side of the header, and on a tabbed pane, this is the contents of
+     * the tab.
+     */
+    title: TemplateRef<HeaderWidgetContext<X>>;
+    /**
+     * Additional controls for the pane header.  On a normal pane, this is the
+     * right side of the header, and on a tabbed pane, this appears to the right
+     * of the tab list, contextual to the current tab.
+     */
+    controls: TemplateRef<HeaderWidgetContext<X>>;
+    /** The context provided to both templates when rendering. */
+    context: HeaderWidgetContext<X>;
+}
 
 /**
  * Function to determine if two leaf templates are equivalent.
@@ -111,8 +167,8 @@ export function sameLeafTemplate<X>(lhs: LeafNodeTemplate<X>|undefined,
 
     if (lhs === undefined || rhs === undefined) { return false; }
 
-    const [lTmp, lCtx] = lhs;
-    const [rTmp, rCtx] = rhs;
+    const {pane: lTmp, context: lCtx} = lhs;
+    const {pane: rTmp, context: rCtx} = lhs;
 
     if (!Object.is(lTmp.elementRef.nativeElement, rTmp.elementRef.nativeElement)) { return false; }
 

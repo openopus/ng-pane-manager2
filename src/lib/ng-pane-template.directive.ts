@@ -77,13 +77,14 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
             };
         }
 
-        this.templateService.registerLeafTemplate(this.name, this.headerStyle, this.templateRef);
+        this.templateService.add(this.name, {header: this.headerStyle, template: this.templateRef});
     }
 
     /** Attempt to unregister the template */
     public ngOnDestroy(): void {
         if (this.name === undefined) { return; }
 
-        this.templateService.unregisterLeafTemplate(this.name, this.templateRef);
+        this.templateService.remove(this.name,
+                                    {header: this.headerStyle, template: this.templateRef});
     }
 }

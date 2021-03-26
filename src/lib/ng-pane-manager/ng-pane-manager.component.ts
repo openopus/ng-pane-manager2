@@ -33,6 +33,7 @@ import {BehaviorSubject, Observable, of, Subject} from 'rxjs';
 import {map, switchAll} from 'rxjs/operators';
 
 import {DropTarget} from '../drag-and-drop';
+import {NgPaneHeaderTemplateService} from '../ng-pane-header-templates.service';
 import {NgPaneLeafTemplateService} from '../ng-pane-leaf-templates.service';
 import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
 import {NgPaneComponent} from '../ng-pane/ng-pane.component';
@@ -107,9 +108,10 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
      * @param cfr injected for use by the pane factory
      */
     public constructor(public el: ElementRef<Element>,
-                       templateService: NgPaneLeafTemplateService<X>,
+                       leafTemplateService: NgPaneLeafTemplateService<X>,
+                       headerTemplateService: NgPaneHeaderTemplateService<X>,
                        cfr: ComponentFactoryResolver) {
-        this.factory = new PaneFactory(this, templateService, cfr);
+        this.factory = new PaneFactory(this, leafTemplateService, headerTemplateService, cfr);
     }
 
     /**
