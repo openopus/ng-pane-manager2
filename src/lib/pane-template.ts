@@ -39,8 +39,9 @@ export type StringHeaderMode = 'hidden'|'visible'|'alwaysTab';
 /**
  * Style information for a pane header.
  */
-export type PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> = BasicPaneHeaderStyle<T>|
-    CustomPaneHeaderStyle<T>;
+export type PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode,
+                                      W              = string> = BasicPaneHeaderStyle<T>|
+    CustomPaneHeaderStyle<T, W>;
 
 /**
  * Style information for a pane header with no custom widgets.
@@ -52,7 +53,7 @@ export interface BasicPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode>
     title: Observable<string>;
     /** The icon for this header, or `undefined` for no icon */
     icon: Observable<string|undefined>;
-    /** Should always be undefined.  See `CustomPaneHeaderStyle` for more information */
+    /** Should always be undefined.  See `CustomPaneHeaderStyle` for more information. */
     widgets?: never;
     /** Whether this pane can be closed */
     closable: boolean;
@@ -61,11 +62,15 @@ export interface BasicPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode>
 /**
  * Style information for a pane header using custom widgets.
  */
-export interface CustomPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode> {
+export interface CustomPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode, W = string> {
     /** The display mode for this header */
     headerMode: T;
+    /** Should always be undefined.  See `BasicPaneHeaderStyle` for more information. */
+    title?: never;
+    /** Should always be undefined.  See `BasicPaneHeaderStyle` for more information. */
+    icon?: never;
     /** The unique string identifier for the widget template to use */
-    widgets: string;
+    widgets: W;
     /** Whether this pane can be closed */
     closable: boolean;
 }
@@ -175,6 +180,32 @@ export function sameLeafTemplate<X>(lhs: LeafNodeTemplate<X>|undefined,
     // TODO: check header?
 
     if (!extraEq(lCtx.extra, rCtx.extra)) { return false; }
+
+    return true;
+}
+
+/**
+ * Function to determine if two header styles are equivalent.  Note that this is
+ * a partial equivalence relation - it may return false even if the headers are
+ * potentially equivalent, but if it returns true the headers are guaranteed to
+ * be equivalent.
+ * @param lhs the first header style to compare
+ * @param rhs the second header style to compare
+ */
+export function sameHeaderStyle<T extends PaneHeaderMode, W>(lhs: PaneHeaderStyle<T, W>|undefined,
+                                                             rhs: PaneHeaderStyle<T, W>|
+                                                             undefined): boolean {
+    if (Object.is(lhs, rhs)) { return true; }
+
+    if (lhs === undefined || rhs === undefined) { return false; }
+
+    // Due to the nature of Observable, this is the closest possible
+    // approximation, but only partial equality is necessary here.
+    if (!(Object.is(lhs.headerMode, rhs.headerMode) && Object.is(lhs.widgets, rhs.widgets) &&
+          Object.is(lhs.title, rhs.title) && Object.is(lhs.icon, rhs.icon) &&
+          lhs.closable === rhs.closable)) {
+        return false;
+    }
 
     return true;
 }

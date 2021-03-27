@@ -34,7 +34,7 @@ import {PaneHeaderMode, PaneHeaderStyle} from './pane-template';
 export abstract class ClosablePaneComponent<X, T extends PaneHeaderMode = PaneHeaderMode> extends
     DraggablePaneComponent<X> {
     /** The header style information for this component */
-    protected abstract get style(): PaneHeaderStyle<T>;
+    protected abstract get style(): PaneHeaderStyle<T, unknown>;
 
     /**
      * Closes the associated pane on middle-click.

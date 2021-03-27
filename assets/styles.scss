@@ -21,6 +21,10 @@ ng-pane-manager {
             font-size: 13px;
             font-weight: 500;
             font-variant: small-caps;
+
+            > span {
+                height: 100%;
+            }
         }
 
         lib-ng-pane-tab-row {
@@ -31,18 +35,24 @@ ng-pane-manager {
             overflow-x: auto;
         }
 
+        lib-ng-pane-title {
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+            height: 100%;
+            overflow: hidden;
+        }
+
         .lib-ng-pane-tab-row-spacer {
             flex: 0 0 16px;
         }
 
-        .lib-ng-pane-header-icon,
-        .lib-ng-pane-tab-icon {
+        .lib-ng-pane-icon {
             height: 100%;
             margin-right: 8px;
         }
 
-        .lib-ng-pane-header-title,
-        .lib-ng-pane-tab-title {
+        .lib-ng-pane-title {
             line-height: 16px;
         }
 

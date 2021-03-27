@@ -319,20 +319,27 @@ export class PaneFactory<X> {
      * Collect all necessary information to render the contents of a custom
      * pane header.
      * @param layout the layout to render a header for
+     * @param style the style information for the header
      */
-    private renderHeaderTemplate(layout: ChildLayout<X>):
-        Observable<HeaderWidgetTemplate<X>|undefined> {
+    private renderHeaderTemplate<T extends PaneHeaderMode>(layout: ChildLayout<X>,
+                                                           style: PaneHeaderStyle<T>):
+        Observable<PaneHeaderStyle<T, HeaderWidgetTemplate<X>|undefined>> {
         const $info = this.headerTemplateService.get(undefined as any);
 
+        if (style.widgets === undefined) { return of(style); }
+
+        const {headerMode, closable} = style;
+
         return $info.pipe(map(info => {
-            if (info === undefined) { return undefined; }
+                              if (info === undefined) { return undefined; }
 
-            const {title, controls} = info;
+                              const {title, controls} = info;
 
-            const $implicit = {};
+                              const $implicit = {};
 
-            return {title, controls, context: {$implicit, layout}};
-        }));
+                              return {title, controls, context: {$implicit, layout}};
+                          }),
+                          map(widgets => ({headerMode, widgets, closable})));
     }
 
     /**
@@ -359,9 +366,8 @@ export class PaneFactory<X> {
         case LayoutType.Group:
             return new BehaviorSubject({
                 headerMode: PaneHeaderMode.Visible,
-                title: new BehaviorSubject('TODO Group Header'),
-                icon: new BehaviorSubject(undefined),
-                closable: false,
+                widgets: layout.headerWidgetId,
+                closable: false, // TODO
             });
         case LayoutType.Horiz:
         case LayoutType.Vert:
@@ -645,7 +651,9 @@ export class PaneFactory<X> {
 
         inst.manager = this.manager;
         inst.childId = withId.id;
-        inst.style   = style;
+
+        this.layoutSubscriptions.push(
+            this.renderHeaderTemplate(withId.child, style).subscribe(s => inst.style = s));
 
         if (!skipDropTarget) {
             this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
