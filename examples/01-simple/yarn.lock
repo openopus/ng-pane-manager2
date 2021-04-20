@@ -1060,10 +1060,10 @@
   dependencies:
     mkdirp "^1.0.4"
 
-"@openopus/angular-pane-manager@=1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.0.2.tgz#80f476d290d3001135d6c71e545ccce8d07a8602"
-  integrity sha512-iTrUtdSB5fzS+H99/8VhCQUyTrct9TXTqLQiJxuryQTH/kz0Rqa6AZBh6MXJ2IdxN7URw43NGZhZzW7RWnvx4Q==
+"@openopus/angular-pane-manager@=1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.1.0.tgz#c198b0b1ca32345f80a6b3b51a8ff38ec479fa72"
+  integrity sha512-ytEXhvA/f78Yj0jtxyqxQ+es5MOKUNT/jeI2ge/1uZQY49nCkK3MFig9EPtkb1J9Jxh8FvApphli2w8l7VAH/Q==
   dependencies:
     tslib "^2.0.0"
 
@@ -7056,9 +7056,9 @@ sshpk@^1.7.0:
     tweetnacl "~0.14.0"
 
 ssri@^6.0.0, ssri@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/ssri/-/ssri-6.0.1.tgz#2a3c41b28dd45b62b63676ecb74001265ae9edd8"
-  integrity sha512-3Wge10hNcT1Kur4PDFwEieXSCMCJs/7WvSACcrMYrNp+b8kDL1/0wJch5Ni2WrtwEa2IO8OsVfeKIciKCDx/QA==
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/ssri/-/ssri-6.0.2.tgz#157939134f20464e7301ddba3e90ffa8f7728ac5"
+  integrity sha512-cepbSq/neFK7xB6A50KHN0xHDotYzq58wWCa5LeWqnPrHG8GzfEjO/4O8kpmcGW+oaxkvhEJCWgbgNk4/ZV93Q==
   dependencies:
     figgy-pudding "^3.5.1"
 
