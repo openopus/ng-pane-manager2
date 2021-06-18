@@ -30,7 +30,7 @@ export interface HeaderTemplateInfo<X> {
     /** The title template.  See `HeaderWidgetTemplate<X>` for more info. */
     title: TemplateRef<HeaderWidgetContext<X>>;
     /** The controls template.  See `HeaderWidgetTemplate<X>` for more info. */
-    controls: TemplateRef<HeaderWidgetContext<X>>;
+    controls: TemplateRef<HeaderWidgetContext<X>>|undefined;
 }
 
 /**

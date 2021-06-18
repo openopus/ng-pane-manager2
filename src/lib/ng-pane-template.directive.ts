@@ -57,8 +57,9 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
 
     /**
      * Construct a new pane template directive.
-     * @param templateRef injected to be registered with a pane manager
+     * @param templateRef injected to be registered with the pane template service
      * @param _viewContainer injected (unused)
+     * @param templateService injected to register the pane template
      */
     public constructor(private readonly templateRef: TemplateRef<LeafNodeContext<X>>,
                        _viewContainer: ViewContainerRef,

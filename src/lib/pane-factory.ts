@@ -324,9 +324,14 @@ export class PaneFactory<X> {
     private renderHeaderTemplate<T extends PaneHeaderMode>(layout: ChildLayout<X>,
                                                            style: PaneHeaderStyle<T>):
         Observable<PaneHeaderStyle<T, HeaderWidgetTemplate<X>|undefined>> {
-        const $info = this.headerTemplateService.get(undefined as any);
-
         if (style.widgets === undefined) { return of(style); }
+
+        const $info = this.headerTemplateService.get(style.widgets);
+
+        // Don't do any widget funny business if the header isn't visible
+        if (Object.is(style.headerMode, PaneHeaderMode.Hidden)) {
+            return of({...style, widgets: undefined});
+        }
 
         const {headerMode, closable} = style;
 

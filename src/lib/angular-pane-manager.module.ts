@@ -38,6 +38,7 @@ import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
 import {NgPaneTabbedComponent} from './ng-pane-tabbed/ng-pane-tabbed.component';
 import {NgPaneTemplateDirective} from './ng-pane-template.directive';
 import {NgPaneTitleComponent} from './ng-pane-title/ng-pane-title.component';
+import {NgPaneWidgetDirective} from './ng-pane-widget.directive';
 import {NgPaneComponent} from './ng-pane/ng-pane.component';
 
 /**
@@ -63,9 +64,10 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
         NgPaneTitleComponent,
         NgPaneRendererDirective,
         NgPaneTemplateDirective,
+        NgPaneWidgetDirective,
     ],
     imports: [CommonModule],
-    exports: [NgPaneManagerComponent, NgPaneTemplateDirective],
+    exports: [NgPaneManagerComponent, NgPaneTemplateDirective, NgPaneWidgetDirective],
     entryComponents: [],
 })
 export class AngularPaneManagerModule {

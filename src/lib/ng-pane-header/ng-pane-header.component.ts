@@ -90,8 +90,11 @@ export class NgPaneHeaderComponent<X> extends ClosablePaneComponent<X, PaneHeade
             if (val.widgets !== undefined) {
                 this.title.viewContainer.createEmbeddedView<HeaderWidgetContext<X>>(
                     val.widgets.title, val.widgets.context);
-                this.controls.viewContainer.createEmbeddedView<HeaderWidgetContext<X>>(
-                    val.widgets.controls, val.widgets.context);
+
+                if (val.widgets.controls !== undefined) {
+                    this.controls.viewContainer.createEmbeddedView<HeaderWidgetContext<X>>(
+                        val.widgets.controls, val.widgets.context);
+                }
             }
         }
         else {

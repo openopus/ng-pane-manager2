@@ -153,7 +153,7 @@ export interface HeaderWidgetTemplate<X> {
      * right side of the header, and on a tabbed pane, this appears to the right
      * of the tab list, contextual to the current tab.
      */
-    controls: TemplateRef<HeaderWidgetContext<X>>;
+    controls: TemplateRef<HeaderWidgetContext<X>>|undefined;
     /** The context provided to both templates when rendering. */
     context: HeaderWidgetContext<X>;
 }

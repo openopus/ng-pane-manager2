@@ -28,10 +28,12 @@ import {BasicPaneHeaderStyle, PaneHeaderMode} from '../pane-template';
 @Component({
     selector: 'lib-ng-pane-title',
     template: `
-    <ng-container *ngIf="style.icon | async as icon">
-        <img class="lib-ng-pane-icon" [src]="icon">
-    </ng-container>
-    <span class="lib-ng-pane-title">{{style.title | async}}</span>`,
+    <ng-container *ngIf="style">
+        <ng-container *ngIf="style.icon | async as icon">
+            <img class="lib-ng-pane-icon" [src]="icon">
+        </ng-container>
+        <span class="lib-ng-pane-title">{{style.title | async}}</span>
+    </ng-container>`,
 })
 export class NgPaneTitleComponent {
     /** The header style information for this title */
