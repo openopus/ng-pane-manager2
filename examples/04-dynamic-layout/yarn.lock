@@ -1067,10 +1067,10 @@
   dependencies:
     mkdirp "^1.0.4"
 
-"@openopus/angular-pane-manager@=1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.0.2.tgz#80f476d290d3001135d6c71e545ccce8d07a8602"
-  integrity sha512-iTrUtdSB5fzS+H99/8VhCQUyTrct9TXTqLQiJxuryQTH/kz0Rqa6AZBh6MXJ2IdxN7URw43NGZhZzW7RWnvx4Q==
+"@openopus/angular-pane-manager@=1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.1.0.tgz#c198b0b1ca32345f80a6b3b51a8ff38ec479fa72"
+  integrity sha512-ytEXhvA/f78Yj0jtxyqxQ+es5MOKUNT/jeI2ge/1uZQY49nCkK3MFig9EPtkb1J9Jxh8FvApphli2w8l7VAH/Q==
   dependencies:
     tslib "^2.0.0"
 
@@ -8032,9 +8032,9 @@ wrappy@1:
   integrity sha1-tSQ9jz7BqjXxNkYFvA0QNuMKtp8=
 
 ws@^6.2.1:
-  version "6.2.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-6.2.1.tgz#442fdf0a47ed64f59b6a5d8ff130f4748ed524fb"
-  integrity sha512-GIyAXC2cB7LjvpgMt9EKS2ldqr0MTrORaleiOno6TweZ6r3TKtoFQWay/2PceJ3RuBasOHzXNn5Lrw1X0bEjqA==
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-6.2.2.tgz#dd5cdbd57a9979916097652d78f1cc5faea0c32e"
+  integrity sha512-zmhltoSR8u1cnDsD43TX59mzoMZsLKqUweyYBAIvTngR3shc0W6aOZylZmq/7hqyVxPdi+5Ud2QInblgyE72fw==
   dependencies:
     async-limiter "~1.0.0"
 
