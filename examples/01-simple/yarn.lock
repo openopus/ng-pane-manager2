@@ -1060,10 +1060,10 @@
   dependencies:
     mkdirp "^1.0.4"
 
-"@openopus/angular-pane-manager@=1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.0.2.tgz#80f476d290d3001135d6c71e545ccce8d07a8602"
-  integrity sha512-iTrUtdSB5fzS+H99/8VhCQUyTrct9TXTqLQiJxuryQTH/kz0Rqa6AZBh6MXJ2IdxN7URw43NGZhZzW7RWnvx4Q==
+"@openopus/angular-pane-manager@=1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.1.0.tgz#c198b0b1ca32345f80a6b3b51a8ff38ec479fa72"
+  integrity sha512-ytEXhvA/f78Yj0jtxyqxQ+es5MOKUNT/jeI2ge/1uZQY49nCkK3MFig9EPtkb1J9Jxh8FvApphli2w8l7VAH/Q==
   dependencies:
     tslib "^2.0.0"
 
@@ -7289,9 +7289,9 @@ tapable@^1.0.0, tapable@^1.1.3:
   integrity sha512-4WK/bYZmj8xLr+HUCODHGF1ZFzsYffasLUgEiMBY4fgtltdO6B4WJtlSbPaDTLpYTcGVwM2qLnFTICEcNxs3kA==
 
 tar@^4.4.10:
-  version "4.4.13"
-  resolved "https://registry.yarnpkg.com/tar/-/tar-4.4.13.tgz#43b364bc52888d555298637b10d60790254ab525"
-  integrity sha512-w2VwSrBoHa5BsSyH+KxEqeQBAllHhccyMFVHtGtdMpF4W7IRWfZjFiQceJPChOeTsSDVUpER2T8FA93pr0L+QA==
+  version "4.4.15"
+  resolved "https://registry.yarnpkg.com/tar/-/tar-4.4.15.tgz#3caced4f39ebd46ddda4d6203d48493a919697f8"
+  integrity sha512-ItbufpujXkry7bHH9NpQyTXPbJ72iTlXgkBAYsAjDXk3Ds8t/3NfO5P4xZGy7u+sYuQUbimgzswX4uQIEeNVOA==
   dependencies:
     chownr "^1.1.1"
     fs-minipass "^1.2.5"
