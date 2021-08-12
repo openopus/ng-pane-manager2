@@ -1060,10 +1060,10 @@
   dependencies:
     mkdirp "^1.0.4"
 
-"@openopus/angular-pane-manager@=1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.0.2.tgz#80f476d290d3001135d6c71e545ccce8d07a8602"
-  integrity sha512-iTrUtdSB5fzS+H99/8VhCQUyTrct9TXTqLQiJxuryQTH/kz0Rqa6AZBh6MXJ2IdxN7URw43NGZhZzW7RWnvx4Q==
+"@openopus/angular-pane-manager@=1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.1.0.tgz#c198b0b1ca32345f80a6b3b51a8ff38ec479fa72"
+  integrity sha512-ytEXhvA/f78Yj0jtxyqxQ+es5MOKUNT/jeI2ge/1uZQY49nCkK3MFig9EPtkb1J9Jxh8FvApphli2w8l7VAH/Q==
   dependencies:
     tslib "^2.0.0"
 
@@ -5603,9 +5603,9 @@ path-key@^2.0.0, path-key@^2.0.1:
   integrity sha1-QRyttXTFoUDTpLGRDUDYDMn0C0A=
 
 path-parse@^1.0.6:
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/path-parse/-/path-parse-1.0.6.tgz#d62dbb5679405d72c4737ec58600e9ddcf06d24c"
-  integrity sha512-GSmOT2EbHrINBf9SR7CDELwlJ8AENk3Qn7OikK4nFYAu3Ote2+JYNVvkpAEQm3/TLNEJFD/xZJjzyxg3KBWOzw==
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/path-parse/-/path-parse-1.0.7.tgz#fbc114b60ca42b30d9daf5858e4bd68bbedb6735"
+  integrity sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==
 
 path-to-regexp@0.1.7:
   version "0.1.7"
