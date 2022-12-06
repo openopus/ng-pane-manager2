@@ -1067,10 +1067,10 @@
   dependencies:
     mkdirp "^1.0.4"
 
-"@openopus/angular-pane-manager@=1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.0.2.tgz#80f476d290d3001135d6c71e545ccce8d07a8602"
-  integrity sha512-iTrUtdSB5fzS+H99/8VhCQUyTrct9TXTqLQiJxuryQTH/kz0Rqa6AZBh6MXJ2IdxN7URw43NGZhZzW7RWnvx4Q==
+"@openopus/angular-pane-manager@=1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@openopus/angular-pane-manager/-/angular-pane-manager-1.1.0.tgz#c198b0b1ca32345f80a6b3b51a8ff38ec479fa72"
+  integrity sha512-ytEXhvA/f78Yj0jtxyqxQ+es5MOKUNT/jeI2ge/1uZQY49nCkK3MFig9EPtkb1J9Jxh8FvApphli2w8l7VAH/Q==
   dependencies:
     tslib "^2.0.0"
 
@@ -2723,9 +2723,9 @@ decamelize@^1.2.0:
   integrity sha1-9lNNFRSCabIDUue+4m9QH5oZEpA=
 
 decode-uri-component@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/decode-uri-component/-/decode-uri-component-0.2.0.tgz#eb3913333458775cb84cd1a1fae062106bb87545"
-  integrity sha1-6zkTMzRYd1y4TNGh+uBiEGu4dUU=
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/decode-uri-component/-/decode-uri-component-0.2.2.tgz#e69dbe25d37941171dd540e024c444cd5188e1e9"
+  integrity sha512-FqUYQ+8o158GyGTrMFJms9qh3CqTKvAqgqsTnkLI8sKu0028orqBhxNMFkFen0zGyg6epACD32pjVk58ngIErQ==
 
 deep-equal@^1.0.1:
   version "1.1.1"
