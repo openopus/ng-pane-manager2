@@ -22,16 +22,17 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 
 import { ClosablePaneComponent } from '../closable';
+import { NgPaneHeaderComponent } from '../ng-pane-header/ng-pane-header.component';
 import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
-import { NgPaneTabComponent } from '../ng-pane-tab/ng-pane-tab.component';
-import { PaneHeaderMode, PaneHeaderStyle } from '../pane-template';
+import { RenderedHeaderStyle } from '../pane-factory';
+import { PaneHeaderMode } from '../pane-template';
 
 /**
  * Extra information for a mock tab row with a single tab.
  */
 interface SimpleExtra<X> {
     /** The tab owned by this tab row */
-    tab: NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
+    tab: NgPaneHeaderComponent<X, PaneHeaderMode.AlwaysTab>;
 }
 
 /**
@@ -41,11 +42,11 @@ interface TabbedExtra<X> {
     /** Disallows `tab` as a property name.  Used for type checking. */
     tab?: never;
     /** The style information for this pane */
-    style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab> | undefined;
+    style: RenderedHeaderStyle<X, PaneHeaderMode.AlwaysTab> | undefined;
     /** Subscription for current tab changes */
     subscription: Subscription | undefined;
     /** The tabs rendered into this tab row */
-    tabs: NgPaneTabComponent<X>[];
+    tabs: NgPaneHeaderComponent<X>[];
     /** The tab currently rendered as selected */
     current: number | undefined;
 }
@@ -71,7 +72,7 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
      * The header style information for this tab row.\
      * For a mock tab row, this information is passed on to the contained tab.
      */
-    public get style(): PaneHeaderStyle<PaneHeaderMode.AlwaysTab> {
+    public get style(): RenderedHeaderStyle<X, PaneHeaderMode.AlwaysTab> {
         if (this.extra === undefined) {
             throw new Error('tab row in invalid state');
         }
@@ -87,7 +88,7 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
         return this.extra.style;
     }
 
-    public set style(style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>) {
+    public set style(style: RenderedHeaderStyle<X, PaneHeaderMode.AlwaysTab>) {
         if (this.extra === undefined) {
             this.setupTabbedExtra();
         } else if (this.extra.tab !== undefined) {
@@ -98,7 +99,7 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
     }
 
     /** Convert this to a mock tab row using the given tab. */
-    public set tab(tab: NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>) {
+    public set tab(tab: NgPaneHeaderComponent<X, PaneHeaderMode.AlwaysTab>) {
         const style = this.extra !== undefined ? this.style : undefined;
 
         this.extra = { tab };
@@ -108,7 +109,7 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
     }
 
     /** If this is a real tab row, return the child tabs. */
-    public get tabs(): NgPaneTabComponent<X>[] {
+    public get tabs(): NgPaneHeaderComponent<X>[] {
         const extra = this.setupTabbedExtra();
         if (extra === undefined) {
             throw new Error('tab row in invalid state');
@@ -133,12 +134,12 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
 
         extra.subscription = val.subscribe(tab => {
             if (extra.current !== undefined) {
-                extra.tabs[extra.current].active = false;
+                extra.tabs[extra.current].tabActive = false;
             }
 
             extra.current = tab;
 
-            extra.tabs[tab].active = true;
+            extra.tabs[tab].tabActive = true;
         });
     }
 

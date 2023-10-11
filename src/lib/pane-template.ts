@@ -114,6 +114,42 @@ export function headerStyle(
 }
 
 /**
+ * Construct a custom pane header style object.
+ * @param header the display mode for the header
+ * @param title the title for the header
+ * @param icon the icon for the header, or `undefined` for no icon
+ * @param closable whether this pane can be closed
+ */
+export function customHeaderStyle(
+    header: StringHeaderMode | PaneHeaderMode,
+    widgets: string,
+    closable: boolean,
+): PaneHeaderStyle {
+    let headerMode;
+
+    switch (header) {
+        case 'hidden':
+            headerMode = PaneHeaderMode.Hidden;
+            break;
+        case 'visible':
+            headerMode = PaneHeaderMode.Visible;
+            break;
+        case 'alwaysTab':
+            headerMode = PaneHeaderMode.AlwaysTab;
+            break;
+        default:
+            headerMode = header;
+            break;
+    }
+
+    return {
+        headerMode,
+        widgets,
+        closable,
+    };
+}
+
+/**
  * Context passed to the `TemplateRef` of a leaf node.
  */
 export interface LeafNodeContext<X> {

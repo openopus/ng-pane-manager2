@@ -40,7 +40,6 @@ import { NgPaneManagerComponent } from './ng-pane-manager/ng-pane-manager.compon
 import { NgPaneSplitThumbComponent } from './ng-pane-split-thumb/ng-pane-split-thumb.component';
 import { NgPaneSplitComponent } from './ng-pane-split/ng-pane-split.component';
 import { NgPaneTabRowComponent } from './ng-pane-tab-row/ng-pane-tab-row.component';
-import { NgPaneTabComponent } from './ng-pane-tab/ng-pane-tab.component';
 import { NgPaneTabbedComponent } from './ng-pane-tabbed/ng-pane-tabbed.component';
 import { NgPaneComponent } from './ng-pane/ng-pane.component';
 import {
@@ -61,6 +60,14 @@ import {
     PaneHeaderMode,
     PaneHeaderStyle,
 } from './pane-template';
+
+/**
+ * A pane header with the widgets fully resolved
+ */
+export type RenderedHeaderStyle<X, T extends PaneHeaderMode> = PaneHeaderStyle<
+    T,
+    HeaderWidgetTemplate<X> | undefined
+>;
 
 /**
  * Used to identify different values of `NgPaneComponent.header`
@@ -97,9 +104,9 @@ export type PaneHeader<X> =
           type: PaneHeaderType.Skip;
       }
     | {
-          /** The pane has a simple header */
-          type: PaneHeaderType.Header;
-          /** The header of the pane */
+          /** The pane has a simple or tabbed header */
+          type: PaneHeaderType.Header | PaneHeaderType.Tab;
+          /** The header or tab of the pane */
           header: ComponentInst<NgPaneHeaderComponent<X>>;
       }
     | {
@@ -107,12 +114,6 @@ export type PaneHeader<X> =
           type: PaneHeaderType.TabRow;
           /** The tab row of the pane */
           header: ComponentInst<NgPaneTabRowComponent<X>>;
-      }
-    | {
-          /** The pane is associated with a tab from another pane */
-          type: PaneHeaderType.Tab;
-          /** The tab associated with this pane */
-          header: ComponentInst<NgPaneTabComponent<X>>;
       };
 
 /**
@@ -166,8 +167,6 @@ export class PaneFactory<X> {
     private readonly splitFactory: ComponentFactory<NgPaneSplitComponent<X>>;
     /** Factory for split branch thumbs */
     private readonly splitThumbFactory: ComponentFactory<NgPaneSplitThumbComponent<X>>;
-    /** Factory for pane tabs */
-    private readonly tabFactory: ComponentFactory<NgPaneTabComponent<X>>;
     /** Factory for pane tab rows */
     private readonly tabRowFactory: ComponentFactory<NgPaneTabRowComponent<X>>;
     /** Factory for tabbed branch panes */
@@ -234,9 +233,6 @@ export class PaneFactory<X> {
         this.splitThumbFactory = cfr.resolveComponentFactory(
             NgPaneSplitThumbComponent,
         ) as ComponentFactory<NgPaneSplitThumbComponent<X>>;
-        this.tabFactory = cfr.resolveComponentFactory(NgPaneTabComponent) as ComponentFactory<
-            NgPaneTabComponent<X>
-        >;
         this.tabRowFactory = cfr.resolveComponentFactory(NgPaneTabRowComponent) as ComponentFactory<
             NgPaneTabRowComponent<X>
         >;
@@ -345,7 +341,7 @@ export class PaneFactory<X> {
     private renderHeaderTemplate<T extends PaneHeaderMode>(
         layout: ChildLayout<X>,
         style: PaneHeaderStyle<T>,
-    ): Observable<PaneHeaderStyle<T, HeaderWidgetTemplate<X> | undefined>> {
+    ): Observable<RenderedHeaderStyle<X, T>> {
         if (style.widgets === undefined) {
             return of(style);
         }
@@ -762,24 +758,26 @@ export class PaneFactory<X> {
 
     /**
      * Render a pane tab.
-     *
-     * **NOTE:** this does _not_ set `NgPaneTabComponent.style`, which is marked
-     *           with a non-null assertion on its declaration. `.style` _must_
-     *           be set by the caller.
      * @param container the container to render the tab in
      * @param withId the layout node corresponding to the tab
+     * @param style the style information for the tab
      * @param skipDropTarget set to true to disable registering a drop target
      */
     private placeTab(
         container: ViewContainerRef,
         withId: ChildWithId<X>,
+        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
         skipDropTarget: boolean,
-    ): ComponentInst<NgPaneTabComponent<X>> {
-        const component = container.createComponent(this.tabFactory);
+    ): ComponentInst<NgPaneHeaderComponent<X>> {
+        const component = container.createComponent(this.headerFactory);
         const inst = component.instance;
 
         inst.manager = this.manager;
         inst.childId = withId.id;
+
+        this.layoutSubscriptions.push(
+            this.renderHeaderTemplate(withId.child, style).subscribe(s => (inst.style = s)),
+        );
 
         if (!skipDropTarget) {
             this.dropTargets.set(inst.el, { type: DropTargetType.Tab, id: withId.id });
@@ -815,6 +813,7 @@ export class PaneFactory<X> {
                 const tab = this.placeTab(
                     inst.renderer.viewContainer,
                     { child: subchild, id: layout.childId(childIndex) },
+                    style,
                     skipDropTarget,
                 );
                 const pane = this.panes.get(subchild);
@@ -830,19 +829,22 @@ export class PaneFactory<X> {
                 inst.tabs.push(tab.component.instance);
             });
 
-            inst.style = style;
             inst.$currentTab = layout.$currentTab;
         } else {
             const tab = this.placeTab(
                 component.instance.renderer.viewContainer,
                 withId,
+                style,
                 skipDropTarget,
             );
-            inst.tab = tab.component.instance as NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
-            inst.style = style;
+            inst.tab = tab.component.instance as NgPaneHeaderComponent<X, PaneHeaderMode.AlwaysTab>;
 
-            tab.component.instance.active = true;
+            tab.component.instance.tabActive = true;
         }
+
+        this.layoutSubscriptions.push(
+            this.renderHeaderTemplate(withId.child, style).subscribe(s => (inst.style = s)),
+        );
 
         if (!skipDropTarget) {
             this.dropTargets.set(inst.el, { type: DropTargetType.TabRow, id: withId.id });
@@ -912,7 +914,17 @@ export class PaneFactory<X> {
                             throw new Error('unreachable');
                     }
                 } else if (pane.header.type !== PaneHeaderType.None) {
-                    pane.header.header.component.instance.style = style;
+                    const inst = pane.header.header.component.instance;
+                    this.layoutSubscriptions.push(
+                        this.renderHeaderTemplate<
+                            PaneHeaderMode.Visible | PaneHeaderMode.AlwaysTab
+                        >(
+                            withId.child,
+                            style as PaneHeaderStyle<
+                                PaneHeaderMode.Visible | PaneHeaderMode.AlwaysTab
+                            >,
+                        ).subscribe(s => (inst.style = s)),
+                    );
                 }
             }),
         );

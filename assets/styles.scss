@@ -9,8 +9,7 @@ ng-pane-manager {
     &.ng-theme-default,
     &.ng-theme-light,
     &.ng-theme-default-layout {
-        lib-ng-pane-header,
-        lib-ng-pane-tab {
+        lib-ng-pane-header {
             flex: 0 0 auto;
             display: flex;
             flex-flow: row nowrap;
@@ -25,6 +24,16 @@ ng-pane-manager {
             > span {
                 height: 100%;
             }
+
+            &,
+            & > .lib-ng-pane-header-close {
+                cursor: default;
+            }
+
+            > .lib-ng-pane-header-spacer {
+                flex: 1 0 auto;
+                width: $header-padding;
+            }
         }
 
         lib-ng-pane-tab-row {
@@ -33,6 +42,27 @@ ng-pane-manager {
             flex-flow: row nowrap;
             justify-content: flex-start;
             overflow-x: auto;
+
+            > lib-ng-pane-header {
+                padding-top: ($header-padding - $header-overline);
+                border-top: $header-overline solid transparent;
+
+                &,
+                & > .lib-ng-pane-header-close {
+                    cursor: pointer;
+                }
+
+                &.lib-ng-pane-tab-active {
+                    &,
+                    > .lib-ng-pane-header-close {
+                        cursor: default;
+                    }
+                }
+
+                &:not(:hover):not(.lib-ng-pane-tab-active) > .lib-ng-pane-header-close {
+                    opacity: 0;
+                }
+            }
         }
 
         lib-ng-pane-title {
@@ -56,10 +86,11 @@ ng-pane-manager {
             line-height: 16px;
         }
 
-        .lib-ng-pane-header-close,
-        .lib-ng-pane-tab-close {
+        .lib-ng-pane-header-close {
+            $outset: 2px;
+
             flex: 0 0 auto;
-            margin: 0 0 0 $header-padding;
+            margin: 0 0 0 $outset;
             padding: 0;
             background: none;
             border: none;
@@ -67,7 +98,6 @@ ng-pane-manager {
             &::after {
                 content: 'x';
 
-                $outset: 2px;
                 $size: ($header-height + 2 * ($outset - $header-padding));
 
                 display: block;
@@ -82,42 +112,6 @@ ng-pane-manager {
                 font-weight: 500;
                 line-height: 15px;
                 text-align: center;
-            }
-        }
-
-        lib-ng-pane-header {
-            &,
-            & > .lib-ng-pane-header-close {
-                cursor: default;
-            }
-
-            > .lib-ng-pane-header-spacer {
-                flex: 1 0 2px;
-            }
-        }
-
-        lib-ng-pane-tab {
-            padding-top: ($header-padding - $header-overline);
-            border-top: $header-overline solid transparent;
-
-            &,
-            & > .lib-ng-pane-tab-close {
-                cursor: pointer;
-            }
-
-            > .lib-ng-pane-tab-spacer {
-                flex: 0 0 2px;
-            }
-
-            &.lib-ng-pane-tab-active {
-                &,
-                > .lib-ng-pane-tab-close {
-                    cursor: default;
-                }
-            }
-
-            &:not(:hover):not(.lib-ng-pane-tab-active) > .lib-ng-pane-tab-close {
-                opacity: 0;
             }
         }
 
@@ -194,8 +188,7 @@ ng-pane-manager {
         $drop-highlight-bkgd: '',
         $shadow-color: ''
     ) {
-        lib-ng-pane-header,
-        lib-ng-pane-tab {
+        lib-ng-pane-header {
             color: $header-color;
         }
 
@@ -209,8 +202,7 @@ ng-pane-manager {
             color: $pane-color;
         }
 
-        .lib-ng-pane-header-close,
-        .lib-ng-pane-tab-close {
+        .lib-ng-pane-header-close {
             &::after {
                 color: $header-color;
             }
@@ -225,7 +217,7 @@ ng-pane-manager {
             }
         }
 
-        lib-ng-pane-tab {
+        lib-ng-pane-tab-row > lib-ng-pane-header {
             &.lib-ng-pane-tab-active {
                 position: relative;
                 background: $tab-bkgd;

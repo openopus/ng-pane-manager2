@@ -32,7 +32,6 @@ import { NgPaneRendererDirective } from './ng-pane-renderer.directive';
 import { NgPaneSplitThumbComponent } from './ng-pane-split-thumb/ng-pane-split-thumb.component';
 import { NgPaneSplitComponent } from './ng-pane-split/ng-pane-split.component';
 import { NgPaneTabRowComponent } from './ng-pane-tab-row/ng-pane-tab-row.component';
-import { NgPaneTabComponent } from './ng-pane-tab/ng-pane-tab.component';
 import { NgPaneTabbedComponent } from './ng-pane-tabbed/ng-pane-tabbed.component';
 import { NgPaneTemplateDirective } from './ng-pane-template.directive';
 import { NgPaneTitleComponent } from './ng-pane-title/ng-pane-title.component';
@@ -56,7 +55,6 @@ import { NgPaneComponent } from './ng-pane/ng-pane.component';
         NgPaneManagerComponent,
         NgPaneSplitComponent,
         NgPaneSplitThumbComponent,
-        NgPaneTabComponent,
         NgPaneTabRowComponent,
         NgPaneTabbedComponent,
         NgPaneTitleComponent,

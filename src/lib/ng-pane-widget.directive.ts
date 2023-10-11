@@ -48,7 +48,7 @@ export class NgPaneWidgetDirective<X> implements AfterContentInit, OnDestroy {
 
     /** Stores the associated right-hand-side controls for this title widget */
     @Input()
-    public set ngPaneWidgetControls(controls: TemplateRef<HeaderWidgetContext<X>>) {
+    public set ngPaneWidgetWithControls(controls: TemplateRef<HeaderWidgetContext<X>>) {
         this.controls = controls;
     }
 

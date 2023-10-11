@@ -23,36 +23,30 @@ import {
     ComponentFactory,
     ComponentFactoryResolver,
     ElementRef,
+    HostBinding,
     ViewChild,
 } from '@angular/core';
 
 import { ClosablePaneComponent } from '../closable';
 import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
 import { NgPaneTitleComponent } from '../ng-pane-title/ng-pane-title.component';
-import {
-    HeaderWidgetContext,
-    HeaderWidgetTemplate,
-    PaneHeaderMode,
-    PaneHeaderStyle,
-    sameHeaderStyle,
-} from '../pane-template';
-
-/** Shorthand convenience type */
-type HeaderStyle<X> = PaneHeaderStyle<PaneHeaderMode.Visible, HeaderWidgetTemplate<X> | undefined>;
+import { RenderedHeaderStyle } from '../pane-factory';
+import { LayoutType } from '../pane-layout/module';
+import { HeaderWidgetContext, PaneHeaderMode, sameHeaderStyle } from '../pane-template';
 
 /**
- * A non-tabbed pane header.
+ * A pane header or pane tab.
  */
 @Component({
     selector: 'lib-ng-pane-header',
     template: `<span>
             <ng-container libNgPaneRenderer #title></ng-container>
         </span>
+        <span class="lib-ng-pane-header-spacer"></span>
         <span>
             <ng-container libNgPaneRenderer #controls></ng-container>
         </span>
         <ng-container *ngIf="style && style.closable">
-            <div class="lib-ng-pane-header-spacer"></div>
             <button
                 class="lib-ng-pane-header-close"
                 (mousedown)="$event.stopPropagation()"
@@ -61,7 +55,12 @@ type HeaderStyle<X> = PaneHeaderStyle<PaneHeaderMode.Visible, HeaderWidgetTempla
             ></button>
         </ng-container>`,
 })
-export class NgPaneHeaderComponent<X> extends ClosablePaneComponent<X, PaneHeaderMode.Visible> {
+export class NgPaneHeaderComponent<
+    X,
+    T extends PaneHeaderMode.Visible | PaneHeaderMode.AlwaysTab =
+        | PaneHeaderMode.Visible
+        | PaneHeaderMode.AlwaysTab,
+> extends ClosablePaneComponent<X, T> {
     /** Provides a view container to render the title widget into */
     @ViewChild('title', { read: NgPaneRendererDirective, static: true })
     private readonly title!: NgPaneRendererDirective;
@@ -74,14 +73,17 @@ export class NgPaneHeaderComponent<X> extends ClosablePaneComponent<X, PaneHeade
     private readonly titleFactory: ComponentFactory<NgPaneTitleComponent>;
 
     /** See `style`. */
-    private _style!: HeaderStyle<X>;
+    private _style!: RenderedHeaderStyle<X, T>;
+
+    /** Indicates the current header is a selected tab and its pane is visible */
+    @HostBinding('class.lib-ng-pane-tab-active') public tabActive: boolean = false;
 
     /** The header style to render */
-    public get style(): HeaderStyle<X> {
+    public get style(): RenderedHeaderStyle<X, T> {
         return this._style;
     }
 
-    public set style(val: HeaderStyle<X>) {
+    public set style(val: RenderedHeaderStyle<X, T>) {
         if (sameHeaderStyle(val, this._style)) {
             return;
         }
@@ -122,5 +124,27 @@ export class NgPaneHeaderComponent<X> extends ClosablePaneComponent<X, PaneHeade
     ) {
         super();
         this.titleFactory = cfr.resolveComponentFactory(NgPaneTitleComponent);
+    }
+
+    /**
+     * Selects the current tab and initiates a drag of the associated pane.
+     */
+    public onMouseDown(evt: MouseEvent): void {
+        if (evt.buttons === 1 && this.childId.stem.type === LayoutType.Tabbed) {
+            this.childId.stem.currentTab = this.childId.index;
+        }
+
+        super.onMouseDown(evt);
+    }
+
+    /**
+     * Selects the current tab and initiates a drag of the associated pane.
+     */
+    public onTouchStart(evt: TouchEvent): void {
+        if (evt.touches.length === 1 && this.childId.stem.type === LayoutType.Tabbed) {
+            this.childId.stem.currentTab = this.childId.index;
+        }
+
+        super.onTouchStart(evt);
     }
 }
