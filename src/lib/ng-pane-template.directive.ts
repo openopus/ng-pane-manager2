@@ -26,22 +26,21 @@ import {
     TemplateRef,
     ViewContainerRef,
 } from '@angular/core';
-import {BehaviorSubject} from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
-import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
-import {LeafNodeContext, PaneHeaderMode, PaneHeaderStyle} from './pane-template';
-
+import { NgPaneLeafTemplateService } from './ng-pane-leaf-templates.service';
+import { LeafNodeContext, PaneHeaderMode, PaneHeaderStyle } from './pane-template';
 
 /**
  * Stores the attached content as a named template for leaf panes.
  */
 // tslint:disable-next-line directive-selector
-@Directive({selector: '[ngPaneTemplate]'})
+@Directive({ selector: '[ngPaneTemplate]' })
 export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
     /** See `ngPaneTemplateNamed` */
-    private name: string|undefined;
+    private name: string | undefined;
     /** See `ngPaneTemplateWithHeader` */
-    private headerStyle: PaneHeaderStyle|undefined;
+    private headerStyle: PaneHeaderStyle | undefined;
 
     /** Stores the name to register this template under */
     @Input()
@@ -61,13 +60,17 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
      * @param _viewContainer injected (unused)
      * @param templateService injected to register the pane template
      */
-    public constructor(private readonly templateRef: TemplateRef<LeafNodeContext<X>>,
-                       _viewContainer: ViewContainerRef,
-                       private readonly templateService: NgPaneLeafTemplateService<X>) {}
+    public constructor(
+        private readonly templateRef: TemplateRef<LeafNodeContext<X>>,
+        _viewContainer: ViewContainerRef,
+        private readonly templateService: NgPaneLeafTemplateService<X>,
+    ) {}
 
     /** Register the pane template */
     public ngAfterContentInit(): void {
-        if (this.name === undefined) { throw new Error(`pane template missing 'named' keyword`); }
+        if (this.name === undefined) {
+            throw new Error("pane template missing 'named' keyword");
+        }
 
         if (this.headerStyle === undefined) {
             this.headerStyle = {
@@ -78,14 +81,21 @@ export class NgPaneTemplateDirective<X> implements AfterContentInit, OnDestroy {
             };
         }
 
-        this.templateService.add(this.name, {header: this.headerStyle, template: this.templateRef});
+        this.templateService.add(this.name, {
+            header: this.headerStyle,
+            template: this.templateRef,
+        });
     }
 
     /** Attempt to unregister the template */
     public ngOnDestroy(): void {
-        if (this.name === undefined) { return; }
+        if (this.name === undefined) {
+            return;
+        }
 
-        this.templateService.remove(this.name,
-                                    {header: this.headerStyle, template: this.templateRef});
+        this.templateService.remove(this.name, {
+            header: this.headerStyle,
+            template: this.templateRef,
+        });
     }
 }

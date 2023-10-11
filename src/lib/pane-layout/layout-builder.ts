@@ -18,39 +18,43 @@
  *
  **********************************************************************************/
 
-import {SplitLayout, TabbedLayout} from './branch-layout';
-import {LayoutGravity, LayoutType} from './layout-base';
-import {ChildLayout, GroupLayout, LeafLayout, PaneLayout, RootLayout} from './layout-core';
-import {GravityTemplate, LayoutTemplate, loadLayout, loadLayoutGravity} from './layout-template';
+import { SplitLayout, TabbedLayout } from './branch-layout';
+import { LayoutGravity, LayoutType } from './layout-base';
+import { ChildLayout, GroupLayout, LeafLayout, PaneLayout, RootLayout } from './layout-core';
+import { GravityTemplate, LayoutTemplate, loadLayout, loadLayoutGravity } from './layout-template';
 
 /** Represents a value with either a success or failure */
-export type Result<T> = {
-    /** The resulting value, indicating a success */
-    ok: T;
-    /** Disallows `err` as a property name.  Used for type checking. */
-    err?: never;
+export type Result<T> =
+    | {
+          /** The resulting value, indicating a success */
+          ok: T;
+          /** Disallows `err` as a property name.  Used for type checking. */
+          err?: never;
 
-    /** Returns the underlying value. */
-    unwrap(): T;
-}|{
-    /** Disallows `ok` as a property name.  Used for type checking. */
-    ok?: never;
-    /** An error that occurred, indicating a failure */
-    err: Error;
+          /** Returns the underlying value. */
+          unwrap(): T;
+      }
+    | {
+          /** Disallows `ok` as a property name.  Used for type checking. */
+          ok?: never;
+          /** An error that occurred, indicating a failure */
+          err: Error;
 
-    /** Throws the attached error. */
-    unwrap(): never;
-};
+          /** Throws the attached error. */
+          unwrap(): never;
+      };
 
 /** Represents a string or numeric layout gravity. */
-export type AnyGravity = GravityTemplate|LayoutGravity|undefined;
+export type AnyGravity = GravityTemplate | LayoutGravity | undefined;
 
 /**
  * Convert a value of type `AnyGravity` to a `LayoutGravity`.
  * @param gravity the gravity to convert
  */
-function getGravity(gravity: AnyGravity): LayoutGravity|undefined {
-    if (typeof gravity === 'string') { return loadLayoutGravity(gravity); }
+function getGravity(gravity: AnyGravity): LayoutGravity | undefined {
+    if (typeof gravity === 'string') {
+        return loadLayoutGravity(gravity);
+    }
 
     return gravity;
 }
@@ -79,7 +83,9 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * The current root layout.  This value is mutated when a layout change is
      * applied.
      */
-    public get root(): RootLayout<X> { return this._root; }
+    public get root(): RootLayout<X> {
+        return this._root;
+    }
 
     /**
      * Begin building on an existing layout.
@@ -107,9 +113,11 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * returns `undefined`.
      * @param callback function to compute a new root layout given the current one
      */
-    private transact(callback: (root: RootLayout<X>) => RootLayout<X>| undefined): void {
+    private transact(callback: (root: RootLayout<X>) => RootLayout<X> | undefined): void {
         const ret = callback(this._root);
-        if (ret === undefined) { throw new Error('layout transaction returned undefined'); }
+        if (ret === undefined) {
+            throw new Error('layout transaction returned undefined');
+        }
 
         this._root = ret;
     }
@@ -126,10 +134,14 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
             callback(this);
             const ok = this._root;
 
-            return {ok, unwrap: () => ok};
-        }
-        catch (err) {
-            return {err, unwrap: () => { throw err; }};
+            return { ok, unwrap: () => ok };
+        } catch (err) {
+            return {
+                err,
+                unwrap: () => {
+                    throw err;
+                },
+            };
         }
     }
 
@@ -142,9 +154,13 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param template the template to load, or `undefined`
      * @param loadExtra the function used to load extra data
      */
-    public load<T>(template: LayoutTemplate<T>|undefined,
-                   loadExtra: (extra: T) => X): ChildLayout<X> {
-        if (template === undefined) { throw new Error('template to load was undefined'); }
+    public load<T>(
+        template: LayoutTemplate<T> | undefined,
+        loadExtra: (extra: T) => X,
+    ): ChildLayout<X> {
+        if (template === undefined) {
+            throw new Error('template to load was undefined');
+        }
 
         return loadLayout(template, loadExtra);
     }
@@ -156,7 +172,7 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * `load` instead.
      * @param template the template to load, or `undefined`
      */
-    public loadSimple(template: LayoutTemplate<X>|undefined): ChildLayout<X> {
+    public loadSimple(template: LayoutTemplate<X> | undefined): ChildLayout<X> {
         return this.load(template, x => x);
     }
 
@@ -168,8 +184,13 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public leaf(id: string, template: string, extra: X, gravity?: AnyGravity, group?: string):
-        LeafLayout<X> {
+    public leaf(
+        id: string,
+        template: string,
+        extra: X,
+        gravity?: AnyGravity,
+        group?: string,
+    ): LeafLayout<X> {
         return new LeafLayout(id, template, extra, getGravity(gravity), group);
     }
 
@@ -180,8 +201,12 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public group(split: SplitLayout<X>, header: string, gravity?: AnyGravity, group?: string):
-        GroupLayout<X> {
+    public group(
+        split: SplitLayout<X>,
+        header: string,
+        gravity?: AnyGravity,
+        group?: string,
+    ): GroupLayout<X> {
         return new GroupLayout(split, header, getGravity(gravity), group);
     }
 
@@ -193,16 +218,20 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public split(vert: boolean,
-                 children: ChildLayout<X>[],
-                 ratios?: number[],
-                 gravity?: AnyGravity,
-                 group?: string): SplitLayout<X> {
-        return new SplitLayout(vert ? LayoutType.Vert : LayoutType.Horiz,
-                               children,
-                               ratios !== undefined ? ratios : children.map(_ => 1),
-                               getGravity(gravity),
-                               group);
+    public split(
+        vert: boolean,
+        children: ChildLayout<X>[],
+        ratios?: number[],
+        gravity?: AnyGravity,
+        group?: string,
+    ): SplitLayout<X> {
+        return new SplitLayout(
+            vert ? LayoutType.Vert : LayoutType.Horiz,
+            children,
+            ratios !== undefined ? ratios : children.map(_ => 1),
+            getGravity(gravity),
+            group,
+        );
     }
 
     /**
@@ -212,10 +241,12 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public horiz(children: ChildLayout<X>[],
-                 ratios?: number[],
-                 gravity?: AnyGravity,
-                 group?: string): SplitLayout<X> {
+    public horiz(
+        children: ChildLayout<X>[],
+        ratios?: number[],
+        gravity?: AnyGravity,
+        group?: string,
+    ): SplitLayout<X> {
         return this.split(false, children, ratios, gravity, group);
     }
 
@@ -226,10 +257,12 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public vert(children: ChildLayout<X>[],
-                ratios?: number[],
-                gravity?: AnyGravity,
-                group?: string): SplitLayout<X> {
+    public vert(
+        children: ChildLayout<X>[],
+        ratios?: number[],
+        gravity?: AnyGravity,
+        group?: string,
+    ): SplitLayout<X> {
         return this.split(true, children, ratios, gravity, group);
     }
 
@@ -240,19 +273,27 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param gravity the node gravity
      * @param group the node group
      */
-    public tab(children: ChildLayout<X>[], current?: number, gravity?: AnyGravity, group?: string):
-        TabbedLayout<X> {
-        return new TabbedLayout(children,
-                                current !== undefined ? current : children.length - 1,
-                                getGravity(gravity),
-                                group);
+    public tab(
+        children: ChildLayout<X>[],
+        current?: number,
+        gravity?: AnyGravity,
+        group?: string,
+    ): TabbedLayout<X> {
+        return new TabbedLayout(
+            children,
+            current !== undefined ? current : children.length - 1,
+            getGravity(gravity),
+            group,
+        );
     }
 
     /**
      * Replace the current root with a new layout.  Mutates `this.root`.
      * @param layout the layout to switch the current root to
      */
-    public set(layout: PaneLayout<X>): void { this.transact(_ => layout.intoRoot()); }
+    public set(layout: PaneLayout<X>): void {
+        this.transact(_ => layout.intoRoot());
+    }
 
     /**
      * Add the given children to the current root.  Mutates `this.root`.
@@ -264,13 +305,17 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
                 if (child.group !== undefined) {
                     const next = root.withChildByGroup(child);
 
-                    if (next !== undefined) { return next.intoRoot(); }
+                    if (next !== undefined) {
+                        return next.intoRoot();
+                    }
                 }
 
                 if (child.gravity !== undefined) {
                     const next = root.withChildByGravity(child);
 
-                    if (next !== undefined) { return next.intoRoot(); }
+                    if (next !== undefined) {
+                        return next.intoRoot();
+                    }
                 }
 
                 throw new Error('unable to place child into layout');
@@ -284,9 +329,13 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
      * @param find the node to search for, or undefined
      * @param replace the node to replace `find` with, or undefined
      */
-    public sub(find: PaneLayout<X>|undefined, replace: PaneLayout<X>|undefined): void {
-        if (find === undefined) { throw new Error('find node was undefined'); }
-        if (replace === undefined) { throw new Error('replacement node was undefined'); }
+    public sub(find: PaneLayout<X> | undefined, replace: PaneLayout<X> | undefined): void {
+        if (find === undefined) {
+            throw new Error('find node was undefined');
+        }
+        if (replace === undefined) {
+            throw new Error('replacement node was undefined');
+        }
 
         this.transact(root => {
             const next = root.transposeDeep(find, replace);

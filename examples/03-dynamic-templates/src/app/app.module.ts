@@ -1,8 +1,8 @@
-import {NgModule} from '@angular/core';
-import {BrowserModule} from '@angular/platform-browser';
-import {AngularPaneManagerModule} from '@openopus/angular-pane-manager';
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AngularPaneManagerModule } from '@openopus/angular-pane-manager';
 
-import {AppComponent} from './app.component';
+import { AppComponent } from './app.component';
 
 /** The root module */
 @NgModule({
@@ -11,5 +11,4 @@ import {AppComponent} from './app.component';
     providers: [],
     bootstrap: [AppComponent],
 })
-export class AppModule {
-}
+export class AppModule {}

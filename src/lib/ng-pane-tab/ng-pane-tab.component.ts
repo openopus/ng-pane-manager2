@@ -18,11 +18,11 @@
  *
  *****************************************************************************************/
 
-import {Component, ElementRef, HostBinding} from '@angular/core';
+import { Component, ElementRef, HostBinding } from '@angular/core';
 
-import {ClosablePaneComponent} from '../closable';
-import {LayoutType} from '../pane-layout/module';
-import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
+import { ClosablePaneComponent } from '../closable';
+import { LayoutType } from '../pane-layout/module';
+import { PaneHeaderMode, PaneHeaderStyle } from '../pane-template';
 
 /**
  * A tab, representing a pane that either has an `AlwaysTab` header mode or
@@ -30,23 +30,26 @@ import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
  */
 @Component({
     selector: 'lib-ng-pane-tab',
-    template: `
-    <ng-container *ngIf="style">
+    template: `<ng-container *ngIf="style">
         <ng-container *ngIf="style.icon | async as icon">
-            <img class="lib-ng-pane-tab-icon" [src]="icon">
+            <img class="lib-ng-pane-tab-icon" [src]="icon" />
         </ng-container>
-        <span class="lib-ng-pane-tab-title">{{style.title | async}}</span>
+        <span class="lib-ng-pane-tab-title">{{ style.title | async }}</span>
         <ng-container *ngIf="style.closable">
             <div class="lib-ng-pane-tab-spacer"></div>
-            <button class="lib-ng-pane-tab-close"
-                    (mousedown)="$event.stopPropagation()"
-                    (touchstart)="$event.stopPropagation()"
-                    (click)="close()"></button>
+            <button
+                class="lib-ng-pane-tab-close"
+                (mousedown)="$event.stopPropagation()"
+                (touchstart)="$event.stopPropagation()"
+                (click)="close()"
+            ></button>
         </ng-container>
     </ng-container>`,
 })
-export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> extends
-    ClosablePaneComponent<X, T> {
+export class NgPaneTabComponent<
+    X,
+    T extends PaneHeaderMode = PaneHeaderMode,
+> extends ClosablePaneComponent<X, T> {
     /** The style information for this tab */
     public style!: PaneHeaderStyle<T>;
 
@@ -57,7 +60,9 @@ export class NgPaneTabComponent<X, T extends PaneHeaderMode = PaneHeaderMode> ex
      * Construct a new tab.
      * @param el injected for use in computing drag-and-drop hit targets
      */
-    public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
+    public constructor(public readonly el: ElementRef<HTMLElement>) {
+        super();
+    }
 
     /**
      * Selects the current tab and initiates a drag of the associated pane.

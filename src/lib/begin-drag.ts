@@ -32,10 +32,12 @@ export type DragCancelFn = (isAbort: boolean) => void;
  * @param modifiers any modifiers that were pressed when the drag ended
  * @param cancel callback to indicate the drag should be cancelled or aborted
  */
-export type DragDeltaHandler = (clientX: number,
-                                clientY: number,
-                                modifiers: DragModifiers,
-                                cancel: DragCancelFn) => void;
+export type DragDeltaHandler = (
+    clientX: number,
+    clientY: number,
+    modifiers: DragModifiers,
+    cancel: DragCancelFn,
+) => void;
 
 /**
  * Callback for handling the end of a drag.
@@ -59,7 +61,7 @@ export interface DragModifiers {
 /** Common context for all drag operations */
 interface DragCtx {
     /** Attempt to run the drag handler */
-    tryDelta(x: number, y: number, evt: MouseEvent|TouchEvent): void;
+    tryDelta(x: number, y: number, evt: MouseEvent | TouchEvent): void;
 
     /**
      * Add cleanup code for when the drag ends.\
@@ -68,21 +70,22 @@ interface DragCtx {
     catchRelease(handler: () => void): void;
 
     /** Request a drag end */
-    cancel(isAbort: boolean, evt: MouseEvent|TouchEvent): void;
+    cancel(isAbort: boolean, evt: MouseEvent | TouchEvent): void;
 }
 
-const EVT_OPTS: EventListenerOptions&{
+const EVT_OPTS: EventListenerOptions & {
     /** Because EventListenerOptions didn't have this */
     passive: boolean;
-}
-= {
+} = {
     capture: true,
     passive: false,
 };
 
 /** Generate a wrapper object for event modifier keys */
-function getMods(evt: MouseEvent|KeyboardEvent|TouchEvent,
-                 override?: [string, boolean]): DragModifiers {
+function getMods(
+    evt: MouseEvent | KeyboardEvent | TouchEvent,
+    override?: [string, boolean],
+): DragModifiers {
     const ret = {
         alt: evt.altKey,
         ctrl: evt.ctrlKey,
@@ -96,11 +99,19 @@ function getMods(evt: MouseEvent|KeyboardEvent|TouchEvent,
         const [key, val] = override;
 
         switch (key) {
-        case 'Alt': ret.alt = val; break;
-        case 'Ctrl': ret.ctrl = val; break;
-        case 'Meta':
-        case 'OS': ret.meta = val; break;
-        case 'Shift': ret.shift = val; break;
+            case 'Alt':
+                ret.alt = val;
+                break;
+            case 'Ctrl':
+                ret.ctrl = val;
+                break;
+            case 'Meta':
+            case 'OS':
+                ret.meta = val;
+                break;
+            case 'Shift':
+                ret.shift = val;
+                break;
         }
     }
 
@@ -110,23 +121,27 @@ function getMods(evt: MouseEvent|KeyboardEvent|TouchEvent,
 /** Returns true if the given value for `evt.key` is a modifier key */
 function isModifier(key: string): boolean {
     switch (key) {
-    case 'Alt':
-    case 'Control':
-    case 'Meta':
-    case 'OS':
-    case 'Shift': return true;
-    default: return false;
+        case 'Alt':
+        case 'Control':
+        case 'Meta':
+        case 'OS':
+        case 'Shift':
+            return true;
+        default:
+            return false;
     }
 }
 
 /** Creates a drag context containing common drag logic */
-function makeCtx(startX: number,
-                 startY: number,
-                 delta: DragDeltaHandler|undefined,
-                 end: DragEndHandler|undefined): DragCtx {
+function makeCtx(
+    startX: number,
+    startY: number,
+    delta: DragDeltaHandler | undefined,
+    end: DragEndHandler | undefined,
+): DragCtx {
     let lastX = startX;
     let lastY = startY;
-    let release: (() => void)|undefined;
+    let release: (() => void) | undefined;
 
     // Convenience functions and exports
     let cancel: (isAbort: boolean, modifiers: DragModifiers) => void;
@@ -136,8 +151,7 @@ function makeCtx(startX: number,
                 const mods = modifiers();
 
                 delta(x, y, mods, a => cancel(a, mods));
-            }
-            catch (e) {
+            } catch (e) {
                 console.error(e);
                 cancel(true, modifiers());
             }
@@ -146,16 +160,18 @@ function makeCtx(startX: number,
         lastX = x;
         lastY = y;
     };
-    const catchRelease = (handler: () => void) => { release = handler; };
+    const catchRelease = (handler: () => void) => {
+        release = handler;
+    };
 
     // Event handlers
     const selectStart = (evt: Event) => evt.preventDefault();
     const keyDown = (evt: KeyboardEvent) => {
-        if (evt.key === 'Escape') { cancel(true, getMods(evt, [evt.key, true])); }
-        else if (isModifier(evt.key)) {
+        if (evt.key === 'Escape') {
+            cancel(true, getMods(evt, [evt.key, true]));
+        } else if (isModifier(evt.key)) {
             tryDelta(lastX, lastY, () => getMods(evt, [evt.key, true]));
-        }
-        else {
+        } else {
             return;
         }
 
@@ -163,8 +179,9 @@ function makeCtx(startX: number,
         evt.stopImmediatePropagation();
     };
     const keyUp = (evt: KeyboardEvent) => {
-        if (isModifier(evt.key)) { tryDelta(lastX, lastY, () => getMods(evt, [evt.key, false])); }
-        else {
+        if (isModifier(evt.key)) {
+            tryDelta(lastX, lastY, () => getMods(evt, [evt.key, false]));
+        } else {
             return;
         }
 
@@ -175,13 +192,16 @@ function makeCtx(startX: number,
     // The cancel function
     cancel = (isAbort: boolean, modifiers: DragModifiers) => {
         try {
-            if (end !== undefined) { end(isAbort, modifiers); }
-        }
-        finally {
+            if (end !== undefined) {
+                end(isAbort, modifiers);
+            }
+        } finally {
             window.removeEventListener('selectstart', selectStart, EVT_OPTS);
             window.removeEventListener('keydown', keyDown, EVT_OPTS);
             window.removeEventListener('keyup', keyUp, EVT_OPTS);
-            if (release !== undefined) { release(); }
+            if (release !== undefined) {
+                release();
+            }
         }
     };
 
@@ -208,12 +228,19 @@ function makeCtx(startX: number,
  * @param delta callback for mouse movement
  * @param end callback for the end of the drag
  */
-export function beginMouseDrag(downEvt: MouseEvent,
-                               delta: DragDeltaHandler|undefined,
-                               end?: DragEndHandler): void {
+export function beginMouseDrag(
+    downEvt: MouseEvent,
+    delta: DragDeltaHandler | undefined,
+    end?: DragEndHandler,
+): void {
     const button = downEvt.button;
 
-    const {tryDelta, catchRelease, cancel} = makeCtx(downEvt.clientX, downEvt.clientY, delta, end);
+    const { tryDelta, catchRelease, cancel } = makeCtx(
+        downEvt.clientX,
+        downEvt.clientY,
+        delta,
+        end,
+    );
 
     const mouseDown = (evt: MouseEvent) => {
         evt.preventDefault();
@@ -227,7 +254,9 @@ export function beginMouseDrag(downEvt: MouseEvent,
         evt.stopPropagation();
     };
     const mouseUp = (evt: MouseEvent) => {
-        if (evt.button !== button) { return; }
+        if (evt.button !== button) {
+            return;
+        }
 
         cancel(false, evt);
     };
@@ -272,10 +301,12 @@ export function averageTouchPos(evt: TouchEvent): [number, number] {
  * @param delta callback for touch movement
  * @param end callback for the end of the drag
  */
-export function beginTouchDrag(startEvt: TouchEvent,
-                               delta: DragDeltaHandler|undefined,
-                               end?: DragEndHandler): void {
-    const target  = startEvt.target;
+export function beginTouchDrag(
+    startEvt: TouchEvent,
+    delta: DragDeltaHandler | undefined,
+    end?: DragEndHandler,
+): void {
+    const target = startEvt.target;
     const touches = new Map();
 
     for (let i = 0; i < startEvt.touches.length; i += 1) {
@@ -284,25 +315,31 @@ export function beginTouchDrag(startEvt: TouchEvent,
     }
 
     const sameTouches = (list: TouchList) => {
-        if (list.length !== touches.size) { return false; }
+        if (list.length !== touches.size) {
+            return false;
+        }
 
         for (let i = 0; i < list.length; i += 1) {
             const touch = list.item(i) as Touch;
-            if (!touches.has(touch.identifier)) { return false; }
+            if (!touches.has(touch.identifier)) {
+                return false;
+            }
         }
 
         return true;
     };
 
-    const [startX, startY]                 = averageTouchPos(startEvt);
-    const {tryDelta, catchRelease, cancel} = makeCtx(startX, startY, delta, end);
+    const [startX, startY] = averageTouchPos(startEvt);
+    const { tryDelta, catchRelease, cancel } = makeCtx(startX, startY, delta, end);
 
     const touchStart = (evt: TouchEvent) => {
         evt.preventDefault();
         evt.stopImmediatePropagation();
     };
     const touchMove = (evt: TouchEvent) => {
-        if (!sameTouches(evt.touches)) { return; }
+        if (!sameTouches(evt.touches)) {
+            return;
+        }
 
         const [x, y] = averageTouchPos(evt);
         tryDelta(x, y, evt);
@@ -317,7 +354,9 @@ export function beginTouchDrag(startEvt: TouchEvent,
             touches.delete(touch.identifier);
         }
 
-        if (touches.size === 0) { cancel(false, evt); }
+        if (touches.size === 0) {
+            cancel(false, evt);
+        }
     };
     const touchCancel = (evt: TouchEvent) => {
         for (let i = 0; i < evt.changedTouches.length; i += 1) {

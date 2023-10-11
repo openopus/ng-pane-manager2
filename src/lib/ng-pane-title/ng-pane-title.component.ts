@@ -18,24 +18,23 @@
  *
  *******************************************************************************************/
 
-import {Component} from '@angular/core';
+import { Component } from '@angular/core';
 
-import {BasicPaneHeaderStyle, PaneHeaderMode} from '../pane-template';
+import { BasicPaneHeaderStyle, PaneHeaderMode } from '../pane-template';
 
 /**
  * The title and icon of a pane header or tab.
  */
 @Component({
     selector: 'lib-ng-pane-title',
-    template: `
-    <ng-container *ngIf="style">
+    template: `<ng-container *ngIf="style">
         <ng-container *ngIf="style.icon | async as icon">
-            <img class="lib-ng-pane-icon" [src]="icon">
+            <img class="lib-ng-pane-icon" [src]="icon" />
         </ng-container>
-        <span class="lib-ng-pane-title">{{style.title | async}}</span>
+        <span class="lib-ng-pane-title">{{ style.title | async }}</span>
     </ng-container>`,
 })
 export class NgPaneTitleComponent {
     /** The header style information for this title */
-    public style!: BasicPaneHeaderStyle<PaneHeaderMode.Visible|PaneHeaderMode.AlwaysTab>;
+    public style!: BasicPaneHeaderStyle<PaneHeaderMode.Visible | PaneHeaderMode.AlwaysTab>;
 }

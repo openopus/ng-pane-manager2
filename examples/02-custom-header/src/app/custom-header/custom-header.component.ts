@@ -1,12 +1,15 @@
 // tslint:disable component-selector
-import {Component, Input, Output} from '@angular/core';
-import {headerStyle, PaneHeaderStyle} from '@openopus/angular-pane-manager';
-import {BehaviorSubject, Observable} from 'rxjs';
+import { Component, Input, Output } from '@angular/core';
+import { headerStyle, PaneHeaderStyle } from '@openopus/angular-pane-manager';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 /** A component with a customizable title */
 @Component({
     selector: 'app-custom-header',
-    template: `<p>My custom header is <strong>{{title}}</strong>!</p>`,
+    template: `<p>
+        My custom header is <strong>{{ title }}</strong
+        >!
+    </p>`,
     styles: [],
 })
 export class CustomHeaderComponent {
@@ -18,7 +21,8 @@ export class CustomHeaderComponent {
      * header to be destroyed and re-rendered.
      */
     private readonly $header: BehaviorSubject<PaneHeaderStyle> = new BehaviorSubject(
-        headerStyle('alwaysTab', this.$title, undefined, false));
+        headerStyle('alwaysTab', this.$title, undefined, false),
+    );
 
     /** Event stream to keep the pane header updated */
     @Output()
@@ -32,5 +36,7 @@ export class CustomHeaderComponent {
         return this.$title.value;
     }
 
-    public set title(val: string) { this.$title.next(val); }
+    public set title(val: string) {
+        this.$title.next(val);
+    }
 }

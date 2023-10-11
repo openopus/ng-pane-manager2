@@ -18,13 +18,13 @@
  *
  *********************************************************************************************/
 
-import {Component, ElementRef, ViewChild} from '@angular/core';
-import {Observable, Subscription} from 'rxjs';
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Observable, Subscription } from 'rxjs';
 
-import {ClosablePaneComponent} from '../closable';
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneTabComponent} from '../ng-pane-tab/ng-pane-tab.component';
-import {PaneHeaderMode, PaneHeaderStyle} from '../pane-template';
+import { ClosablePaneComponent } from '../closable';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneTabComponent } from '../ng-pane-tab/ng-pane-tab.component';
+import { PaneHeaderMode, PaneHeaderStyle } from '../pane-template';
 
 /**
  * Extra information for a mock tab row with a single tab.
@@ -41,13 +41,13 @@ interface TabbedExtra<X> {
     /** Disallows `tab` as a property name.  Used for type checking. */
     tab?: never;
     /** The style information for this pane */
-    style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>|undefined;
+    style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab> | undefined;
     /** Subscription for current tab changes */
-    subscription: Subscription|undefined;
+    subscription: Subscription | undefined;
     /** The tabs rendered into this tab row */
     tabs: NgPaneTabComponent<X>[];
     /** The tab currently rendered as selected */
-    current: number|undefined;
+    current: number | undefined;
 }
 
 /**
@@ -57,14 +57,14 @@ interface TabbedExtra<X> {
 @Component({
     selector: 'lib-ng-pane-tab-row',
     template: `<ng-container libNgPaneRenderer></ng-container>
-<div class="lib-ng-pane-tab-row-spacer"></div>`,
+        <div class="lib-ng-pane-tab-row-spacer"></div>`,
 })
 export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
     /** Extra information.  See `SimpleExtra` and `TabbedExtra` */
-    private extra!: SimpleExtra<X>|TabbedExtra<X>|undefined;
+    private extra!: SimpleExtra<X> | TabbedExtra<X> | undefined;
 
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     public readonly renderer!: NgPaneRendererDirective;
 
     /**
@@ -72,21 +72,27 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
      * For a mock tab row, this information is passed on to the contained tab.
      */
     public get style(): PaneHeaderStyle<PaneHeaderMode.AlwaysTab> {
-        if (this.extra === undefined) { throw new Error('tab row in invalid state'); }
+        if (this.extra === undefined) {
+            throw new Error('tab row in invalid state');
+        }
 
-        if (this.extra.tab !== undefined) { return this.extra.tab.style; }
+        if (this.extra.tab !== undefined) {
+            return this.extra.tab.style;
+        }
 
-        if (this.extra.style === undefined) { throw new Error('tab row in invalid state'); }
+        if (this.extra.style === undefined) {
+            throw new Error('tab row in invalid state');
+        }
 
         return this.extra.style;
     }
 
     public set style(style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>) {
-        if (this.extra === undefined) { this.setupTabbedExtra(); }
-        else if (this.extra.tab !== undefined) {
+        if (this.extra === undefined) {
+            this.setupTabbedExtra();
+        } else if (this.extra.tab !== undefined) {
             this.extra.tab.style = style;
-        }
-        else {
+        } else {
             this.extra.style = style;
         }
     }
@@ -95,14 +101,18 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
     public set tab(tab: NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>) {
         const style = this.extra !== undefined ? this.style : undefined;
 
-        this.extra = {tab};
-        if (style !== undefined) { this.style = style; }
+        this.extra = { tab };
+        if (style !== undefined) {
+            this.style = style;
+        }
     }
 
     /** If this is a real tab row, return the child tabs. */
     public get tabs(): NgPaneTabComponent<X>[] {
         const extra = this.setupTabbedExtra();
-        if (extra === undefined) { throw new Error('tab row in invalid state'); }
+        if (extra === undefined) {
+            throw new Error('tab row in invalid state');
+        }
 
         return extra.tabs;
     }
@@ -113,12 +123,18 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
      */
     public set $currentTab(val: Observable<number>) {
         const extra = this.setupTabbedExtra();
-        if (extra === undefined) { throw new Error('tab row in invalid state'); }
+        if (extra === undefined) {
+            throw new Error('tab row in invalid state');
+        }
 
-        if (extra.subscription !== undefined) { extra.subscription.unsubscribe(); }
+        if (extra.subscription !== undefined) {
+            extra.subscription.unsubscribe();
+        }
 
         extra.subscription = val.subscribe(tab => {
-            if (extra.current !== undefined) { extra.tabs[extra.current].active = false; }
+            if (extra.current !== undefined) {
+                extra.tabs[extra.current].active = false;
+            }
 
             extra.current = tab;
 
@@ -130,12 +146,14 @@ export class NgPaneTabRowComponent<X> extends ClosablePaneComponent<X> {
      * Construct a new tab row.
      * @param el injected for use in computing drag-and-drop hit targets
      */
-    public constructor(public readonly el: ElementRef<HTMLElement>) { super(); }
+    public constructor(public readonly el: ElementRef<HTMLElement>) {
+        super();
+    }
 
     /**
      * Set up default information for a real tab row.
      */
-    private setupTabbedExtra(): TabbedExtra<X>|undefined {
+    private setupTabbedExtra(): TabbedExtra<X> | undefined {
         if (this.extra === undefined) {
             this.extra = {
                 style: undefined,

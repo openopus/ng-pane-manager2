@@ -18,9 +18,9 @@
  *
  *********************************************************************************************************/
 
-import {TestBed} from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
-import {NgPaneHeaderTemplateService} from './ng-pane-header-templates.service';
+import { NgPaneHeaderTemplateService } from './ng-pane-header-templates.service';
 
 describe('NgPaneHeaderTemplatesService', () => {
     let service: NgPaneHeaderTemplateService<any>;
@@ -30,5 +30,7 @@ describe('NgPaneHeaderTemplatesService', () => {
         service = TestBed.inject(NgPaneHeaderTemplateService);
     });
 
-    it('should be created', () => { void expect(service).toBeTruthy(); });
+    it('should be created', () => {
+        void expect(service).toBeTruthy();
+    });
 });

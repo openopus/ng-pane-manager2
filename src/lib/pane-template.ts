@@ -18,9 +18,9 @@
  *
  *********************************************************************************/
 
-import {TemplateRef} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
-import {ChildLayout} from './pane-layout/module';
+import { TemplateRef } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { ChildLayout } from './pane-layout/module';
 
 // TODO: add size constraints/no-resize mode? Perhaps fixed sizes, too
 /** The display format of a pane header */
@@ -34,14 +34,14 @@ export const enum PaneHeaderMode {
 }
 
 /** Stringified versions of the header modes */
-export type StringHeaderMode = 'hidden'|'visible'|'alwaysTab';
+export type StringHeaderMode = 'hidden' | 'visible' | 'alwaysTab';
 
 /**
  * Style information for a pane header.
  */
-export type PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode,
-                                      W              = string> = BasicPaneHeaderStyle<T>|
-    CustomPaneHeaderStyle<T, W>;
+export type PaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode, W = string> =
+    | BasicPaneHeaderStyle<T>
+    | CustomPaneHeaderStyle<T, W>;
 
 /**
  * Style information for a pane header with no custom widgets.
@@ -52,7 +52,7 @@ export interface BasicPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode>
     /** The title for this header */
     title: Observable<string>;
     /** The icon for this header, or `undefined` for no icon */
-    icon: Observable<string|undefined>;
+    icon: Observable<string | undefined>;
     /** Should always be undefined.  See `CustomPaneHeaderStyle` for more information. */
     widgets?: never;
     /** Whether this pane can be closed */
@@ -83,18 +83,26 @@ export interface CustomPaneHeaderStyle<T extends PaneHeaderMode = PaneHeaderMode
  * @param closable whether this pane can be closed
  */
 export function headerStyle(
-    header: StringHeaderMode|PaneHeaderMode,
-    title: string|Observable<string>,
-    icon: string|undefined|Observable<string|undefined>,
+    header: StringHeaderMode | PaneHeaderMode,
+    title: string | Observable<string>,
+    icon: string | undefined | Observable<string | undefined>,
     closable: boolean,
-    ): PaneHeaderStyle {
+): PaneHeaderStyle {
     let headerMode;
 
     switch (header) {
-    case 'hidden': headerMode = PaneHeaderMode.Hidden; break;
-    case 'visible': headerMode = PaneHeaderMode.Visible; break;
-    case 'alwaysTab': headerMode = PaneHeaderMode.AlwaysTab; break;
-    default: headerMode = header; break;
+        case 'hidden':
+            headerMode = PaneHeaderMode.Hidden;
+            break;
+        case 'visible':
+            headerMode = PaneHeaderMode.Visible;
+            break;
+        case 'alwaysTab':
+            headerMode = PaneHeaderMode.AlwaysTab;
+            break;
+        default:
+            headerMode = header;
+            break;
     }
 
     return {
@@ -153,7 +161,7 @@ export interface HeaderWidgetTemplate<X> {
      * right side of the header, and on a tabbed pane, this appears to the right
      * of the tab list, contextual to the current tab.
      */
-    controls: TemplateRef<HeaderWidgetContext<X>>|undefined;
+    controls: TemplateRef<HeaderWidgetContext<X>> | undefined;
     /** The context provided to both templates when rendering. */
     context: HeaderWidgetContext<X>;
 }
@@ -164,22 +172,31 @@ export interface HeaderWidgetTemplate<X> {
  * @param rhs the second template to compare
  * @param extraEq equality comparison function for the extra data
  */
-export function sameLeafTemplate<X>(lhs: LeafNodeTemplate<X>|undefined,
-                                    rhs: LeafNodeTemplate<X>|undefined,
-                                    extraEq: (l: X, r: X) => boolean = Object.is.bind(Object)):
-    boolean {
-    if (Object.is(lhs, rhs)) { return true; }
+export function sameLeafTemplate<X>(
+    lhs: LeafNodeTemplate<X> | undefined,
+    rhs: LeafNodeTemplate<X> | undefined,
+    extraEq: (l: X, r: X) => boolean = Object.is.bind(Object),
+): boolean {
+    if (Object.is(lhs, rhs)) {
+        return true;
+    }
 
-    if (lhs === undefined || rhs === undefined) { return false; }
+    if (lhs === undefined || rhs === undefined) {
+        return false;
+    }
 
-    const {pane: lTmp, context: lCtx} = lhs;
-    const {pane: rTmp, context: rCtx} = lhs;
+    const { pane: lTmp, context: lCtx } = lhs;
+    const { pane: rTmp, context: rCtx } = lhs;
 
-    if (!Object.is(lTmp.elementRef.nativeElement, rTmp.elementRef.nativeElement)) { return false; }
+    if (!Object.is(lTmp.elementRef.nativeElement, rTmp.elementRef.nativeElement)) {
+        return false;
+    }
 
     // TODO: check header?
 
-    if (!extraEq(lCtx.extra, rCtx.extra)) { return false; }
+    if (!extraEq(lCtx.extra, rCtx.extra)) {
+        return false;
+    }
 
     return true;
 }
@@ -192,18 +209,29 @@ export function sameLeafTemplate<X>(lhs: LeafNodeTemplate<X>|undefined,
  * @param lhs the first header style to compare
  * @param rhs the second header style to compare
  */
-export function sameHeaderStyle<T extends PaneHeaderMode, W>(lhs: PaneHeaderStyle<T, W>|undefined,
-                                                             rhs: PaneHeaderStyle<T, W>|
-                                                             undefined): boolean {
-    if (Object.is(lhs, rhs)) { return true; }
+export function sameHeaderStyle<T extends PaneHeaderMode, W>(
+    lhs: PaneHeaderStyle<T, W> | undefined,
+    rhs: PaneHeaderStyle<T, W> | undefined,
+): boolean {
+    if (Object.is(lhs, rhs)) {
+        return true;
+    }
 
-    if (lhs === undefined || rhs === undefined) { return false; }
+    if (lhs === undefined || rhs === undefined) {
+        return false;
+    }
 
     // Due to the nature of Observable, this is the closest possible
     // approximation, but only partial equality is necessary here.
-    if (!(Object.is(lhs.headerMode, rhs.headerMode) && Object.is(lhs.widgets, rhs.widgets) &&
-          Object.is(lhs.title, rhs.title) && Object.is(lhs.icon, rhs.icon) &&
-          lhs.closable === rhs.closable)) {
+    if (
+        !(
+            Object.is(lhs.headerMode, rhs.headerMode) &&
+            Object.is(lhs.widgets, rhs.widgets) &&
+            Object.is(lhs.title, rhs.title) &&
+            Object.is(lhs.icon, rhs.icon) &&
+            lhs.closable === rhs.closable
+        )
+    ) {
         return false;
     }
 

@@ -18,12 +18,12 @@
  *
  *******************************************************************************************/
 
-import {Component, ElementRef, HostBinding, ViewChild} from '@angular/core';
-import {Observable, Subscription} from 'rxjs';
+import { Component, ElementRef, HostBinding, ViewChild } from '@angular/core';
+import { Observable, Subscription } from 'rxjs';
 
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneComponent} from '../ng-pane/ng-pane.component';
-import {ResizeEvent} from '../pane-layout/module';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneComponent } from '../ng-pane/ng-pane.component';
+import { ResizeEvent } from '../pane-layout/module';
 
 /**
  * A split branch pane, stacking its elements either horizontally or vertically.
@@ -35,10 +35,10 @@ import {ResizeEvent} from '../pane-layout/module';
 })
 export class NgPaneSplitComponent<X> {
     /** Subscription for child resize events */
-    private subscription: Subscription|undefined;
+    private subscription: Subscription | undefined;
 
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The child panes rendered into this one */
@@ -55,10 +55,13 @@ export class NgPaneSplitComponent<X> {
 
     /** Binds an event handler to the given stream of child resize events */
     public set resizeEvents(val: Observable<ResizeEvent>) {
-        if (this.subscription !== undefined) { this.subscription.unsubscribe(); }
+        if (this.subscription !== undefined) {
+            this.subscription.unsubscribe();
+        }
 
-        this.subscription = val.subscribe(
-            ({index, ratio}) => { this.children[index].ratio = ratio; });
+        this.subscription = val.subscribe(({ index, ratio }) => {
+            this.children[index].ratio = ratio;
+        });
     }
 
     /**

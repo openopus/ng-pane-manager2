@@ -20,10 +20,10 @@
 
 // This file is required by karma.conf.js and loads recursively all the .spec and framework files
 
-import 'zone.js/dist/zone';         // tslint:disable-line no-import-side-effect
+import 'zone.js/dist/zone'; // tslint:disable-line no-import-side-effect
 import 'zone.js/dist/zone-testing'; // tslint:disable-line no-import-side-effect
 
-import {getTestBed} from '@angular/core/testing';
+import { getTestBed } from '@angular/core/testing';
 import {
     BrowserDynamicTestingModule,
     platformBrowserDynamicTesting,

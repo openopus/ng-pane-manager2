@@ -18,16 +18,11 @@
  *
  *******************************************************************************/
 
-import {clipDenormPos} from '../util';
+import { clipDenormPos } from '../util';
 
-import {SplitLayout, TabbedLayout} from './branch-layout';
-import {
-    ChildLayout,
-    PaneLayout,
-    RootLayout,
-    StemLayout,
-} from './layout-core';
-import {childFromId, ChildLayoutId} from './layout-util';
+import { SplitLayout, TabbedLayout } from './branch-layout';
+import { ChildLayout, PaneLayout, RootLayout, StemLayout } from './layout-core';
+import { childFromId, ChildLayoutId } from './layout-util';
 
 /** The type identifier of a layout node */
 export const enum LayoutType {
@@ -91,32 +86,34 @@ const enum PseudoGravityType {
 }
 
 /** Information about a higher-level pane */
-type PseudoGravity<X> = {
-    /** No panel could be located with the specified pseudo-gravity */
-    type: PseudoGravityType.None;
-    /** Disallows `pane` as a property name.  Used for type checking. */
-    pane?: never;
-    /** Disallows `id` as a property name.  Used for type checking. */
-    id?: never;
-}|{
-    /**
-     * Only one pane was located, and should be treated as a container with one
-     * child.
-     */
-    type: PseudoGravityType.Phantom;
-    /** The child that was found */
-    pane: ChildLayout<X>;
-    /** The ID of the child */
-    id: ChildLayoutId<X>;
-}
-|{
-    /** Multiple children were located, and the most likely parent was found. */
-    type: PseudoGravityType.Real;
-    /** The parent that was found */
-    pane: StemLayout<X>;
-    /** The ID of the parent, if it was retrievable */
-    id: ChildLayoutId<X>|undefined;
-};
+type PseudoGravity<X> =
+    | {
+          /** No panel could be located with the specified pseudo-gravity */
+          type: PseudoGravityType.None;
+          /** Disallows `pane` as a property name.  Used for type checking. */
+          pane?: never;
+          /** Disallows `id` as a property name.  Used for type checking. */
+          id?: never;
+      }
+    | {
+          /**
+           * Only one pane was located, and should be treated as a container with one
+           * child.
+           */
+          type: PseudoGravityType.Phantom;
+          /** The child that was found */
+          pane: ChildLayout<X>;
+          /** The ID of the child */
+          id: ChildLayoutId<X>;
+      }
+    | {
+          /** Multiple children were located, and the most likely parent was found. */
+          type: PseudoGravityType.Real;
+          /** The parent that was found */
+          pane: StemLayout<X>;
+          /** The ID of the parent, if it was retrievable */
+          id: ChildLayoutId<X> | undefined;
+      };
 
 // TODO: add 'sticky' nodes or placeholders for empty branches that aren't
 //       removed during simplify to complement the gravity system (e.g. leaving
@@ -135,45 +132,55 @@ export abstract class LayoutBase<X> {
      * Used to locate nodes for `withChildByGravity`.
      * @param children the children to match against
      */
-    private findPseudoGravity(...children: (ChildLayoutId<X>|undefined)[]): PseudoGravity<X> {
+    private findPseudoGravity(...children: (ChildLayoutId<X> | undefined)[]): PseudoGravity<X> {
         const defined = children.filter(c => c !== undefined) as ChildLayoutId<X>[];
 
         switch (defined.length) {
-        case 0: return {type: PseudoGravityType.None};
-        case 1:
-            return {type: PseudoGravityType.Phantom, pane: childFromId(defined[0]), id: defined[0]};
-        default:
-            const freqs = new Map<StemLayout<X>, number>();
+            case 0:
+                return { type: PseudoGravityType.None };
+            case 1:
+                return {
+                    type: PseudoGravityType.Phantom,
+                    pane: childFromId(defined[0]),
+                    id: defined[0],
+                };
+            default:
+                const freqs = new Map<StemLayout<X>, number>();
 
-            for (const el of defined) {
-                const stem = el.stem;
-                const freq = freqs.get(stem);
+                for (const el of defined) {
+                    const stem = el.stem;
+                    const freq = freqs.get(stem);
 
-                if (stem.type === LayoutType.Root) { continue; }
+                    if (stem.type === LayoutType.Root) {
+                        continue;
+                    }
 
-                if (freq === undefined) { freqs.set(stem, 1); }
-                else {
-                    freqs.set(stem, freq + 1);
+                    if (freq === undefined) {
+                        freqs.set(stem, 1);
+                    } else {
+                        freqs.set(stem, freq + 1);
+                    }
                 }
-            }
 
-            let bestFreq = -1;
-            let bestStem: StemLayout<X>|undefined;
+                let bestFreq = -1;
+                let bestStem: StemLayout<X> | undefined;
 
-            for (const [stem, freq] of freqs) {
-                if (freq > bestFreq) {
-                    bestStem = stem;
-                    bestFreq = freq;
+                for (const [stem, freq] of freqs) {
+                    if (freq > bestFreq) {
+                        bestStem = stem;
+                        bestFreq = freq;
+                    }
                 }
-            }
 
-            if (bestStem === undefined) { return {type: PseudoGravityType.None}; }
+                if (bestStem === undefined) {
+                    return { type: PseudoGravityType.None };
+                }
 
-            return {
-                type: PseudoGravityType.Real,
-                pane: bestStem,
-                id: bestStem.type !== LayoutType.Root ? this.idFromChild(bestStem) : undefined,
-            };
+                return {
+                    type: PseudoGravityType.Real,
+                    pane: bestStem,
+                    id: bestStem.type !== LayoutType.Root ? this.idFromChild(bestStem) : undefined,
+                };
         }
     }
 
@@ -191,96 +198,117 @@ export abstract class LayoutBase<X> {
      *                  prevent changing their size.  maps to a factor to
      *                  scale the child's overall percentage size by
      */
-    private placeChildForPseudoGravity(pg: PseudoGravity<X>,
-                                       pane: ChildLayout<X>,
-                                       order: (PaneLayout<X>|undefined)[],
-                                       splitType: LayoutType.Horiz|LayoutType.Vert,
-                                       pct: number,
-                                       fixRatios: Map<ChildLayoutId<X>, number>):
-        PaneLayout<X>|undefined {
+    private placeChildForPseudoGravity(
+        pg: PseudoGravity<X>,
+        pane: ChildLayout<X>,
+        order: (PaneLayout<X> | undefined)[],
+        splitType: LayoutType.Horiz | LayoutType.Vert,
+        pct: number,
+        fixRatios: Map<ChildLayoutId<X>, number>,
+    ): PaneLayout<X> | undefined {
         switch (pg.type) {
-        case PseudoGravityType.None: return undefined;
-        case PseudoGravityType.Phantom: {
-            const pseudoIdx = order.indexOf(pg.pane);
-            const paneIdx   = order.indexOf(pane);
+            case PseudoGravityType.None:
+                return undefined;
+            case PseudoGravityType.Phantom: {
+                const pseudoIdx = order.indexOf(pg.pane);
+                const paneIdx = order.indexOf(pane);
 
-            if (pseudoIdx < 0 || paneIdx < 0) { throw new Error('invalid order array'); }
-
-            const invPct = 1 - pct;
-
-            return this.transposeDeep(
-                pg.pane,
-                paneIdx < pseudoIdx ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
-                                    : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]));
-        }
-        case PseudoGravityType.Real:
-            let find;
-
-            switch (pg.pane.type) {
-            case LayoutType.Root:
-                throw new Error(
-                    'multiple children reporting one root as a parent - this shouldn\'t happen');
-            case LayoutType.Group: find = pg.pane.split; break;
-            default: find = pg.pane; break;
-            }
-
-            // To appease TypeScript.
-            if (find === undefined) {
-                throw new Error('pseudo-gravity pane was undefined  - this shouldn\'t happen');
-            }
-
-            const idx = find.locateChild(pane, order);
-
-            if (idx === undefined) { return undefined; }
-
-            let replace;
-
-            switch (find.type) {
-            case LayoutType.Horiz:
-            case LayoutType.Vert: {
-                const fixIdcs        = new Map<number, number>();
-                const adjustedRatios = find.ratios.slice();
-                const addRatio       = pct * find.ratioSum;
-                let extraSum         = 0;
-                let netFixChange     = 0;
-                let minExtra;
-
-                for (const [{stem, index}, fac] of fixRatios) {
-                    if (Object.is(stem, find)) { fixIdcs.set(index, fac); }
+                if (pseudoIdx < 0 || paneIdx < 0) {
+                    throw new Error('invalid order array');
                 }
 
-                for (const [ratio, index] of find.ratios.map((r, i) => [r, i])) {
-                    const fac = fixIdcs.get(index);
-                    if (fac !== undefined) { netFixChange += ratio * (1 - fac); }
-                    else {
-                        if (minExtra === undefined || ratio < minExtra) { minExtra = ratio; }
+                const invPct = 1 - pct;
 
-                        extraSum += ratio;
+                return this.transposeDeep(
+                    pg.pane,
+                    paneIdx < pseudoIdx
+                        ? new SplitLayout(splitType, [pane, pg.pane], [pct, invPct])
+                        : new SplitLayout(splitType, [pg.pane, pane], [invPct, pct]),
+                );
+            }
+            case PseudoGravityType.Real:
+                let find;
+
+                switch (pg.pane.type) {
+                    case LayoutType.Root:
+                        throw new Error(
+                            "multiple children reporting one root as a parent - this shouldn't happen",
+                        );
+                    case LayoutType.Group:
+                        find = pg.pane.split;
+                        break;
+                    default:
+                        find = pg.pane;
+                        break;
+                }
+
+                // To appease TypeScript.
+                if (find === undefined) {
+                    throw new Error("pseudo-gravity pane was undefined  - this shouldn't happen");
+                }
+
+                const idx = find.locateChild(pane, order);
+
+                if (idx === undefined) {
+                    return undefined;
+                }
+
+                let replace;
+
+                switch (find.type) {
+                    case LayoutType.Horiz:
+                    case LayoutType.Vert: {
+                        const fixIdcs = new Map<number, number>();
+                        const adjustedRatios = find.ratios.slice();
+                        const addRatio = pct * find.ratioSum;
+                        let extraSum = 0;
+                        let netFixChange = 0;
+                        let minExtra;
+
+                        for (const [{ stem, index }, fac] of fixRatios) {
+                            if (Object.is(stem, find)) {
+                                fixIdcs.set(index, fac);
+                            }
+                        }
+
+                        for (const [ratio, index] of find.ratios.map((r, i) => [r, i])) {
+                            const fac = fixIdcs.get(index);
+                            if (fac !== undefined) {
+                                netFixChange += ratio * (1 - fac);
+                            } else {
+                                if (minExtra === undefined || ratio < minExtra) {
+                                    minExtra = ratio;
+                                }
+
+                                extraSum += ratio;
+                            }
+                        }
+
+                        const minExtraPct =
+                            minExtra !== undefined ? minExtra / clipDenormPos(find.ratioSum) : 0;
+
+                        const TINY = 0.1;
+                        const extraFactor = Math.max(
+                            TINY / Math.max(TINY, minExtraPct),
+                            (netFixChange - addRatio) / clipDenormPos(extraSum) + 1,
+                        );
+
+                        for (let i = 0; i < adjustedRatios.length; i += 1) {
+                            const fac = fixIdcs.get(i);
+                            adjustedRatios[i] *= fac !== undefined ? fac : extraFactor;
+                        }
+
+                        adjustedRatios.splice(idx, 0, addRatio);
+
+                        replace = find.withChild(idx, pane, adjustedRatios);
+                        break;
                     }
+                    case LayoutType.Tabbed:
+                        replace = find.withChild(idx, pane, true);
+                        break;
                 }
 
-                const minExtraPct = minExtra !== undefined ? minExtra / clipDenormPos(find.ratioSum)
-                                                           : 0;
-
-                const TINY        = 0.1;
-                const extraFactor = Math.max(TINY / Math.max(TINY, minExtraPct),
-                                             (netFixChange - addRatio) / clipDenormPos(extraSum) +
-                                                 1);
-
-                for (let i = 0; i < adjustedRatios.length; i += 1) {
-                    const fac = fixIdcs.get(i);
-                    adjustedRatios[i] *= fac !== undefined ? fac : extraFactor;
-                }
-
-                adjustedRatios.splice(idx, 0, addRatio);
-
-                replace = find.withChild(idx, pane, adjustedRatios);
-                break;
-            }
-            case LayoutType.Tabbed: replace = find.withChild(idx, pane, true); break;
-            }
-
-            return this.transposeDeep(find, replace);
+                return this.transposeDeep(find, replace);
         }
     }
 
@@ -288,7 +316,7 @@ export abstract class LayoutBase<X> {
      * If this represents an empty container, place the given child into it.
      * @param child the child to place
      */
-    protected abstract tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X>|undefined;
+    protected abstract tryEmplaceEmpty(child: ChildLayout<X>): PaneLayout<X> | undefined;
 
     /**
      * Convert this node into a root node.
@@ -299,13 +327,13 @@ export abstract class LayoutBase<X> {
      * Find a descendant matching the given predicate.
      * @param pred predicate to match elements against
      */
-    public abstract findChild(pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X>|undefined;
+    public abstract findChild(pred: (c: ChildLayout<X>) => boolean): ChildLayoutId<X> | undefined;
 
     /**
      * Find a descendant with the given gravity.
      * @param gravity the gravity to match against
      */
-    public findChildByGravity(gravity: LayoutGravity): ChildLayoutId<X>|undefined {
+    public findChildByGravity(gravity: LayoutGravity): ChildLayoutId<X> | undefined {
         return this.findChild(c => c.gravity === gravity);
     }
 
@@ -313,7 +341,7 @@ export abstract class LayoutBase<X> {
      * Find a descendant with the given group.
      * @param group the group to match against
      */
-    public findChildByGroup(group: string): ChildLayoutId<X>|undefined {
+    public findChildByGroup(group: string): ChildLayoutId<X> | undefined {
         return this.findChild(c => c.group === group);
     }
 
@@ -321,7 +349,7 @@ export abstract class LayoutBase<X> {
      * Find the ID of a descendant node within this node.
      * @param child the child to retrieve the ID of
      */
-    public idFromChild(child: ChildLayout<X>): ChildLayoutId<X>|undefined {
+    public idFromChild(child: ChildLayout<X>): ChildLayoutId<X> | undefined {
         return this.findChild(c => Object.is(c, child));
     }
 
@@ -331,59 +359,67 @@ export abstract class LayoutBase<X> {
      * @param find the node to search for
      * @param replace the node to replace the search node with
      */
-    public abstract transposeDeep(find: PaneLayout<X>,
-                                  replace: PaneLayout<X>): PaneLayout<X>|undefined;
+    public abstract transposeDeep(
+        find: PaneLayout<X>,
+        replace: PaneLayout<X>,
+    ): PaneLayout<X> | undefined;
 
     /**
      * Recursively simplify this node tree.
      */
-    public abstract simplifyDeep(): PaneLayout<X>|undefined;
+    public abstract simplifyDeep(): PaneLayout<X> | undefined;
 
     /**
      * Add a child to the given node, splitting or tabifying it as necessary.
      * @param well the pane to add a child to
      * @param desc the child to add
      */
-    public withDescendant(well: ChildLayoutId<X>, desc: ChildLayout<X>): PaneLayout<X>|undefined {
+    public withDescendant(well: ChildLayoutId<X>, desc: ChildLayout<X>): PaneLayout<X> | undefined {
         const child = childFromId(well);
 
         let find = child;
         let replace;
 
         switch (child.type) {
-        case LayoutType.Leaf:
-            if (well.stem.type === LayoutType.Tabbed) {
-                find    = well.stem;
-                replace = well.stem.withChild(undefined, desc, true);
-            }
-            else {
-                replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
-            }
-            break;
-        case LayoutType.Group:
-            replace = child.map(
-                s => s.withChild(undefined,
-                                 desc,
-                                 s.children.length > 0 ? s.ratioSum / s.children.length : 1));
-            break;
-        // TODO: This may cause undesired behavior.  The more intuitive
-        //       approach may be to descend and create a tab in a child
-        //       container but I didn't want to risk accidentally
-        //       creating a split inside a tab.
-        case LayoutType.Horiz:
-        case LayoutType.Vert:
-            replace = child.withChild(undefined,
-                                      desc,
-                                      child.children.length > 0
-                                          ? child.ratioSum / child.children.length
-                                          : 1);
-            break;
-        case LayoutType.Tabbed: replace = child.withChild(undefined, desc, true); break;
+            case LayoutType.Leaf:
+                if (well.stem.type === LayoutType.Tabbed) {
+                    find = well.stem;
+                    replace = well.stem.withChild(undefined, desc, true);
+                } else {
+                    replace = new TabbedLayout([child, desc], 1, child.gravity, child.group);
+                }
+                break;
+            case LayoutType.Group:
+                replace = child.map(s =>
+                    s.withChild(
+                        undefined,
+                        desc,
+                        s.children.length > 0 ? s.ratioSum / s.children.length : 1,
+                    ),
+                );
+                break;
+            // TODO: This may cause undesired behavior.  The more intuitive
+            //       approach may be to descend and create a tab in a child
+            //       container but I didn't want to risk accidentally
+            //       creating a split inside a tab.
+            case LayoutType.Horiz:
+            case LayoutType.Vert:
+                replace = child.withChild(
+                    undefined,
+                    desc,
+                    child.children.length > 0 ? child.ratioSum / child.children.length : 1,
+                );
+                break;
+            case LayoutType.Tabbed:
+                replace = child.withChild(undefined, desc, true);
+                break;
         }
 
         const transposed = this.transposeDeep(find, replace);
 
-        if (transposed === undefined) { throw new Error('failed to drop descendant into well'); }
+        if (transposed === undefined) {
+            throw new Error('failed to drop descendant into well');
+        }
 
         return transposed;
     }
@@ -393,17 +429,19 @@ export abstract class LayoutBase<X> {
      * position it automatically.
      * @param pane the child to add
      */
-    public withChildByGravity(pane: ChildLayout<X>): PaneLayout<X>|undefined {
-        if (pane.gravity === undefined) { throw new Error('cannot insert pane with no gravity'); }
+    public withChildByGravity(pane: ChildLayout<X>): PaneLayout<X> | undefined {
+        if (pane.gravity === undefined) {
+            throw new Error('cannot insert pane with no gravity');
+        }
 
         // tslint:disable no-magic-numbers
         const HEADER_PCT = 1 / 5;
-        const LEFT_PCT   = 1 / 4;
-        const RIGHT_PCT  = LEFT_PCT;
+        const LEFT_PCT = 1 / 4;
+        const RIGHT_PCT = LEFT_PCT;
         const BOTTOM_PCT = 1 / 3;
         const FOOTER_PCT = 1 / 10;
 
-        const LEFT_PCT_LR  = 1 / 2;
+        const LEFT_PCT_LR = 1 / 2;
         const RIGHT_PCT_LR = 1 - LEFT_PCT_LR;
 
         const FOOTER_PCT_HF = FOOTER_PCT;
@@ -413,7 +451,9 @@ export abstract class LayoutBase<X> {
         {
             const emplaced = this.tryEmplaceEmpty(pane);
 
-            if (emplaced !== undefined) { return emplaced; }
+            if (emplaced !== undefined) {
+                return emplaced;
+            }
         }
 
         // If the well with the specified gravity already exists, drop the new
@@ -424,7 +464,9 @@ export abstract class LayoutBase<X> {
             if (well !== undefined) {
                 const ret = this.withDescendant(well, pane);
 
-                if (ret !== undefined) { return ret; }
+                if (ret !== undefined) {
+                    return ret;
+                }
             }
         }
 
@@ -432,160 +474,179 @@ export abstract class LayoutBase<X> {
         // TODO: optimize this once it works
         {
             const headerId = this.findChildByGravity(LayoutGravity.Header);
-            const leftId   = this.findChildByGravity(LayoutGravity.Left);
-            const mainId   = this.findChildByGravity(LayoutGravity.Main);
+            const leftId = this.findChildByGravity(LayoutGravity.Left);
+            const mainId = this.findChildByGravity(LayoutGravity.Main);
             const bottomId = this.findChildByGravity(LayoutGravity.Bottom);
-            const rightId  = this.findChildByGravity(LayoutGravity.Right);
+            const rightId = this.findChildByGravity(LayoutGravity.Right);
             const footerId = this.findChildByGravity(LayoutGravity.Footer);
 
             const header = headerId !== undefined ? childFromId(headerId) : undefined;
-            const left   = leftId !== undefined ? childFromId(leftId) : undefined;
-            const main   = mainId !== undefined ? childFromId(mainId) : undefined;
+            const left = leftId !== undefined ? childFromId(leftId) : undefined;
+            const main = mainId !== undefined ? childFromId(mainId) : undefined;
             const bottom = bottomId !== undefined ? childFromId(bottomId) : undefined;
-            const right  = rightId !== undefined ? childFromId(rightId) : undefined;
+            const right = rightId !== undefined ? childFromId(rightId) : undefined;
             const footer = footerId !== undefined ? childFromId(footerId) : undefined;
 
             const center = this.findPseudoGravity(mainId, bottomId);
-            const body   = this.findPseudoGravity(leftId, center.id, rightId);
-            const root   = this.findPseudoGravity(headerId, body.id, footerId);
+            const body = this.findPseudoGravity(leftId, center.id, rightId);
+            const root = this.findPseudoGravity(headerId, body.id, footerId);
 
             let pg;
             let order;
-            let type: LayoutType.Horiz|LayoutType.Vert|undefined;
+            let type: LayoutType.Horiz | LayoutType.Vert | undefined;
             let ratio;
 
             const fallbackCenter = () => {
                 if (body.type !== PseudoGravityType.None) {
-                    pg    = body;
+                    pg = body;
                     order = [left, pane, right];
-                    type  = LayoutType.Horiz;
+                    type = LayoutType.Horiz;
                     ratio = 1;
 
-                    if (leftId !== undefined) { ratio -= LEFT_PCT; }
-                    if (rightId !== undefined) { ratio -= RIGHT_PCT; }
-                }
-                else {
+                    if (leftId !== undefined) {
+                        ratio -= LEFT_PCT;
+                    }
+                    if (rightId !== undefined) {
+                        ratio -= RIGHT_PCT;
+                    }
+                } else {
                     fallbackBody();
                 }
             };
 
             const fallbackBody = () => {
-                pg    = root;
+                pg = root;
                 order = [header, pane, footer];
-                type  = LayoutType.Vert;
+                type = LayoutType.Vert;
                 ratio = 1;
 
-                if (headerId !== undefined) { ratio -= HEADER_PCT; }
-                if (footerId !== undefined) { ratio -= FOOTER_PCT; }
+                if (headerId !== undefined) {
+                    ratio -= HEADER_PCT;
+                }
+                if (footerId !== undefined) {
+                    ratio -= FOOTER_PCT;
+                }
             };
 
             switch (pane.gravity) {
-            case LayoutGravity.Header:
-                pg    = root;
-                order = [pane, body.pane, footer];
-                type  = LayoutType.Vert;
-                ratio = footerId !== undefined && body.type === PseudoGravityType.None
+                case LayoutGravity.Header:
+                    pg = root;
+                    order = [pane, body.pane, footer];
+                    type = LayoutType.Vert;
+                    ratio =
+                        footerId !== undefined && body.type === PseudoGravityType.None
                             ? HEADER_PCT_HF
                             : HEADER_PCT;
-                break;
-            case LayoutGravity.Left:
-                if (body.type !== PseudoGravityType.None) {
-                    pg    = body;
-                    order = [pane, center.pane, right];
-                    type  = LayoutType.Horiz;
-                    ratio = rightId !== undefined && center.type === PseudoGravityType.None
+                    break;
+                case LayoutGravity.Left:
+                    if (body.type !== PseudoGravityType.None) {
+                        pg = body;
+                        order = [pane, center.pane, right];
+                        type = LayoutType.Horiz;
+                        ratio =
+                            rightId !== undefined && center.type === PseudoGravityType.None
                                 ? LEFT_PCT_LR
                                 : LEFT_PCT;
-                }
-                else {
-                    fallbackBody();
-                }
-                break;
-            case LayoutGravity.Main:
-                if (center.type !== PseudoGravityType.None) {
-                    pg    = center;
-                    order = [pane, bottom];
-                    type  = LayoutType.Vert;
-                    ratio = 1;
+                    } else {
+                        fallbackBody();
+                    }
+                    break;
+                case LayoutGravity.Main:
+                    if (center.type !== PseudoGravityType.None) {
+                        pg = center;
+                        order = [pane, bottom];
+                        type = LayoutType.Vert;
+                        ratio = 1;
 
-                    if (bottomId !== undefined) { ratio -= BOTTOM_PCT; }
-                }
-                else {
-                    fallbackCenter();
-                }
-                break;
-            case LayoutGravity.Bottom:
-                if (center.type !== PseudoGravityType.None) {
-                    pg    = center;
-                    order = [main, pane];
-                    type  = LayoutType.Vert;
-                    ratio = BOTTOM_PCT;
-                }
-                else {
-                    fallbackCenter();
-                }
-                break;
-            case LayoutGravity.Right:
-                if (body.type !== PseudoGravityType.None) {
-                    pg    = body;
-                    order = [left, center.pane, pane];
-                    type  = LayoutType.Horiz;
-                    ratio = leftId !== undefined && center.type === PseudoGravityType.None
+                        if (bottomId !== undefined) {
+                            ratio -= BOTTOM_PCT;
+                        }
+                    } else {
+                        fallbackCenter();
+                    }
+                    break;
+                case LayoutGravity.Bottom:
+                    if (center.type !== PseudoGravityType.None) {
+                        pg = center;
+                        order = [main, pane];
+                        type = LayoutType.Vert;
+                        ratio = BOTTOM_PCT;
+                    } else {
+                        fallbackCenter();
+                    }
+                    break;
+                case LayoutGravity.Right:
+                    if (body.type !== PseudoGravityType.None) {
+                        pg = body;
+                        order = [left, center.pane, pane];
+                        type = LayoutType.Horiz;
+                        ratio =
+                            leftId !== undefined && center.type === PseudoGravityType.None
                                 ? RIGHT_PCT_LR
                                 : RIGHT_PCT;
-                }
-                else {
-                    fallbackBody();
-                }
-                break;
-            case LayoutGravity.Footer:
-                pg    = root;
-                order = [header, body.pane, pane];
-                type  = LayoutType.Vert;
-                ratio = headerId !== undefined && body.type === PseudoGravityType.None
+                    } else {
+                        fallbackBody();
+                    }
+                    break;
+                case LayoutGravity.Footer:
+                    pg = root;
+                    order = [header, body.pane, pane];
+                    type = LayoutType.Vert;
+                    ratio =
+                        headerId !== undefined && body.type === PseudoGravityType.None
                             ? FOOTER_PCT_HF
                             : FOOTER_PCT;
-                break;
+                    break;
             }
 
-            const fixRatios = new Map<ChildLayoutId<X>|undefined, number>();
+            const fixRatios = new Map<ChildLayoutId<X> | undefined, number>();
 
             if (pg !== undefined && pg.type === PseudoGravityType.Real) {
                 switch (pg) {
-                case root:
-                    if (headerId !== undefined && footerId !== undefined) {
-                        fixRatios.set(headerId, HEADER_PCT / HEADER_PCT_HF);
-                        fixRatios.set(footerId, FOOTER_PCT / FOOTER_PCT_HF);
-                    }
-                    else {
-                        fixRatios.set(headerId, 1);
-                        fixRatios.set(footerId, 1);
-                    }
+                    case root:
+                        if (headerId !== undefined && footerId !== undefined) {
+                            fixRatios.set(headerId, HEADER_PCT / HEADER_PCT_HF);
+                            fixRatios.set(footerId, FOOTER_PCT / FOOTER_PCT_HF);
+                        } else {
+                            fixRatios.set(headerId, 1);
+                            fixRatios.set(footerId, 1);
+                        }
 
-                    break;
-                case body:
-                    if (leftId !== undefined && rightId !== undefined) {
-                        fixRatios.set(leftId, LEFT_PCT / LEFT_PCT_LR);
-                        fixRatios.set(rightId, RIGHT_PCT / RIGHT_PCT_LR);
-                    }
-                    else {
-                        fixRatios.set(leftId, 1);
-                        fixRatios.set(rightId, 1);
-                    }
-                    break;
-                case center: fixRatios.set(bottomId, 1); break;
+                        break;
+                    case body:
+                        if (leftId !== undefined && rightId !== undefined) {
+                            fixRatios.set(leftId, LEFT_PCT / LEFT_PCT_LR);
+                            fixRatios.set(rightId, RIGHT_PCT / RIGHT_PCT_LR);
+                        } else {
+                            fixRatios.set(leftId, 1);
+                            fixRatios.set(rightId, 1);
+                        }
+                        break;
+                    case center:
+                        fixRatios.set(bottomId, 1);
+                        break;
                 }
             }
 
             fixRatios.delete(undefined);
 
-            if (pg === undefined || order === undefined || type === undefined ||
-                ratio === undefined) {
+            if (
+                pg === undefined ||
+                order === undefined ||
+                type === undefined ||
+                ratio === undefined
+            ) {
                 throw new Error('missing pseudo-gravity info - this should never happen');
             }
 
             return this.placeChildForPseudoGravity(
-                pg, pane, order, type, ratio, fixRatios as Map<ChildLayoutId<X>, number>);
+                pg,
+                pane,
+                order,
+                type,
+                ratio,
+                fixRatios as Map<ChildLayoutId<X>, number>,
+            );
         }
     }
 
@@ -594,12 +655,16 @@ export abstract class LayoutBase<X> {
      * if the group cannot be found.
      * @param pane the child to add
      */
-    public withChildByGroup(pane: ChildLayout<X>): PaneLayout<X>|undefined {
-        if (pane.group === undefined) { throw new Error('cannot insert a pane with no group'); }
+    public withChildByGroup(pane: ChildLayout<X>): PaneLayout<X> | undefined {
+        if (pane.group === undefined) {
+            throw new Error('cannot insert a pane with no group');
+        }
 
         const well = this.findChildByGroup(pane.group);
 
-        if (well === undefined) { return undefined; }
+        if (well === undefined) {
+            return undefined;
+        }
 
         return this.withDescendant(well, pane);
     }
@@ -614,8 +679,10 @@ export abstract class ChildLayoutBase<X> extends LayoutBase<X> {
      * @param gravity the gravity of this layout node
      * @param group the group of this layout node
      */
-    public constructor(public readonly gravity: LayoutGravity|undefined,
-                       public readonly group: string|undefined) {
+    public constructor(
+        public readonly gravity: LayoutGravity | undefined,
+        public readonly group: string | undefined,
+    ) {
         super();
     }
 }

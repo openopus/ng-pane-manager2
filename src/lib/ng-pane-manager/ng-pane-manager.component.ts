@@ -29,16 +29,16 @@ import {
     Output,
     ViewChild,
 } from '@angular/core';
-import {BehaviorSubject, Observable, of, Subject} from 'rxjs';
-import {map, switchAll} from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
+import { map, switchAll } from 'rxjs/operators';
 
-import {DropTarget} from '../drag-and-drop';
-import {NgPaneHeaderTemplateService} from '../ng-pane-header-templates.service';
-import {NgPaneLeafTemplateService} from '../ng-pane-leaf-templates.service';
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneComponent} from '../ng-pane/ng-pane.component';
-import {PaneFactory} from '../pane-factory';
-import {LayoutType, RootLayout} from '../pane-layout/module';
+import { DropTarget } from '../drag-and-drop';
+import { NgPaneHeaderTemplateService } from '../ng-pane-header-templates.service';
+import { NgPaneLeafTemplateService } from '../ng-pane-leaf-templates.service';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneComponent } from '../ng-pane/ng-pane.component';
+import { PaneFactory } from '../pane-factory';
+import { LayoutType, RootLayout } from '../pane-layout/module';
 
 /**
  * The root component for `angular-pane-manager`, providing a tree-like
@@ -53,7 +53,7 @@ import {LayoutType, RootLayout} from '../pane-layout/module';
 })
 export class NgPaneManagerComponent<X> implements OnDestroy {
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     private readonly renderer!: NgPaneRendererDirective;
 
     /** See `layout` */
@@ -61,12 +61,12 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     /** See `dropTargets` */
     private _dropTargets: Map<ElementRef<HTMLElement>, DropTarget<X>> = new Map();
     /** See `layoutUpdate` */
-    private readonly _layoutUpdate:
-        BehaviorSubject<Observable<RootLayout<X>>> = new BehaviorSubject(of());
+    private readonly _layoutUpdate: BehaviorSubject<Observable<RootLayout<X>>> =
+        new BehaviorSubject(of());
     /** A stream of resize events to send to all panes */
     private readonly onResize: Subject<undefined> = new Subject();
     /** The root component of the current layout */
-    private pane: ComponentRef<NgPaneComponent<X>>|undefined;
+    private pane: ComponentRef<NgPaneComponent<X>> | undefined;
     /** The pane factory used for rendering all inner components */
     private readonly factory: PaneFactory<X>;
 
@@ -93,7 +93,9 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
         return this._layout;
     }
 
-    public set layout(val: RootLayout<X>) { this.transactLayoutChange(_ => val); }
+    public set layout(val: RootLayout<X>) {
+        this.transactLayoutChange(_ => val);
+    }
 
     /**
      * Drag-and-drop information created by the pane renderer. Used for
@@ -107,17 +109,21 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
      * Construct a new pane manager.
      * @param cfr injected for use by the pane factory
      */
-    public constructor(public el: ElementRef<Element>,
-                       leafTemplateService: NgPaneLeafTemplateService<X>,
-                       headerTemplateService: NgPaneHeaderTemplateService<X>,
-                       cfr: ComponentFactoryResolver) {
+    public constructor(
+        public el: ElementRef<Element>,
+        leafTemplateService: NgPaneLeafTemplateService<X>,
+        headerTemplateService: NgPaneHeaderTemplateService<X>,
+        cfr: ComponentFactoryResolver,
+    ) {
         this.factory = new PaneFactory(this, leafTemplateService, headerTemplateService, cfr);
     }
 
     /**
      * Clean up all resources used by this pane manager.
      */
-    public ngOnDestroy(): void { this.onResize.complete(); }
+    public ngOnDestroy(): void {
+        this.onResize.complete();
+    }
 
     /**
      * Constructs a map from native elements to drag-and-drop information.  Used
@@ -126,7 +132,9 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     public collectNativeDropTargets(): Map<Element, DropTarget<X>> {
         const ret = new Map();
 
-        for (const [key, val] of this._dropTargets) { ret.set(key.nativeElement, val); }
+        for (const [key, val] of this._dropTargets) {
+            ret.set(key.nativeElement, val);
+        }
 
         return ret;
     }
@@ -134,7 +142,9 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     /**
      * Notify all child panes that a resize of the host pane manager occurred.
      */
-    public notifyResize(): void { this.onResize.next(undefined); }
+    public notifyResize(): void {
+        this.onResize.next(undefined);
+    }
 
     /**
      * Apply one or more changes to the rendered layout as a single operation.
@@ -142,10 +152,10 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
      * @param after hook to run just before all unused leaf nodes are destroyed.
      *              Returns whether a layout change event should be emitted.
      */
-    public transactLayoutChange(fn: (layout: RootLayout<X>,
-                                     factory: PaneFactory<X>)               => RootLayout<X>,
-                                after?: (factory: PaneFactory<X>,
-                                         renderer: NgPaneRendererDirective) => boolean): void {
+    public transactLayoutChange(
+        fn: (layout: RootLayout<X>, factory: PaneFactory<X>) => RootLayout<X>,
+        after?: (factory: PaneFactory<X>, renderer: NgPaneRendererDirective) => boolean,
+    ): void {
         let newLayout = fn(this._layout, this.factory);
 
         const simplified = newLayout.simplifyDeep();
@@ -162,17 +172,21 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
 
         const oldPane = this.pane;
 
-        const {targets, layoutUpdate} = this.factory.notifyLayoutChangeStart();
-        this._dropTargets             = targets;
+        const { targets, layoutUpdate } = this.factory.notifyLayoutChangeStart();
+        this._dropTargets = targets;
 
         try {
-            this.pane = this.factory.placePane(this.renderer.viewContainer,
-                                               newLayout.childId(),
-                                               this.onResize);
+            this.pane = this.factory.placePane(
+                this.renderer.viewContainer,
+                newLayout.childId(),
+                this.onResize,
+            );
 
             let emitChange = true;
 
-            if (after !== undefined) { emitChange = after(this.factory, this.renderer); }
+            if (after !== undefined) {
+                emitChange = after(this.factory, this.renderer);
+            }
 
             if (emitChange) {
                 this.layoutChange.emit(this._layout);
@@ -182,9 +196,10 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
                 const layout = this._layout;
                 this._layoutUpdate.next(layoutUpdate.pipe(map(_ => layout)));
             }
-        }
-        finally {
-            if (oldPane !== undefined) { oldPane.destroy(); }
+        } finally {
+            if (oldPane !== undefined) {
+                oldPane.destroy();
+            }
 
             this.factory.notifyLayoutChangeEnd();
         }

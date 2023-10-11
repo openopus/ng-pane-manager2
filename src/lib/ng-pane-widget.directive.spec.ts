@@ -20,10 +20,9 @@
 
 // import {NgPaneWidgetDirective} from './ng-pane-widget.directive';
 
-describe('NgPaneWidgetDirective',
-         () => {
-             // it('should create an instance', () => {
-             //     const directive = new NgPaneWidgetDirective();
-             //     expect(directive).toBeTruthy();
-             // });
-         });
+describe('NgPaneWidgetDirective', () => {
+    // it('should create an instance', () => {
+    //     const directive = new NgPaneWidgetDirective();
+    //     expect(directive).toBeTruthy();
+    // });
+});

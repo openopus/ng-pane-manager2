@@ -18,9 +18,9 @@
  *
  *******************************************************************************************************/
 
-import {TestBed} from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
-import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
+import { NgPaneLeafTemplateService } from './ng-pane-leaf-templates.service';
 
 describe('NgPaneLeafTemplatesService', () => {
     let service: NgPaneLeafTemplateService<any>;
@@ -30,5 +30,7 @@ describe('NgPaneLeafTemplatesService', () => {
         service = TestBed.inject(NgPaneLeafTemplateService);
     });
 
-    it('should be created', () => { void expect(service).toBeTruthy(); });
+    it('should be created', () => {
+        void expect(service).toBeTruthy();
+    });
 });

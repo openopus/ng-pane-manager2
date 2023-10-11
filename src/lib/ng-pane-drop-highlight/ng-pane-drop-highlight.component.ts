@@ -18,7 +18,7 @@
  *
  ****************************************************************************************************/
 
-import {Component, HostBinding} from '@angular/core';
+import { Component, HostBinding } from '@angular/core';
 
 /**
  * An overlay indicating where a floating pane currently being dragged will end
@@ -41,5 +41,6 @@ export class NgPaneDropHighlightComponent {
     /** The height of this drop highlight */
     @HostBinding('style.height.px') public height: number = 0;
     /** Whether to emphasize a particular edge of the highlight */
-    @HostBinding('attr.data-lib-ng-pane-drop-emphasize') public emphasize: 'left'|'right'|undefined;
+    @HostBinding('attr.data-lib-ng-pane-drop-emphasize')
+    public emphasize: 'left' | 'right' | undefined;
 }

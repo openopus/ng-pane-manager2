@@ -18,10 +18,10 @@
  *
  **********************************************************************************************/
 
-import {Directive, ViewContainerRef} from '@angular/core';
+import { Directive, ViewContainerRef } from '@angular/core';
 
 /** Provides a handle to a `ViewContainerRef` for use in rendering components. */
-@Directive({selector: '[libNgPaneRenderer]'})
+@Directive({ selector: '[libNgPaneRenderer]' })
 export class NgPaneRendererDirective {
     /**
      * Construct a new pane renderer.

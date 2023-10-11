@@ -18,16 +18,19 @@
  *
  ***********************************************************************************/
 
-import {SplitLayout, TabbedLayout} from './branch-layout';
-import {LayoutGravity, LayoutType} from './layout-base';
-import {ChildLayout, GroupLayout, LeafLayout, PaneLayout} from './layout-core';
+import { SplitLayout, TabbedLayout } from './branch-layout';
+import { LayoutGravity, LayoutType } from './layout-base';
+import { ChildLayout, GroupLayout, LeafLayout, PaneLayout } from './layout-core';
 
 /** A template for any kind of layout */
-export type LayoutTemplate<T> = GroupLayoutTemplate<T>|SplitLayoutTemplate<T>|TabLayoutTemplate<T>|
-    LeafLayoutTemplate<T>;
+export type LayoutTemplate<T> =
+    | GroupLayoutTemplate<T>
+    | SplitLayoutTemplate<T>
+    | TabLayoutTemplate<T>
+    | LeafLayoutTemplate<T>;
 
 /** Stringified versions of the layout gravities */
-export type GravityTemplate = 'header'|'left'|'main'|'bottom'|'right'|'footer';
+export type GravityTemplate = 'header' | 'left' | 'main' | 'bottom' | 'right' | 'footer';
 
 /**
  * Base interface for all layout node templates.
@@ -60,7 +63,7 @@ export interface GroupLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Must be `'group'`, used for type checking. */
     split: 'group';
     /** The child split node of this group node */
-    child: SplitLayoutTemplate<T>|undefined;
+    child: SplitLayoutTemplate<T> | undefined;
     /** The template name of this node's header */
     header: string;
 }
@@ -70,7 +73,7 @@ export interface GroupLayoutTemplate<T> extends LayoutTemplateBase {
  */
 export interface SplitLayoutTemplate<T> extends LayoutTemplateBase {
     /** Split mode.  Can be `'horiz'` or `'vert'`. */
-    split: 'horiz'|'vert';
+    split: 'horiz' | 'vert';
     /** The ratios of this node's children.  Must match the length of `children`. */
     ratio: number[];
     /** The children of this node */
@@ -93,16 +96,30 @@ export interface TabLayoutTemplate<T> extends LayoutTemplateBase {
  * Convert a string gravity value to a numeric gravity value.
  * @param gravity the string gravity value, or `undefined`
  */
-export function loadLayoutGravity(gravity: GravityTemplate|undefined): LayoutGravity|undefined {
+export function loadLayoutGravity(gravity: GravityTemplate | undefined): LayoutGravity | undefined {
     switch (gravity) {
-    case undefined: return undefined;
-    case 'header': return LayoutGravity.Header; break;
-    case 'left': return LayoutGravity.Left; break;
-    case 'main': return LayoutGravity.Main; break;
-    case 'bottom': return LayoutGravity.Bottom; break;
-    case 'right': return LayoutGravity.Right; break;
-    case 'footer': return LayoutGravity.Footer; break;
-    default: throw new Error(`invalid layout gravity '${gravity}'`);
+        case undefined:
+            return undefined;
+        case 'header':
+            return LayoutGravity.Header;
+            break;
+        case 'left':
+            return LayoutGravity.Left;
+            break;
+        case 'main':
+            return LayoutGravity.Main;
+            break;
+        case 'bottom':
+            return LayoutGravity.Bottom;
+            break;
+        case 'right':
+            return LayoutGravity.Right;
+            break;
+        case 'footer':
+            return LayoutGravity.Footer;
+            break;
+        default:
+            throw new Error(`invalid layout gravity '${gravity}'`);
     }
 }
 
@@ -110,47 +127,65 @@ export function loadLayoutGravity(gravity: GravityTemplate|undefined): LayoutGra
  * Load a child layout from a layout template.
  * @param template the layout template to load
  */
-export function loadLayout<T, X>(template: LayoutTemplate<T>,
-                                 loadExtra: (extra: T) => X): ChildLayout<X> {
+export function loadLayout<T, X>(
+    template: LayoutTemplate<T>,
+    loadExtra: (extra: T) => X,
+): ChildLayout<X> {
     const recurse = (next: LayoutTemplate<T>) => loadLayout(next, loadExtra);
 
     switch (template.split) {
-    case undefined:
-        return new LeafLayout(template.id,
-                              template.template,
-                              loadExtra(template.extra),
-                              loadLayoutGravity(template.gravity),
-                              template.group);
-    case 'group':
-        const split = template.child !== undefined ? recurse(template.child) : undefined;
+        case undefined:
+            return new LeafLayout(
+                template.id,
+                template.template,
+                loadExtra(template.extra),
+                loadLayoutGravity(template.gravity),
+                template.group,
+            );
+        case 'group':
+            const split = template.child !== undefined ? recurse(template.child) : undefined;
 
-        if (!(split === undefined || split.type === LayoutType.Horiz ||
-              split.type === LayoutType.Vert)) {
-            throw new Error('invalid child for grouped split template');
-        }
+            if (
+                !(
+                    split === undefined ||
+                    split.type === LayoutType.Horiz ||
+                    split.type === LayoutType.Vert
+                )
+            ) {
+                throw new Error('invalid child for grouped split template');
+            }
 
-        return new GroupLayout(split,
-                               template.header,
-                               loadLayoutGravity(template.gravity),
-                               template.group);
-    case 'horiz':
-        return new SplitLayout(LayoutType.Horiz,
-                               template.children.map(recurse),
-                               template.ratio,
-                               loadLayoutGravity(template.gravity),
-                               template.group);
-    case 'vert':
-        return new SplitLayout(LayoutType.Vert,
-                               template.children.map(recurse),
-                               template.ratio,
-                               loadLayoutGravity(template.gravity),
-                               template.group);
-    case 'tab':
-        return new TabbedLayout(template.children.map(recurse),
-                                template.currentTab,
-                                loadLayoutGravity(template.gravity),
-                                template.group);
-    default: throw new Error(`invalid split type '${(template as any).split}'`);
+            return new GroupLayout(
+                split,
+                template.header,
+                loadLayoutGravity(template.gravity),
+                template.group,
+            );
+        case 'horiz':
+            return new SplitLayout(
+                LayoutType.Horiz,
+                template.children.map(recurse),
+                template.ratio,
+                loadLayoutGravity(template.gravity),
+                template.group,
+            );
+        case 'vert':
+            return new SplitLayout(
+                LayoutType.Vert,
+                template.children.map(recurse),
+                template.ratio,
+                loadLayoutGravity(template.gravity),
+                template.group,
+            );
+        case 'tab':
+            return new TabbedLayout(
+                template.children.map(recurse),
+                template.currentTab,
+                loadLayoutGravity(template.gravity),
+                template.group,
+            );
+        default:
+            throw new Error(`invalid split type '${(template as any).split}'`);
     }
 }
 
@@ -158,15 +193,28 @@ export function loadLayout<T, X>(template: LayoutTemplate<T>,
  * Convert a numeric gravity value to a string gravity value.
  * @param gravity the numeric gravity value, or `undefined`
  */
-export function saveLayoutGravity(gravity: LayoutGravity|undefined): GravityTemplate|undefined {
+export function saveLayoutGravity(gravity: LayoutGravity | undefined): GravityTemplate | undefined {
     switch (gravity) {
-    case undefined: return undefined;
-    case LayoutGravity.Header: return 'header'; break;
-    case LayoutGravity.Left: return 'left'; break;
-    case LayoutGravity.Main: return 'main'; break;
-    case LayoutGravity.Bottom: return 'bottom'; break;
-    case LayoutGravity.Right: return 'right'; break;
-    case LayoutGravity.Footer: return 'footer'; break;
+        case undefined:
+            return undefined;
+        case LayoutGravity.Header:
+            return 'header';
+            break;
+        case LayoutGravity.Left:
+            return 'left';
+            break;
+        case LayoutGravity.Main:
+            return 'main';
+            break;
+        case LayoutGravity.Bottom:
+            return 'bottom';
+            break;
+        case LayoutGravity.Right:
+            return 'right';
+            break;
+        case LayoutGravity.Footer:
+            return 'footer';
+            break;
     }
 }
 
@@ -174,60 +222,64 @@ export function saveLayoutGravity(gravity: LayoutGravity|undefined): GravityTemp
  * Save a layout node to a layout template.
  * @param layout the layout node to save
  */
-export function saveLayout<X, T>(layout: PaneLayout<X>,
-                                 saveExtra: (extra: X) => T): LayoutTemplate<T> {
+export function saveLayout<X, T>(
+    layout: PaneLayout<X>,
+    saveExtra: (extra: X) => T,
+): LayoutTemplate<T> {
     const recurse = (pane: PaneLayout<X>) => saveLayout(pane, saveExtra);
 
     switch (layout.type) {
-    case LayoutType.Root:
-        if (layout.layout === undefined) { throw new Error('root layout is empty'); }
+        case LayoutType.Root:
+            if (layout.layout === undefined) {
+                throw new Error('root layout is empty');
+            }
 
-        return recurse(layout.layout);
-    case LayoutType.Group:
-        const child = layout.split !== undefined ? recurse(layout.split) : undefined;
+            return recurse(layout.layout);
+        case LayoutType.Group:
+            const child = layout.split !== undefined ? recurse(layout.split) : undefined;
 
-        if (!(child === undefined || child.split === 'horiz' || child.split === 'vert')) {
-            throw new Error('invalid grouped split node - this shouldn\'t happen');
-        }
+            if (!(child === undefined || child.split === 'horiz' || child.split === 'vert')) {
+                throw new Error("invalid grouped split node - this shouldn't happen");
+            }
 
-        return {
-            split: 'group',
-            child,
-            header: layout.headerWidgetId,
-            gravity: saveLayoutGravity(layout.gravity),
-            group: layout.group,
-        };
-    case LayoutType.Leaf:
-        return {
-            id: layout.id,
-            template: layout.template,
-            gravity: saveLayoutGravity(layout.gravity),
-            group: layout.group,
-            extra: saveExtra(layout.extra),
-        };
-    case LayoutType.Horiz:
-        return {
-            split: 'horiz',
-            ratio: layout.ratios.slice(),
-            children: layout.children.map(recurse),
-            gravity: saveLayoutGravity(layout.gravity),
-            group: layout.group,
-        };
-    case LayoutType.Vert:
-        return {
-            split: 'vert',
-            ratio: layout.ratios.slice(),
-            children: layout.children.map(recurse),
-            gravity: saveLayoutGravity(layout.gravity),
-            group: layout.group,
-        };
-    case LayoutType.Tabbed:
-        return {
-            split: 'tab',
-            currentTab: layout.currentTab,
-            children: layout.children.map(recurse),
-            gravity: saveLayoutGravity(layout.gravity),
-            group: layout.group,
-        };
+            return {
+                split: 'group',
+                child,
+                header: layout.headerWidgetId,
+                gravity: saveLayoutGravity(layout.gravity),
+                group: layout.group,
+            };
+        case LayoutType.Leaf:
+            return {
+                id: layout.id,
+                template: layout.template,
+                gravity: saveLayoutGravity(layout.gravity),
+                group: layout.group,
+                extra: saveExtra(layout.extra),
+            };
+        case LayoutType.Horiz:
+            return {
+                split: 'horiz',
+                ratio: layout.ratios.slice(),
+                children: layout.children.map(recurse),
+                gravity: saveLayoutGravity(layout.gravity),
+                group: layout.group,
+            };
+        case LayoutType.Vert:
+            return {
+                split: 'vert',
+                ratio: layout.ratios.slice(),
+                children: layout.children.map(recurse),
+                gravity: saveLayoutGravity(layout.gravity),
+                group: layout.group,
+            };
+        case LayoutType.Tabbed:
+            return {
+                split: 'tab',
+                currentTab: layout.currentTab,
+                children: layout.children.map(recurse),
+                gravity: saveLayoutGravity(layout.gravity),
+                group: layout.group,
+            };
     }
 }

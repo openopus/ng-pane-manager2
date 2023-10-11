@@ -24,15 +24,13 @@
 // import {NgPaneTemplateDirective} from './ng-pane-template.directive';
 // import {LeafNodeContext} from './pane-template';
 
-describe(
-    'NgPaneTemplateDirective',
-    () => {
-        // it('should create an instance', () => {
-        //     const directive = new NgPaneTemplateDirective(undefined as
-        //                                                       TemplateRef<LeafNodeContext<unknown>>,
-        //                                                   undefined as ViewContainerRef,
-        //                                                   undefined as
-        //                                                       NgPaneLeafTemplateService<unknown>);
-        //     void expect(directive).toBeTruthy();
-        // });
-    });
+describe('NgPaneTemplateDirective', () => {
+    // it('should create an instance', () => {
+    //     const directive = new NgPaneTemplateDirective(undefined as
+    //                                                       TemplateRef<LeafNodeContext<unknown>>,
+    //                                                   undefined as ViewContainerRef,
+    //                                                   undefined as
+    //                                                       NgPaneLeafTemplateService<unknown>);
+    //     void expect(directive).toBeTruthy();
+    // });
+});

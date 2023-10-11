@@ -18,10 +18,10 @@
  *
  ******************************************************************************/
 
-import {Component, HostListener} from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 
-import {DraggablePaneComponent} from './drag-and-drop';
-import {PaneHeaderMode, PaneHeaderStyle} from './pane-template';
+import { DraggablePaneComponent } from './drag-and-drop';
+import { PaneHeaderMode, PaneHeaderStyle } from './pane-template';
 
 /**
  * Abstract base component class for components hosting a closable, draggable
@@ -30,9 +30,11 @@ import {PaneHeaderMode, PaneHeaderStyle} from './pane-template';
  * Provides a `close()` method and an `auxclick` handler that covers all pane
  * middle-click-to-close functionality.
  */
-@Component({template: ''})
-export abstract class ClosablePaneComponent<X, T extends PaneHeaderMode = PaneHeaderMode> extends
-    DraggablePaneComponent<X> {
+@Component({ template: '' })
+export abstract class ClosablePaneComponent<
+    X,
+    T extends PaneHeaderMode = PaneHeaderMode,
+> extends DraggablePaneComponent<X> {
     /** The header style information for this component */
     protected abstract get style(): PaneHeaderStyle<T, unknown>;
 
@@ -44,17 +46,23 @@ export abstract class ClosablePaneComponent<X, T extends PaneHeaderMode = PaneHe
      */
     @HostListener('auxclick', ['$event'])
     public onClick(evt: MouseEvent): void {
-        if (evt.button === 1) { this.close(); }
+        if (evt.button === 1) {
+            this.close();
+        }
     }
 
     /**
      * Remove this pane from the layout tree.
      */
     public close(): void {
-        if (!this.style.closable) { return; }
+        if (!this.style.closable) {
+            return;
+        }
 
         const transposed = this.manager.layout.transposeDeep(
-            this.childId.stem, this.childId.stem.withoutChild(this.childId.index).layout);
+            this.childId.stem,
+            this.childId.stem.withoutChild(this.childId.index).layout,
+        );
 
         if (transposed === undefined) {
             throw new Error('unable to close pane - this should never happen');

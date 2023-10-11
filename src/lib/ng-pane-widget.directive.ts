@@ -26,19 +26,19 @@ import {
     TemplateRef,
     ViewContainerRef,
 } from '@angular/core';
-import {NgPaneHeaderTemplateService} from './ng-pane-header-templates.service';
-import {HeaderWidgetContext} from './pane-template';
+import { NgPaneHeaderTemplateService } from './ng-pane-header-templates.service';
+import { HeaderWidgetContext } from './pane-template';
 
 /**
  * Store the attached content as a named template for custom pane headers.
  */
 // tslint:disable-next-line directive-selector
-@Directive({selector: '[ngPaneWidget]'})
+@Directive({ selector: '[ngPaneWidget]' })
 export class NgPaneWidgetDirective<X> implements AfterContentInit, OnDestroy {
     /** See `ngPaneWidgetNamed` */
-    private name: string|undefined;
+    private name: string | undefined;
     /** See `ngPaneWidgetControls` */
-    private controls: TemplateRef<HeaderWidgetContext<X>>|undefined;
+    private controls: TemplateRef<HeaderWidgetContext<X>> | undefined;
 
     /** Stores the name to register this template under */
     @Input()
@@ -58,23 +58,30 @@ export class NgPaneWidgetDirective<X> implements AfterContentInit, OnDestroy {
      * @param _viewContainer injected (unused)
      * @param templateService injected to register the widget template
      */
-    public constructor(private readonly templateRef: TemplateRef<HeaderWidgetContext<X>>,
-                       _viewContainer: ViewContainerRef,
-                       private readonly templateService: NgPaneHeaderTemplateService<X>) {}
+    public constructor(
+        private readonly templateRef: TemplateRef<HeaderWidgetContext<X>>,
+        _viewContainer: ViewContainerRef,
+        private readonly templateService: NgPaneHeaderTemplateService<X>,
+    ) {}
 
     /** Register the header widget template */
     public ngAfterContentInit(): void {
         if (this.name === undefined) {
-            throw new Error(`header widget template missing 'named' keyword`);
+            throw new Error("header widget template missing 'named' keyword");
         }
 
-        this.templateService.add(this.name, {title: this.templateRef, controls: this.controls});
+        this.templateService.add(this.name, { title: this.templateRef, controls: this.controls });
     }
 
     /** Attempt to unregister the template */
     public ngOnDestroy(): void {
-        if (this.name === undefined) { return; }
+        if (this.name === undefined) {
+            return;
+        }
 
-        this.templateService.remove(this.name, {title: this.templateRef, controls: this.controls});
+        this.templateService.remove(this.name, {
+            title: this.templateRef,
+            controls: this.controls,
+        });
     }
 }

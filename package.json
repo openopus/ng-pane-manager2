@@ -35,5 +35,21 @@
         "@types/chai": "^4.2.12",
         "chai": "^4.2.0",
         "fast-check": "^2.0.0"
+    },
+    "prettier": {
+        "printWidth": 100,
+        "tabWidth": 4,
+        "semi": true,
+        "singleQuote": true,
+        "quoteProps": "as-needed",
+        "trailingComma": "all",
+        "bracketSpacing": true,
+        "bracketSameLine": false,
+        "arrowParens": "avoid",
+        "proseWrap": "always",
+        "htmlWhitespaceSensitivity": "css",
+        "endOfLine": "lf",
+        "embeddedLanguageFormatting": "auto",
+        "singleAttributePerLine": false
     }
 }

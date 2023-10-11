@@ -18,12 +18,12 @@
  *
  *************************************************************************************************/
 
-import {Component, ElementRef, HostBinding, HostListener} from '@angular/core';
+import { Component, ElementRef, HostBinding, HostListener } from '@angular/core';
 
-import {averageTouchPos, beginMouseDrag, beginTouchDrag} from '../begin-drag';
-import {PaneFactory} from '../pane-factory';
-import {ChildLayoutId, LayoutType, SplitLayout} from '../pane-layout/module';
-import {clipDenormPos} from '../util';
+import { averageTouchPos, beginMouseDrag, beginTouchDrag } from '../begin-drag';
+import { PaneFactory } from '../pane-factory';
+import { ChildLayoutId, LayoutType, SplitLayout } from '../pane-layout/module';
+import { clipDenormPos } from '../util';
 
 /**
  * State information for dragging a split branch thumb.
@@ -80,16 +80,20 @@ export class NgPaneSplitThumbComponent<X> {
             lastPos: -1,
         };
 
-        const layout   = this.childId.stem;
+        const layout = this.childId.stem;
         const stemRect = this.factory.getPaneRect(layout);
 
-        if (stemRect === undefined) { throw new Error('failed to find stem bounding rect'); }
+        if (stemRect === undefined) {
+            throw new Error('failed to find stem bounding rect');
+        }
 
         const siblingRects = [];
 
         for (const child of layout.children) {
             const rect = this.factory.getPaneRect(child);
-            if (rect === undefined) { throw new Error('failed to find sibling bounding rect'); }
+            if (rect === undefined) {
+                throw new Error('failed to find sibling bounding rect');
+            }
             siblingRects.push(rect);
         }
 
@@ -97,16 +101,16 @@ export class NgPaneSplitThumbComponent<X> {
         //       consider them for calculation, the total width of the stem
         //       element cannot be used directly.
         switch (layout.type) {
-        case LayoutType.Horiz:
-            state.scaleFactor = layout.ratioSum /
-                                clipDenormPos(siblingRects.reduce((s, r) => s + r.width, 0));
-            state.lastPos = clientX;
-            break;
-        case LayoutType.Vert:
-            state.scaleFactor = layout.ratioSum /
-                                clipDenormPos(siblingRects.reduce((s, r) => s + r.height, 0));
-            state.lastPos = clientY;
-            break;
+            case LayoutType.Horiz:
+                state.scaleFactor =
+                    layout.ratioSum / clipDenormPos(siblingRects.reduce((s, r) => s + r.width, 0));
+                state.lastPos = clientX;
+                break;
+            case LayoutType.Vert:
+                state.scaleFactor =
+                    layout.ratioSum / clipDenormPos(siblingRects.reduce((s, r) => s + r.height, 0));
+                state.lastPos = clientY;
+                break;
         }
 
         return state;
@@ -119,15 +123,16 @@ export class NgPaneSplitThumbComponent<X> {
         let delta: number;
 
         switch (this.childId.stem.type) {
-        case LayoutType.Horiz:
-            delta         = (clientX - state.lastPos) * state.scaleFactor;
-            state.lastPos = clientX;
-            break;
-        case LayoutType.Vert:
-            delta         = (clientY - state.lastPos) * state.scaleFactor;
-            state.lastPos = clientY;
-            break;
-        default: return;
+            case LayoutType.Horiz:
+                delta = (clientX - state.lastPos) * state.scaleFactor;
+                state.lastPos = clientX;
+                break;
+            case LayoutType.Vert:
+                delta = (clientY - state.lastPos) * state.scaleFactor;
+                state.lastPos = clientY;
+                break;
+            default:
+                return;
         }
 
         this.childId.stem.moveSplit(this.childId.index, delta);
@@ -138,7 +143,9 @@ export class NgPaneSplitThumbComponent<X> {
      */
     @HostListener('mousedown', ['$event'])
     public onMouseDown(evt: MouseEvent): void {
-        if (evt.buttons !== 1) { return; }
+        if (evt.buttons !== 1) {
+            return;
+        }
 
         const state = this.makeDragState(evt.clientX, evt.clientY);
         beginMouseDrag(evt, (x, y) => this.onDragDelta(x, y, state));
@@ -153,7 +160,7 @@ export class NgPaneSplitThumbComponent<X> {
     @HostListener('touchstart', ['$event'])
     public onTouchStart(evt: TouchEvent): void {
         const [startX, startY] = averageTouchPos(evt);
-        const state            = this.makeDragState(startX, startY);
+        const state = this.makeDragState(startX, startY);
         beginTouchDrag(evt, (x, y) => this.onDragDelta(x, y, state));
 
         evt.preventDefault();

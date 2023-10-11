@@ -4,7 +4,7 @@ ng-pane-manager {
     $header-padding: 8px;
     $header-height: $header-size + 2 * $header-padding;
 
-    // The class .ng-theme-default-layout exists to provide structural style 
+    // The class .ng-theme-default-layout exists to provide structural style
     // rules while leaving the colors up to the user.
     &.ng-theme-default,
     &.ng-theme-light,
@@ -65,7 +65,7 @@ ng-pane-manager {
             border: none;
 
             &::after {
-                content: "x";
+                content: 'x';
 
                 $outset: 2px;
                 $size: ($header-height + 2 * ($outset - $header-padding));
@@ -127,7 +127,7 @@ ng-pane-manager {
             z-index: 10;
 
             &::after {
-                content: " ";
+                content: ' ';
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -152,7 +152,6 @@ ng-pane-manager {
                     bottom: 3px;
                 }
             }
-
         }
 
         lib-ng-pane.lib-ng-pane-floating {
@@ -172,11 +171,11 @@ ng-pane-manager {
                 opacity: 1;
             }
 
-            &[data-lib-ng-pane-drop-emphasize="left"] {
+            &[data-lib-ng-pane-drop-emphasize='left'] {
                 border-left-width: 5px;
             }
 
-            &[data-lib-ng-pane-drop-emphasize="right"] {
+            &[data-lib-ng-pane-drop-emphasize='right'] {
                 border-right-width: 5px;
             }
         }
@@ -193,7 +192,7 @@ ng-pane-manager {
         $pane-color: '',
         $split-thumb-bkgd: '',
         $drop-highlight-bkgd: '',
-        $shadow-color: '',
+        $shadow-color: ''
     ) {
         lib-ng-pane-header,
         lib-ng-pane-tab {
@@ -246,7 +245,9 @@ ng-pane-manager {
 
         lib-ng-pane.lib-ng-pane-floating {
             background: $pane-bkgd;
-            box-shadow: 0 10px 20px $shadow-color, 0 0px 10px rgba($shadow-color, alpha($shadow-color) * 0.5);
+            box-shadow:
+                0 10px 20px $shadow-color,
+                0 0px 10px rgba($shadow-color, alpha($shadow-color) * 0.5);
         }
 
         lib-ng-pane-drop-highlight {
@@ -267,7 +268,7 @@ ng-pane-manager {
             $pane-color: #bdbdbd,
             $split-thumb-bkgd: #121518,
             $drop-highlight-bkgd: #5897ce,
-            $shadow-color: rgba(black, 0.4),
+            $shadow-color: rgba(black, 0.4)
         );
     }
 
@@ -283,7 +284,7 @@ ng-pane-manager {
             $pane-color: #424242,
             $split-thumb-bkgd: #d6d6d6,
             $drop-highlight-bkgd: #d3a309,
-            $shadow-color: rgba(black, 0.2),
+            $shadow-color: rgba(black, 0.2)
         );
     }
 }

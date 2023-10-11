@@ -18,8 +18,8 @@
  *
  *********************************************************************************/
 
-import {Component, ComponentRef, HostListener} from '@angular/core';
-import {BehaviorSubject} from 'rxjs';
+import { Component, ComponentRef, HostListener } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 import {
     averageTouchPos,
@@ -28,11 +28,9 @@ import {
     DragCancelFn,
     DragModifiers,
 } from './begin-drag';
-import {
-    NgPaneDropHighlightComponent,
-} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
-import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
-import {NgPaneComponent} from './ng-pane/ng-pane.component';
+import { NgPaneDropHighlightComponent } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
+import { NgPaneManagerComponent } from './ng-pane-manager/ng-pane-manager.component';
+import { NgPaneComponent } from './ng-pane/ng-pane.component';
 import {
     childFromId,
     ChildLayout,
@@ -43,7 +41,7 @@ import {
     SplitLayout,
     TabbedLayout,
 } from './pane-layout/module';
-import {clipDenormPos} from './util';
+import { clipDenormPos } from './util';
 
 /**
  * Indicates the type of a pane drop target.
@@ -126,11 +124,13 @@ interface DropInfoBase<X, O extends DropOrientation = DropOrientation> {
 }
 
 /** Drop information for creating a split layout. */
-interface SplitDropInfo<X> extends DropInfoBase<
-    X,
-    DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom> {
+interface SplitDropInfo<X>
+    extends DropInfoBase<
+        X,
+        DropOrientation.Left | DropOrientation.Top | DropOrientation.Right | DropOrientation.Bottom
+    > {
     /** The ID of the current child if it belongs to a split */
-    splitId: ChildLayoutId<X, SplitLayout<X>>|undefined;
+    splitId: ChildLayoutId<X, SplitLayout<X>> | undefined;
     /** Whether to force the creation of a split group */
     forceGroup: boolean;
 }
@@ -143,18 +143,18 @@ interface TabbedDropInfo<X> extends DropInfoBase<X, DropOrientation.Tabbed> {
      * Whether the tab index is before or after the target tab.  A value of
      * `undefined` indicates the target element is not a tab.
      */
-    isAfter: boolean|undefined;
+    isAfter: boolean | undefined;
 }
 
 /** Drop information for inserting a pane between two split children */
-interface BetweenDropInfo<X> extends
-          DropInfoBase<X, DropOrientation.BetweenHoriz|DropOrientation.BetweenVert> {
+interface BetweenDropInfo<X>
+    extends DropInfoBase<X, DropOrientation.BetweenHoriz | DropOrientation.BetweenVert> {
     /** The child index to insert the floating pane at */
     index: number;
 }
 
 /** Contains any kind of drop info. */
-type DropInfo<X> = SplitDropInfo<X>|TabbedDropInfo<X>|BetweenDropInfo<X>;
+type DropInfo<X> = SplitDropInfo<X> | TabbedDropInfo<X> | BetweenDropInfo<X>;
 
 /** Used below to debounce and differentiate different hover actions. */
 const enum HoverActionType {
@@ -182,7 +182,7 @@ interface TabSwitchHoverAction<X> {
 }
 
 /** Contains any type of hover action. */
-type HoverAction<X> = NoneHoverAction|TabSwitchHoverAction<X>;
+type HoverAction<X> = NoneHoverAction | TabSwitchHoverAction<X>;
 
 /** Input data for computing drop info */
 interface DropInfoContext<X> {
@@ -207,11 +207,11 @@ export class PaneDragContext<X> {
      */
     private readonly oldLayout: RootLayout<X>;
     /** The floating layout node and all associated properties */
-    private floatingInfo: FloatingInfo<X>|undefined;
+    private floatingInfo: FloatingInfo<X> | undefined;
     /** The information needed to drop the floating layout */
-    private dropInfo: DropInfo<X>|undefined;
+    private dropInfo: DropInfo<X> | undefined;
     /** Any currently ongoing hover action */
-    private hoverAction: HoverAction<X> = {type: HoverActionType.None};
+    private hoverAction: HoverAction<X> = { type: HoverActionType.None };
 
     /**
      * Compute the orientation of a dropped panel given the position of a drag
@@ -220,9 +220,17 @@ export class PaneDragContext<X> {
      * @param y the Y coordinate of the drag
      * @param rect the client rectangle of the hovered element
      */
-    private static computeDropOrientation(x: number, y: number, rect: DOMRect):
-        DropOrientation.Left|DropOrientation.Top|DropOrientation.Right
-        |DropOrientation.Bottom|DropOrientation.Tabbed|undefined {
+    private static computeDropOrientation(
+        x: number,
+        y: number,
+        rect: DOMRect,
+    ):
+        | DropOrientation.Left
+        | DropOrientation.Top
+        | DropOrientation.Right
+        | DropOrientation.Bottom
+        | DropOrientation.Tabbed
+        | undefined {
         const TAB_MARGIN = 0.15;
 
         const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
@@ -249,9 +257,16 @@ export class PaneDragContext<X> {
      * @param y the Y coordinate of the drag
      * @param rect the client rectangle of the hovered element
      */
-    private static computeSplitDropOrientation(x: number, y: number, rect: DOMRect):
-        DropOrientation.Left|DropOrientation.Top|DropOrientation.Right|DropOrientation.Bottom
-        |undefined {
+    private static computeSplitDropOrientation(
+        x: number,
+        y: number,
+        rect: DOMRect,
+    ):
+        | DropOrientation.Left
+        | DropOrientation.Top
+        | DropOrientation.Right
+        | DropOrientation.Bottom
+        | undefined {
         const posX = (x - rect.left) / clipDenormPos(rect.width) - 0.5;
         const posY = (y - rect.top) / clipDenormPos(rect.height) - 0.5;
 
@@ -269,7 +284,7 @@ export class PaneDragContext<X> {
      * @param y the Y coordinate of the drag
      * @param rect the client rectangle of the hovered element
      */
-    private static computeTabIsAfter(x: number, _y: number, rect: DOMRect): boolean|undefined {
+    private static computeTabIsAfter(x: number, _y: number, rect: DOMRect): boolean | undefined {
         // If the drag is closer to the right edge of the tab,
         // insert the floating pane after it
         return x >= rect.left + rect.width * 0.5;
@@ -279,10 +294,12 @@ export class PaneDragContext<X> {
      * Convert a child ID to a `splitId` value for a `SplitDropInfo` object.
      * @param childId the child ID
      */
-    private static getSplitId<X>({stem, index}: ChildLayoutId<X>):
-        ChildLayoutId<X, SplitLayout<X>>|undefined {
+    private static getSplitId<X>({
+        stem,
+        index,
+    }: ChildLayoutId<X>): ChildLayoutId<X, SplitLayout<X>> | undefined {
         if (stem.type === LayoutType.Horiz || stem.type === LayoutType.Vert) {
-            return {stem, index};
+            return { stem, index };
         }
 
         return undefined;
@@ -293,36 +310,37 @@ export class PaneDragContext<X> {
      * @param dropInfo the drop info for the operation
      * @param floatingInfo the floating info for the operation
      */
-    private static dropSplit<X>({orientation, element, layout, splitId, forceGroup}:
-                                    SplitDropInfo<X>,
-                                floatingInfo: FloatingInfo<X>): {
+    private static dropSplit<X>(
+        { orientation, element, layout, splitId, forceGroup }: SplitDropInfo<X>,
+        floatingInfo: FloatingInfo<X>,
+    ): {
         /** The find argument of the final transpose */
         find: ChildLayout<X>;
         /** The replace argument of the final transpose */
         replace: ChildLayout<X>;
     } {
-        const {pct, layout: floating} = floatingInfo;
+        const { pct, layout: floating } = floatingInfo;
 
-        let type: LayoutType.Horiz|LayoutType.Vert;
+        let type: LayoutType.Horiz | LayoutType.Vert;
         let flip;
 
         switch (orientation) {
-        case DropOrientation.Left:
-            type = LayoutType.Horiz;
-            flip = false;
-            break;
-        case DropOrientation.Top:
-            type = LayoutType.Vert;
-            flip = false;
-            break;
-        case DropOrientation.Right:
-            type = LayoutType.Horiz;
-            flip = true;
-            break;
-        case DropOrientation.Bottom:
-            type = LayoutType.Vert;
-            flip = true;
-            break;
+            case DropOrientation.Left:
+                type = LayoutType.Horiz;
+                flip = false;
+                break;
+            case DropOrientation.Top:
+                type = LayoutType.Vert;
+                flip = false;
+                break;
+            case DropOrientation.Right:
+                type = LayoutType.Horiz;
+                flip = true;
+                break;
+            case DropOrientation.Bottom:
+                type = LayoutType.Vert;
+                flip = true;
+                break;
         }
 
         if (splitId !== undefined && splitId.stem.type === type) {
@@ -331,20 +349,24 @@ export class PaneDragContext<X> {
             if (index >= 0 && index < splitId.stem.children.length - 1) {
                 return {
                     find: splitId.stem,
-                    replace: PaneDragContext.dropBetween({
-                        orientation: type === LayoutType.Vert ? DropOrientation.BetweenVert
-                                                              : DropOrientation.BetweenHoriz,
-                        element,
-                        layout: splitId.stem,
-                        index,
-                    },
-                                                         floatingInfo),
+                    replace: PaneDragContext.dropBetween(
+                        {
+                            orientation:
+                                type === LayoutType.Vert
+                                    ? DropOrientation.BetweenVert
+                                    : DropOrientation.BetweenHoriz,
+                            element,
+                            layout: splitId.stem,
+                            index,
+                        },
+                        floatingInfo,
+                    ),
                 };
             }
         }
 
         const children = [floating, layout];
-        const ratios   = [pct, 1 - pct];
+        const ratios = [pct, 1 - pct];
 
         if (flip) {
             children.reverse();
@@ -354,7 +376,7 @@ export class PaneDragContext<X> {
         const split = new SplitLayout(type, children, ratios);
 
         // TODO: compute the header ID
-        return {find: layout, replace: forceGroup ? new GroupLayout(split, 'TODO') : split};
+        return { find: layout, replace: forceGroup ? new GroupLayout(split, 'TODO') : split };
     }
 
     /**
@@ -362,18 +384,19 @@ export class PaneDragContext<X> {
      * @param dropInfo the drop info for the operation
      * @param floatingInfo the floating info for the operation
      */
-    private static dropBetween<X>({orientation, layout, index: idx}: BetweenDropInfo<X>,
-                                  {pct: rawPct, layout: floating}: FloatingInfo<X>):
-        ChildLayout<X> {
-        const type = orientation === DropOrientation.BetweenHoriz ? LayoutType.Horiz
-                                                                  : LayoutType.Vert;
+    private static dropBetween<X>(
+        { orientation, layout, index: idx }: BetweenDropInfo<X>,
+        { pct: rawPct, layout: floating }: FloatingInfo<X>,
+    ): ChildLayout<X> {
+        const type =
+            orientation === DropOrientation.BetweenHoriz ? LayoutType.Horiz : LayoutType.Vert;
 
         if (layout.type === type) {
             const ratios = layout.ratios.slice();
             const lRatio = ratios[idx];
             const rRatio = ratios[idx + 1];
-            const pct    = Math.min(1, rawPct / 2);
-            const iPct   = 1 - pct;
+            const pct = Math.min(1, rawPct / 2);
+            const iPct = 1 - pct;
 
             ratios.splice(idx, 2, lRatio * iPct, (lRatio + rRatio) * pct, rRatio * iPct);
 
@@ -390,9 +413,11 @@ export class PaneDragContext<X> {
      * @param manager the pane manager hosting the current pane
      * @param id the ID of the pane being dragged
      */
-    public static mouseDown<X>(evt: MouseEvent,
-                               manager: NgPaneManagerComponent<X>,
-                               id: ChildLayoutId<X>): void {
+    public static mouseDown<X>(
+        evt: MouseEvent,
+        manager: NgPaneManagerComponent<X>,
+        id: ChildLayoutId<X>,
+    ): void {
         const ctx = new PaneDragContext(evt.clientX, evt.clientY, manager, id);
 
         beginMouseDrag(evt, ctx.dragDelta.bind(ctx), ctx.dragEnd.bind(ctx));
@@ -405,12 +430,14 @@ export class PaneDragContext<X> {
      * @param manager the pane manager hosting the current pane
      * @param id the ID of the pane being dragged
      */
-    public static touchStart<X>(evt: TouchEvent,
-                                manager: NgPaneManagerComponent<X>,
-                                id: ChildLayoutId<X>): void {
+    public static touchStart<X>(
+        evt: TouchEvent,
+        manager: NgPaneManagerComponent<X>,
+        id: ChildLayoutId<X>,
+    ): void {
         const target = evt.target instanceof HTMLElement ? evt.target : undefined;
         const [x, y] = averageTouchPos(evt);
-        const ctx    = new PaneDragContext(x, y, manager, id, target);
+        const ctx = new PaneDragContext(x, y, manager, id, target);
 
         beginTouchDrag(evt, ctx.dragDelta.bind(ctx), ctx.dragEnd.bind(ctx));
     }
@@ -422,11 +449,13 @@ export class PaneDragContext<X> {
      * @param manager the pane manager hosting the current pane
      * @param id the ID of the pane being dragged
      */
-    private constructor(private readonly startX: number,
-                        private readonly startY: number,
-                        private readonly manager: NgPaneManagerComponent<X>,
-                        private readonly id: ChildLayoutId<X>,
-                        private readonly target?: HTMLElement) {
+    private constructor(
+        private readonly startX: number,
+        private readonly startY: number,
+        private readonly manager: NgPaneManagerComponent<X>,
+        private readonly id: ChildLayoutId<X>,
+        private readonly target?: HTMLElement,
+    ) {
         this.oldLayout = manager.layout;
     }
 
@@ -441,9 +470,11 @@ export class PaneDragContext<X> {
         const handle = setTimeout(() => {
             fn();
 
-            if (this.hoverAction.type !== HoverActionType.None &&
-                Object.is(this.hoverAction.handle, handle)) {
-                this.hoverAction = {type: HoverActionType.None};
+            if (
+                this.hoverAction.type !== HoverActionType.None &&
+                Object.is(this.hoverAction.handle, handle)
+            ) {
+                this.hoverAction = { type: HoverActionType.None };
             }
         }, HOVER_ACTION_DELAY);
 
@@ -454,18 +485,23 @@ export class PaneDragContext<X> {
      * Drag motion callback.\
      * See `begin-drag.ts`
      */
-    private dragDelta(clientX: number,
-                      clientY: number,
-                      modifiers: DragModifiers,
-                      cancel: DragCancelFn): void {
+    private dragDelta(
+        clientX: number,
+        clientY: number,
+        modifiers: DragModifiers,
+        cancel: DragCancelFn,
+    ): void {
         if (this.floatingInfo === undefined) {
             const DEADBAND = 5;
 
-            if (Math.abs(clientX - this.startX) >= DEADBAND ||
-                Math.abs(clientY - this.startY) >= DEADBAND) {
-                if (!this.detachPanel(clientX, clientY)) { cancel(true); }
-            }
-            else {
+            if (
+                Math.abs(clientX - this.startX) >= DEADBAND ||
+                Math.abs(clientY - this.startY) >= DEADBAND
+            ) {
+                if (!this.detachPanel(clientX, clientY)) {
+                    cancel(true);
+                }
+            } else {
                 return;
             }
         }
@@ -486,7 +522,9 @@ export class PaneDragContext<X> {
         // Act as a click if the drag never started
         // TODO: move this to beginDrag?
         if (this.floatingInfo === undefined) {
-            if (this.target !== undefined) { this.target.click(); }
+            if (this.target !== undefined) {
+                this.target.click();
+            }
 
             return;
         }
@@ -512,55 +550,61 @@ export class PaneDragContext<X> {
         const MAX_PCT = 0.85;
 
         switch (this.id.stem.type) {
-        case LayoutType.Root: return false;
-        case LayoutType.Horiz:
-        case LayoutType.Vert: {
-            const {stem, index} = this.id;
-            const ratios        = stem.ratios.slice();
+            case LayoutType.Root:
+                return false;
+            case LayoutType.Horiz:
+            case LayoutType.Vert: {
+                const { stem, index } = this.id;
+                const ratios = stem.ratios.slice();
 
-            // TODO: the ratio calculations are mildly incorrect due to the
-            //       width of the split thumbs
-            if (ratios.length > 1) {
-                const neighborIdcs = [index - 1, index, index + 1].filter(i => i >= 0 &&
-                                                                               i < ratios.length);
+                // TODO: the ratio calculations are mildly incorrect due to the
+                //       width of the split thumbs
+                if (ratios.length > 1) {
+                    const neighborIdcs = [index - 1, index, index + 1].filter(
+                        i => i >= 0 && i < ratios.length,
+                    );
 
-                const sum = neighborIdcs.reduce((s, i) => s + ratios[i], 0);
+                    const sum = neighborIdcs.reduce((s, i) => s + ratios[i], 0);
 
-                floatingPct = ratios[index] / clipDenormPos(sum);
+                    floatingPct = ratios[index] / clipDenormPos(sum);
 
-                const iPct = clipDenormPos(1 - floatingPct);
-                for (const i of neighborIdcs) { ratios[i] /= iPct; }
+                    const iPct = clipDenormPos(1 - floatingPct);
+                    for (const i of neighborIdcs) {
+                        ratios[i] /= iPct;
+                    }
 
-                floatingPct = Math.min(MAX_PCT, floatingPct * (neighborIdcs.length - 1));
+                    floatingPct = Math.min(MAX_PCT, floatingPct * (neighborIdcs.length - 1));
+                }
+
+                ratios.splice(index, 1);
+
+                const { layout, removed } = stem.withoutChild(index, ratios);
+
+                newLayout = layout;
+                floating = removed;
+                break;
             }
+            case LayoutType.Group:
+            case LayoutType.Tabbed: {
+                const { layout, removed } = this.id.stem.withoutChild(this.id.index);
 
-            ratios.splice(index, 1);
-
-            const {layout, removed} = stem.withoutChild(index, ratios);
-
-            newLayout = layout;
-            floating  = removed;
-            break;
-        }
-        case LayoutType.Group:
-        case LayoutType.Tabbed: {
-            const {layout, removed} = this.id.stem.withoutChild(this.id.index);
-
-            newLayout = layout;
-            floating  = removed;
-            break;
-        }
+                newLayout = layout;
+                floating = removed;
+                break;
+            }
         }
 
         const transposed = this.manager.layout.transposeDeep(this.id.stem, newLayout);
 
-        if (transposed === undefined) { return false; }
+        if (transposed === undefined) {
+            return false;
+        }
 
         try {
             const layout = floating;
 
             // Fallback numbers for if we can't retrieve the rendered pane size
-            let width  = 300;
+            let width = 300;
             let height = 200;
 
             this.manager.transactLayoutChange(
@@ -568,25 +612,27 @@ export class PaneDragContext<X> {
                     const rect = factory.getPaneRect(layout);
 
                     if (rect !== undefined) {
-                        width  = rect.width;
+                        width = rect.width;
                         height = rect.height;
                     }
 
                     return transposed.intoRoot();
                 },
                 (factory, renderer) => {
-                    const pane = factory.placePane(renderer.viewContainer,
-                                                   layout.intoRoot().childId(),
-                                                   new BehaviorSubject(undefined),
-                                                   undefined,
-                                                   true);
+                    const pane = factory.placePane(
+                        renderer.viewContainer,
+                        layout.intoRoot().childId(),
+                        new BehaviorSubject(undefined),
+                        undefined,
+                        true,
+                    );
 
                     {
                         const inst = pane.instance;
 
                         inst.floating = true;
-                        inst.width    = width;
-                        inst.height   = height;
+                        inst.width = width;
+                        inst.height = height;
                     }
 
                     const dropHighlight = factory.placeDropHighlight(renderer.viewContainer);
@@ -595,18 +641,18 @@ export class PaneDragContext<X> {
                         const inst = dropHighlight.instance;
 
                         inst.visible = false;
-                        inst.left    = x;
-                        inst.top     = y;
-                        inst.width   = 0;
-                        inst.height  = 0;
+                        inst.left = x;
+                        inst.top = y;
+                        inst.width = 0;
+                        inst.height = 0;
                     }
 
-                    this.floatingInfo = {layout, pct: floatingPct, pane, dropHighlight};
+                    this.floatingInfo = { layout, pct: floatingPct, pane, dropHighlight };
 
                     return false; // Suppress emitting a layout change
-                });
-        }
-        catch (e) {
+                },
+            );
+        } catch (e) {
             console.error(e, 'Drag detach failed!  Attempting to restore original layout...');
 
             this.manager.layout = this.oldLayout;
@@ -626,7 +672,9 @@ export class PaneDragContext<X> {
      * @param opts any extra options that affect drop behavior
      */
     private computeDropInfo(x: number, y: number, opts: DropOptions): void {
-        if (this.floatingInfo === undefined) { return; }
+        if (this.floatingInfo === undefined) {
+            return;
+        }
 
         const MARGIN = 8;
 
@@ -636,11 +684,11 @@ export class PaneDragContext<X> {
          * indicates to continue running the current action.  All other values
          * will cancel the current action and start a new one.
          */
-        let nextHoverAction: HoverAction<X>|undefined = {type: HoverActionType.None};
+        let nextHoverAction: HoverAction<X> | undefined = { type: HoverActionType.None };
 
         const outerRect = this.manager.el.nativeElement.getBoundingClientRect();
 
-        let targets: [Element, DropTarget<X>][]|undefined;
+        let targets: [Element, DropTarget<X>][] | undefined;
         const getTargets = () => {
             if (targets === undefined) {
                 // TODO: debounce this if it becomes a performance issue
@@ -648,40 +696,51 @@ export class PaneDragContext<X> {
 
                 // NOTE: children in this array should appear before their parents
                 //       in order for the code below to work correctly
-                targets = document.elementsFromPoint(x, y)
-                              .filter(e => targetMap.has(e))
-                              .map(e => [e, targetMap.get(e)] as [Element, DropTarget<X>]);
+                targets = document
+                    .elementsFromPoint(x, y)
+                    .filter(e => targetMap.has(e))
+                    .map(e => [e, targetMap.get(e)] as [Element, DropTarget<X>]);
             }
 
             return targets;
         };
-        const ctx = {get targets(): [Element, DropTarget<X>][] { return getTargets(); }};
+        const ctx = {
+            get targets(): [Element, DropTarget<X>][] {
+                return getTargets();
+            },
+        };
 
-        if (this.manager.layout.layout === undefined) { this.dropInfo = undefined; }
-        else if (opts.forceGroupedSplit) {
+        if (this.manager.layout.layout === undefined) {
+            this.dropInfo = undefined;
+        } else if (opts.forceGroupedSplit) {
             const [info, action] = this.computeDropInfoForceGroupedSplit(x, y, ctx);
 
-            this.dropInfo   = info;
+            this.dropInfo = info;
             nextHoverAction = action;
-        }
-        else if (x >= (outerRect.left + MARGIN) && x < (outerRect.right - MARGIN) &&
-                 y >= (outerRect.top + MARGIN) && y < (outerRect.bottom - MARGIN)) {
+        } else if (
+            x >= outerRect.left + MARGIN &&
+            x < outerRect.right - MARGIN &&
+            y >= outerRect.top + MARGIN &&
+            y < outerRect.bottom - MARGIN
+        ) {
             const [info, action] = this.computeDropInfoDefault(x, y, ctx);
 
-            this.dropInfo   = info;
+            this.dropInfo = info;
             nextHoverAction = action;
-        }
-        else {
+        } else {
             // Perform a split with the root
             const orientation = PaneDragContext.computeSplitDropOrientation(x, y, outerRect);
 
-            this.dropInfo = orientation === undefined ? undefined : {
-                orientation,
-                layout: this.manager.layout.layout,
-                element: this.manager.el.nativeElement,
-                splitId: undefined,
-                forceGroup: false,
-            };
+            this.dropInfo =
+                orientation === undefined
+                    ? undefined
+                    : {
+                          orientation,
+                          layout: this.manager.layout.layout,
+                          element: this.manager.el.nativeElement,
+                          splitId: undefined,
+                          forceGroup: false,
+                      };
         }
 
         if (nextHoverAction !== undefined) {
@@ -694,15 +753,20 @@ export class PaneDragContext<X> {
     }
 
     /** Compute drop info, using default behavior */
-    private computeDropInfoDefault(x: number, y: number, ctx: DropInfoContext<X>):
-        [DropInfo<X>|undefined, HoverAction<X>|undefined] {
-        let dropInfo: DropInfo<X>|undefined;
+    private computeDropInfoDefault(
+        x: number,
+        y: number,
+        ctx: DropInfoContext<X>,
+    ): [DropInfo<X> | undefined, HoverAction<X> | undefined] {
+        let dropInfo: DropInfo<X> | undefined;
         /** See `nextHoverAction` inside `computeDropInfo` */
-        let nextHoverAction: HoverAction<X>|undefined;
+        let nextHoverAction: HoverAction<X> | undefined;
 
         const targets = ctx.targets;
 
-        if (targets.length === 0) { return [dropInfo, nextHoverAction]; }
+        if (targets.length === 0) {
+            return [dropInfo, nextHoverAction];
+        }
 
         let targetIdx = targets.length - 1;
 
@@ -714,7 +778,9 @@ export class PaneDragContext<X> {
         for (; targetIdx > 0; targetIdx -= 1) {
             const [, target] = targets[targetIdx];
 
-            if (childFromId(target.id).type === LayoutType.Tabbed) { break; }
+            if (childFromId(target.id).type === LayoutType.Tabbed) {
+                break;
+            }
         }
 
         // Run an additional search within the innermost disregarded
@@ -729,139 +795,167 @@ export class PaneDragContext<X> {
             const [, target] = targets[i];
 
             switch (target.type) {
-            case DropTargetType.Header:
-            case DropTargetType.TabRow:
-            case DropTargetType.Tab: targetIdx = i; break tabCheck;
+                case DropTargetType.Header:
+                case DropTargetType.TabRow:
+                case DropTargetType.Tab:
+                    targetIdx = i;
+                    break tabCheck;
             }
         }
 
         {
             const [element, target] = targets[targetIdx];
-            const layout            = childFromId(target.id);
+            const layout = childFromId(target.id);
 
             switch (target.type) {
-            case DropTargetType.Pane: {
-                const orientation = PaneDragContext.computeDropOrientation(
-                    x, y, element.getBoundingClientRect());
+                case DropTargetType.Pane: {
+                    const orientation = PaneDragContext.computeDropOrientation(
+                        x,
+                        y,
+                        element.getBoundingClientRect(),
+                    );
 
-                if (orientation === undefined) { dropInfo = undefined; }
-                else if (orientation === DropOrientation.Tabbed) {
+                    if (orientation === undefined) {
+                        dropInfo = undefined;
+                    } else if (orientation === DropOrientation.Tabbed) {
+                        dropInfo = {
+                            orientation: DropOrientation.Tabbed,
+                            layout,
+                            element,
+                            tab: layout.type === LayoutType.Tabbed ? layout.currentTab + 1 : 1,
+                            isAfter: undefined,
+                        };
+                    } else {
+                        dropInfo = {
+                            orientation,
+                            layout,
+                            element,
+                            splitId: PaneDragContext.getSplitId(target.id),
+                            forceGroup: false,
+                        };
+                    }
+                    break;
+                }
+                case DropTargetType.PaneNoTab: {
+                    const orientation = PaneDragContext.computeSplitDropOrientation(
+                        x,
+                        y,
+                        element.getBoundingClientRect(),
+                    );
+
+                    dropInfo =
+                        orientation === undefined
+                            ? undefined
+                            : {
+                                  orientation,
+                                  layout,
+                                  element,
+                                  splitId: PaneDragContext.getSplitId(target.id),
+                                  forceGroup: false,
+                              };
+                    break;
+                }
+                case DropTargetType.Header: {
+                    const isAfter = PaneDragContext.computeTabIsAfter(
+                        x,
+                        y,
+                        element.getBoundingClientRect(),
+                    );
+
+                    dropInfo =
+                        isAfter === undefined
+                            ? undefined
+                            : {
+                                  orientation: DropOrientation.Tabbed,
+                                  layout,
+                                  element,
+                                  tab: isAfter ? 1 : 0,
+                                  isAfter,
+                              };
+                    break;
+                }
+                case DropTargetType.TabRow:
                     dropInfo = {
                         orientation: DropOrientation.Tabbed,
                         layout,
                         element,
-                        tab: layout.type === LayoutType.Tabbed ? layout.currentTab + 1 : 1,
+                        tab: layout.type === LayoutType.Tabbed ? layout.children.length : 1,
                         isAfter: undefined,
                     };
-                }
-                else {
-                    dropInfo = {
-                        orientation,
-                        layout,
-                        element,
-                        splitId: PaneDragContext.getSplitId(target.id),
-                        forceGroup: false,
-                    };
-                }
-                break;
-            }
-            case DropTargetType.PaneNoTab: {
-                const orientation = PaneDragContext.computeSplitDropOrientation(
-                    x, y, element.getBoundingClientRect());
+                    break;
+                case DropTargetType.Tab: {
+                    const isAfter = PaneDragContext.computeTabIsAfter(
+                        x,
+                        y,
+                        element.getBoundingClientRect(),
+                    );
 
-                dropInfo = orientation === undefined ? undefined : {
-                    orientation,
-                    layout,
-                    element,
-                    splitId: PaneDragContext.getSplitId(target.id),
-                    forceGroup: false,
-                };
-                break;
-            }
-            case DropTargetType.Header: {
-                const isAfter = PaneDragContext.computeTabIsAfter(x,
-                                                                  y,
-                                                                  element.getBoundingClientRect());
+                    if (isAfter === undefined) {
+                        dropInfo = undefined;
+                    } else if (target.id.stem.type === LayoutType.Tabbed) {
+                        const { stem, index } = target.id;
 
-                dropInfo = isAfter === undefined ? undefined : {
-                    orientation: DropOrientation.Tabbed,
-                    layout,
-                    element,
-                    tab: isAfter ? 1 : 0,
-                    isAfter,
-                };
-                break;
-            }
-            case DropTargetType.TabRow:
-                dropInfo = {
-                    orientation: DropOrientation.Tabbed,
-                    layout,
-                    element,
-                    tab: layout.type === LayoutType.Tabbed ? layout.children.length : 1,
-                    isAfter: undefined,
-                };
-                break;
-            case DropTargetType.Tab: {
-                const isAfter = PaneDragContext.computeTabIsAfter(x,
-                                                                  y,
-                                                                  element.getBoundingClientRect());
+                        if (target.id.stem.currentTab !== target.id.index) {
+                            if (
+                                this.hoverAction.type === HoverActionType.TabSwitch &&
+                                Object.is(this.hoverAction.layout, stem) &&
+                                this.hoverAction.index === index
+                            ) {
+                                nextHoverAction = undefined;
+                            } else {
+                                const handle = this.runHoverAction(() => (stem.currentTab = index));
 
-                if (isAfter === undefined) { dropInfo = undefined; }
-                else if (target.id.stem.type === LayoutType.Tabbed) {
-                    const {stem, index} = target.id;
-
-                    if (target.id.stem.currentTab !== target.id.index) {
-                        if (this.hoverAction.type === HoverActionType.TabSwitch &&
-                            Object.is(this.hoverAction.layout, stem) &&
-                            this.hoverAction.index === index) {
-                            nextHoverAction = undefined;
+                                nextHoverAction = {
+                                    type: HoverActionType.TabSwitch,
+                                    layout: stem,
+                                    index,
+                                    handle,
+                                };
+                            }
                         }
-                        else {
-                            const handle = this.runHoverAction(() => stem.currentTab = index);
 
-                            nextHoverAction =
-                                {type: HoverActionType.TabSwitch, layout: stem, index, handle};
-                        }
+                        dropInfo = {
+                            orientation: DropOrientation.Tabbed,
+                            layout: stem,
+                            element,
+                            tab: isAfter ? index + 1 : index,
+                            isAfter,
+                        };
+                    } else {
+                        dropInfo = {
+                            orientation: DropOrientation.Tabbed,
+                            layout,
+                            element,
+                            tab: isAfter ? 1 : 0,
+                            isAfter,
+                        };
+                    }
+                    break;
+                }
+                case DropTargetType.SplitThumb: {
+                    let orientation: DropOrientation.BetweenHoriz | DropOrientation.BetweenVert;
+
+                    switch (target.id.stem.type) {
+                        case LayoutType.Horiz:
+                            orientation = DropOrientation.BetweenHoriz;
+                            break;
+                        case LayoutType.Vert:
+                            orientation = DropOrientation.BetweenVert;
+                            break;
+                        default:
+                            throw new Error(
+                                "split thumb target had non-split stem - this shouldn't happen",
+                            );
                     }
 
                     dropInfo = {
-                        orientation: DropOrientation.Tabbed,
-                        layout: stem,
+                        orientation,
+                        layout: target.id.stem,
                         element,
-                        tab: isAfter ? index + 1 : index,
-                        isAfter,
+                        index: target.id.index,
                     };
+                    break;
                 }
-                else {
-                    dropInfo = {
-                        orientation: DropOrientation.Tabbed,
-                        layout,
-                        element,
-                        tab: isAfter ? 1 : 0,
-                        isAfter,
-                    };
-                }
-                break;
-            }
-            case DropTargetType.SplitThumb: {
-                let orientation: DropOrientation.BetweenHoriz|DropOrientation.BetweenVert;
-
-                switch (target.id.stem.type) {
-                case LayoutType.Horiz: orientation = DropOrientation.BetweenHoriz; break;
-                case LayoutType.Vert: orientation = DropOrientation.BetweenVert; break;
-                default:
-                    throw new Error(
-                        'split thumb target had non-split stem - this shouldn\'t happen');
-                }
-
-                dropInfo = {
-                    orientation,
-                    layout: target.id.stem,
-                    element,
-                    index: target.id.index,
-                };
-                break;
-            }
             }
         }
 
@@ -869,16 +963,21 @@ export class PaneDragContext<X> {
     }
 
     /** Compute drop info, forcing the creation of a split with the closest pane inside a group */
-    private computeDropInfoForceGroupedSplit(x: number, y: number, ctx: DropInfoContext<X>):
-        [DropInfo<X>|undefined, HoverAction<X>|undefined] {
-        let dropInfo: DropInfo<X>|undefined;
+    private computeDropInfoForceGroupedSplit(
+        x: number,
+        y: number,
+        ctx: DropInfoContext<X>,
+    ): [DropInfo<X> | undefined, HoverAction<X> | undefined] {
+        let dropInfo: DropInfo<X> | undefined;
         // Left as a stub in case this method needs to change the hover action
         /** See `nextHoverAction` inside `computeDropInfo` */
-        const nextHoverAction: HoverAction<X>|undefined = undefined;
+        const nextHoverAction: HoverAction<X> | undefined = undefined;
 
         const targets = ctx.targets;
 
-        if (targets.length === 0) { return [dropInfo, nextHoverAction]; }
+        if (targets.length === 0) {
+            return [dropInfo, nextHoverAction];
+        }
 
         const [element, target] = targets[0];
 
@@ -886,15 +985,21 @@ export class PaneDragContext<X> {
 
         if (target.type === DropTargetType.Pane || target.type === DropTargetType.PaneNoTab) {
             const orientation = PaneDragContext.computeSplitDropOrientation(
-                x, y, element.getBoundingClientRect());
+                x,
+                y,
+                element.getBoundingClientRect(),
+            );
 
-            dropInfo = orientation === undefined ? undefined : {
-                orientation,
-                layout: childFromId(target.id),
-                element,
-                splitId: PaneDragContext.getSplitId(target.id),
-                forceGroup: true,
-            };
+            dropInfo =
+                orientation === undefined
+                    ? undefined
+                    : {
+                          orientation,
+                          layout: childFromId(target.id),
+                          element,
+                          splitId: PaneDragContext.getSplitId(target.id),
+                          forceGroup: true,
+                      };
         }
 
         return [dropInfo, nextHoverAction];
@@ -906,7 +1011,9 @@ export class PaneDragContext<X> {
      * @param y the current Y coordinate of the drag
      */
     private updateFloatingPane(x: number, y: number): void {
-        if (this.floatingInfo === undefined) { return; }
+        if (this.floatingInfo === undefined) {
+            return;
+        }
 
         const OFFS_X = 8;
         const OFFS_Y = 16;
@@ -914,14 +1021,16 @@ export class PaneDragContext<X> {
         const inst = this.floatingInfo.pane.instance;
 
         inst.left = x + OFFS_X;
-        inst.top  = y + OFFS_Y;
+        inst.top = y + OFFS_Y;
     }
 
     /**
      * Adjust the drop highlight visual to match the current drop information.
      */
     private updateDropHighlight(): void {
-        if (this.floatingInfo === undefined) { return; }
+        if (this.floatingInfo === undefined) {
+            return;
+        }
 
         const inst = this.floatingInfo.dropHighlight.instance;
 
@@ -933,70 +1042,75 @@ export class PaneDragContext<X> {
             const MIN_PCT = 0.15;
             const MAX_PCT = 1 - MIN_PCT;
 
-            const BETWEEN_MARGIN  = 4;
+            const BETWEEN_MARGIN = 4;
             const BETWEEN_MARGIN2 = BETWEEN_MARGIN * 2;
 
-            const pct  = Math.max(MIN_PCT, Math.min(MAX_PCT, this.floatingInfo.pct));
+            const pct = Math.max(MIN_PCT, Math.min(MAX_PCT, this.floatingInfo.pct));
             const iPct = 1 - pct;
 
             switch (this.dropInfo.orientation) {
-            case DropOrientation.Left:
-                inst.left      = rect.left;
-                inst.top       = rect.top;
-                inst.width     = rect.width * pct;
-                inst.height    = rect.height;
-                inst.emphasize = undefined;
-                break;
-            case DropOrientation.Top:
-                inst.left      = rect.left;
-                inst.top       = rect.top;
-                inst.width     = rect.width;
-                inst.height    = rect.height * pct;
-                inst.emphasize = undefined;
-                break;
-            case DropOrientation.Right:
-                inst.left      = rect.left + rect.width * iPct;
-                inst.top       = rect.top;
-                inst.width     = rect.width * pct;
-                inst.height    = rect.height;
-                inst.emphasize = undefined;
-                break;
-            case DropOrientation.Bottom:
-                inst.left      = rect.left;
-                inst.top       = rect.top + rect.height * iPct;
-                inst.width     = rect.width;
-                inst.height    = rect.height * pct;
-                inst.emphasize = undefined;
-                break;
-            case DropOrientation.Tabbed:
-                inst.left   = rect.left;
-                inst.top    = rect.top;
-                inst.width  = rect.width;
-                inst.height = rect.height;
+                case DropOrientation.Left:
+                    inst.left = rect.left;
+                    inst.top = rect.top;
+                    inst.width = rect.width * pct;
+                    inst.height = rect.height;
+                    inst.emphasize = undefined;
+                    break;
+                case DropOrientation.Top:
+                    inst.left = rect.left;
+                    inst.top = rect.top;
+                    inst.width = rect.width;
+                    inst.height = rect.height * pct;
+                    inst.emphasize = undefined;
+                    break;
+                case DropOrientation.Right:
+                    inst.left = rect.left + rect.width * iPct;
+                    inst.top = rect.top;
+                    inst.width = rect.width * pct;
+                    inst.height = rect.height;
+                    inst.emphasize = undefined;
+                    break;
+                case DropOrientation.Bottom:
+                    inst.left = rect.left;
+                    inst.top = rect.top + rect.height * iPct;
+                    inst.width = rect.width;
+                    inst.height = rect.height * pct;
+                    inst.emphasize = undefined;
+                    break;
+                case DropOrientation.Tabbed:
+                    inst.left = rect.left;
+                    inst.top = rect.top;
+                    inst.width = rect.width;
+                    inst.height = rect.height;
 
-                switch (this.dropInfo.isAfter) {
-                case undefined: inst.emphasize = undefined; break;
-                case false: inst.emphasize = 'left'; break;
-                case true: inst.emphasize = 'right'; break;
-                }
-                break;
-            case DropOrientation.BetweenHoriz:
-                inst.left      = rect.left - BETWEEN_MARGIN;
-                inst.top       = rect.top;
-                inst.width     = rect.width + BETWEEN_MARGIN2;
-                inst.height    = rect.height;
-                inst.emphasize = undefined;
-                break;
-            case DropOrientation.BetweenVert:
-                inst.left      = rect.left;
-                inst.top       = rect.top - BETWEEN_MARGIN;
-                inst.width     = rect.width;
-                inst.height    = rect.height + BETWEEN_MARGIN2;
-                inst.emphasize = undefined;
-                break;
+                    switch (this.dropInfo.isAfter) {
+                        case undefined:
+                            inst.emphasize = undefined;
+                            break;
+                        case false:
+                            inst.emphasize = 'left';
+                            break;
+                        case true:
+                            inst.emphasize = 'right';
+                            break;
+                    }
+                    break;
+                case DropOrientation.BetweenHoriz:
+                    inst.left = rect.left - BETWEEN_MARGIN;
+                    inst.top = rect.top;
+                    inst.width = rect.width + BETWEEN_MARGIN2;
+                    inst.height = rect.height;
+                    inst.emphasize = undefined;
+                    break;
+                case DropOrientation.BetweenVert:
+                    inst.left = rect.left;
+                    inst.top = rect.top - BETWEEN_MARGIN;
+                    inst.width = rect.width;
+                    inst.height = rect.height + BETWEEN_MARGIN2;
+                    inst.emphasize = undefined;
+                    break;
             }
-        }
-        else {
+        } else {
             inst.visible = false;
         }
     }
@@ -1006,59 +1120,67 @@ export class PaneDragContext<X> {
      * drop information.
      */
     private dropFloatingPane(): boolean {
-        if (this.floatingInfo === undefined || this.dropInfo === undefined) { return false; }
+        if (this.floatingInfo === undefined || this.dropInfo === undefined) {
+            return false;
+        }
 
         let find = this.dropInfo.layout;
         let replace: ChildLayout<X>;
 
         switch (this.dropInfo.orientation) {
-        case DropOrientation.Left:
-        case DropOrientation.Top:
-        case DropOrientation.Right:
-        case DropOrientation.Bottom: {
-            const next = PaneDragContext.dropSplit(this.dropInfo, this.floatingInfo);
-            find       = next.find;
-            replace    = next.replace;
-            break;
-        }
-        case DropOrientation.Tabbed:
-            if (this.dropInfo.layout.type === LayoutType.Tabbed) {
-                if (this.floatingInfo.layout.type === LayoutType.Tabbed) {
-                    const {layout} = this.dropInfo.layout.spliceChildren(
-                        this.dropInfo.tab,
-                        0,
-                        this.floatingInfo.layout.children,
-                        this.floatingInfo.layout.currentTab,
-                    );
-
-                    replace = layout;
-                }
-                else {
-                    replace = this.dropInfo.layout.withChild(this.dropInfo.tab,
-                                                             this.floatingInfo.layout,
-                                                             true);
-                }
+            case DropOrientation.Left:
+            case DropOrientation.Top:
+            case DropOrientation.Right:
+            case DropOrientation.Bottom: {
+                const next = PaneDragContext.dropSplit(this.dropInfo, this.floatingInfo);
+                find = next.find;
+                replace = next.replace;
+                break;
             }
-            else {
-                if (this.floatingInfo.layout.type === LayoutType.Tabbed) {
-                    const {layout} = new TabbedLayout([this.dropInfo.layout], 0)
-                                         .spliceChildren(this.dropInfo.tab,
-                                                         0,
-                                                         this.floatingInfo.layout.children,
-                                                         this.floatingInfo.layout.currentTab);
+            case DropOrientation.Tabbed:
+                if (this.dropInfo.layout.type === LayoutType.Tabbed) {
+                    if (this.floatingInfo.layout.type === LayoutType.Tabbed) {
+                        const { layout } = this.dropInfo.layout.spliceChildren(
+                            this.dropInfo.tab,
+                            0,
+                            this.floatingInfo.layout.children,
+                            this.floatingInfo.layout.currentTab,
+                        );
 
-                    replace = layout;
+                        replace = layout;
+                    } else {
+                        replace = this.dropInfo.layout.withChild(
+                            this.dropInfo.tab,
+                            this.floatingInfo.layout,
+                            true,
+                        );
+                    }
+                } else {
+                    if (this.floatingInfo.layout.type === LayoutType.Tabbed) {
+                        const { layout } = new TabbedLayout(
+                            [this.dropInfo.layout],
+                            0,
+                        ).spliceChildren(
+                            this.dropInfo.tab,
+                            0,
+                            this.floatingInfo.layout.children,
+                            this.floatingInfo.layout.currentTab,
+                        );
+
+                        replace = layout;
+                    } else {
+                        replace = new TabbedLayout([this.dropInfo.layout], 0).withChild(
+                            this.dropInfo.tab,
+                            this.floatingInfo.layout,
+                            true,
+                        );
+                    }
                 }
-                else {
-                    replace = new TabbedLayout([this.dropInfo.layout], 0)
-                                  .withChild(this.dropInfo.tab, this.floatingInfo.layout, true);
-                }
-            }
-            break;
-        case DropOrientation.BetweenHoriz:
-        case DropOrientation.BetweenVert:
-            replace = PaneDragContext.dropBetween(this.dropInfo, this.floatingInfo);
-            break;
+                break;
+            case DropOrientation.BetweenHoriz:
+            case DropOrientation.BetweenVert:
+                replace = PaneDragContext.dropBetween(this.dropInfo, this.floatingInfo);
+                break;
         }
 
         const transposed = this.manager.layout.transposeDeep(find, replace);
@@ -1078,7 +1200,9 @@ export class PaneDragContext<X> {
      * Clean up all components and properties related to the floating layout.
      */
     private destroyFloatingInfo(): void {
-        if (this.floatingInfo === undefined) { return; }
+        if (this.floatingInfo === undefined) {
+            return;
+        }
 
         this.floatingInfo.pane.destroy();
         this.floatingInfo.dropHighlight.destroy();
@@ -1093,7 +1217,7 @@ export class PaneDragContext<X> {
  * Provides a `mousedown` handler that covers all pane drag-and-drop
  * functionality.
  */
-@Component({template: ''})
+@Component({ template: '' })
 export abstract class DraggablePaneComponent<X> {
     /** The pane manager hosting this pane */
     public manager!: NgPaneManagerComponent<X>;

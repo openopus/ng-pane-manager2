@@ -18,28 +18,26 @@
  *
  ***********************************************************************************************/
 
-import {CommonModule} from '@angular/common';
-import {NgModule} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
 
-import {ClosablePaneComponent} from './closable';
-import {DraggablePaneComponent} from './drag-and-drop';
-import {
-    NgPaneDropHighlightComponent,
-} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
-import {NgPaneGroupComponent} from './ng-pane-group/ng-pane-group.component';
-import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
-import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
-import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
-import {NgPaneRendererDirective} from './ng-pane-renderer.directive';
-import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb/ng-pane-split-thumb.component';
-import {NgPaneSplitComponent} from './ng-pane-split/ng-pane-split.component';
-import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
-import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
-import {NgPaneTabbedComponent} from './ng-pane-tabbed/ng-pane-tabbed.component';
-import {NgPaneTemplateDirective} from './ng-pane-template.directive';
-import {NgPaneTitleComponent} from './ng-pane-title/ng-pane-title.component';
-import {NgPaneWidgetDirective} from './ng-pane-widget.directive';
-import {NgPaneComponent} from './ng-pane/ng-pane.component';
+import { ClosablePaneComponent } from './closable';
+import { DraggablePaneComponent } from './drag-and-drop';
+import { NgPaneDropHighlightComponent } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
+import { NgPaneGroupComponent } from './ng-pane-group/ng-pane-group.component';
+import { NgPaneHeaderComponent } from './ng-pane-header/ng-pane-header.component';
+import { NgPaneLeafComponent } from './ng-pane-leaf/ng-pane-leaf.component';
+import { NgPaneManagerComponent } from './ng-pane-manager/ng-pane-manager.component';
+import { NgPaneRendererDirective } from './ng-pane-renderer.directive';
+import { NgPaneSplitThumbComponent } from './ng-pane-split-thumb/ng-pane-split-thumb.component';
+import { NgPaneSplitComponent } from './ng-pane-split/ng-pane-split.component';
+import { NgPaneTabRowComponent } from './ng-pane-tab-row/ng-pane-tab-row.component';
+import { NgPaneTabComponent } from './ng-pane-tab/ng-pane-tab.component';
+import { NgPaneTabbedComponent } from './ng-pane-tabbed/ng-pane-tabbed.component';
+import { NgPaneTemplateDirective } from './ng-pane-template.directive';
+import { NgPaneTitleComponent } from './ng-pane-title/ng-pane-title.component';
+import { NgPaneWidgetDirective } from './ng-pane-widget.directive';
+import { NgPaneComponent } from './ng-pane/ng-pane.component';
 
 /**
  * The root Angular module for `angular-pane-manager`, providing the
@@ -70,5 +68,4 @@ import {NgPaneComponent} from './ng-pane/ng-pane.component';
     exports: [NgPaneManagerComponent, NgPaneTemplateDirective, NgPaneWidgetDirective],
     entryComponents: [],
 })
-export class AngularPaneManagerModule {
-}
+export class AngularPaneManagerModule {}

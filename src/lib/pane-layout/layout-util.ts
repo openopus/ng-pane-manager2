@@ -18,8 +18,8 @@
  *
  *******************************************************************************/
 
-import {LayoutType} from './layout-base';
-import {ChildLayout, StemLayout} from './layout-core';
+import { LayoutType } from './layout-base';
+import { ChildLayout, StemLayout } from './layout-core';
 
 /**
  * A reference to a layout node via the parent containing it.
@@ -49,30 +49,42 @@ export class ChildWithId<X, C extends ChildLayout<X> = ChildLayout<X>> {
      * @param id the ID referencing a child
      */
 
-    private constructor(public readonly child: C, public readonly id: ChildLayoutId<X>) {}
+    private constructor(
+        public readonly child: C,
+        public readonly id: ChildLayoutId<X>,
+    ) {}
 }
 
 /**
  * Retrieve the child referenced by a layout ID.
  * @param id the ID of the child layout
  */
-export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> {
+export function childFromId<X>({ stem, index }: ChildLayoutId<X>): ChildLayout<X> {
     switch (stem.type) {
-    case LayoutType.Root: {
-        if (stem.layout === undefined) { throw new Error('root layout is empty'); }
+        case LayoutType.Root: {
+            if (stem.layout === undefined) {
+                throw new Error('root layout is empty');
+            }
 
-        if (index !== 0) { throw new Error(`invalid root child index ${index} - must be 0`); }
+            if (index !== 0) {
+                throw new Error(`invalid root child index ${index} - must be 0`);
+            }
 
-        return stem.layout;
-    }
-    case LayoutType.Group: {
-        if (stem.split === undefined) { throw new Error('group layout is empty'); }
+            return stem.layout;
+        }
+        case LayoutType.Group: {
+            if (stem.split === undefined) {
+                throw new Error('group layout is empty');
+            }
 
-        if (index !== 0) { throw new Error(`invalid group child index ${index} - must be 0`); }
+            if (index !== 0) {
+                throw new Error(`invalid group child index ${index} - must be 0`);
+            }
 
-        return stem.split;
-    }
-    default: return stem.children[index];
+            return stem.split;
+        }
+        default:
+            return stem.children[index];
     }
 }
 
@@ -80,10 +92,13 @@ export function childFromId<X>({stem, index}: ChildLayoutId<X>): ChildLayout<X> 
  * Verify the given child ID is valid.
  * @param id the ID of the child layout
  */
-export function childIdValid<X>({stem, index}: ChildLayoutId<X>): boolean {
+export function childIdValid<X>({ stem, index }: ChildLayoutId<X>): boolean {
     switch (stem.type) {
-    case LayoutType.Root: return stem.layout !== undefined && index === 0;
-    case LayoutType.Group: return stem.split !== undefined && index === 0;
-    default: return index >= 0 && stem.children.length > index;
+        case LayoutType.Root:
+            return stem.layout !== undefined && index === 0;
+        case LayoutType.Group:
+            return stem.split !== undefined && index === 0;
+        default:
+            return index >= 0 && stem.children.length > index;
     }
 }

@@ -18,23 +18,27 @@
  *
  ******************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneComponent} from './ng-pane.component';
+import { NgPaneComponent } from './ng-pane.component';
 
 describe('NgPaneComponent', () => {
     let component: NgPaneComponent<any>;
     let fixture: ComponentFixture<NgPaneComponent<any>>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneComponent]}).compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneComponent);
+        fixture = TestBed.createComponent(NgPaneComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });

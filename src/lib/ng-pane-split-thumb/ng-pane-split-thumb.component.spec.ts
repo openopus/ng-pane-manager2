@@ -18,24 +18,27 @@
  *
  ******************************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb.component';
+import { NgPaneSplitThumbComponent } from './ng-pane-split-thumb.component';
 
 describe('NgPaneSplitThumbComponent', () => {
     let component: NgPaneSplitThumbComponent<any>;
     let fixture: ComponentFixture<NgPaneSplitThumbComponent<any>>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneSplitThumbComponent]})
-            .compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneSplitThumbComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneSplitThumbComponent);
+        fixture = TestBed.createComponent(NgPaneSplitThumbComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });

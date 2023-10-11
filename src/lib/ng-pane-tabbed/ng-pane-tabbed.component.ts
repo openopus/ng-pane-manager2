@@ -18,11 +18,11 @@
  *
  ********************************************************************************************/
 
-import {Component, ElementRef, ViewChild} from '@angular/core';
-import {Observable, Subscription} from 'rxjs';
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Observable, Subscription } from 'rxjs';
 
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneComponent} from '../ng-pane/ng-pane.component';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneComponent } from '../ng-pane/ng-pane.component';
 
 /**
  * A tabbed branch pane, keeping only one of its children visible at once.
@@ -34,12 +34,12 @@ import {NgPaneComponent} from '../ng-pane/ng-pane.component';
 })
 export class NgPaneTabbedComponent<X> {
     /** Subscription for current tab events */
-    private subscription: Subscription|undefined;
+    private subscription: Subscription | undefined;
     /** The pane currently rendered as visible */
-    private current: number|undefined;
+    private current: number | undefined;
 
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The child panes rendered into this one */
@@ -47,10 +47,14 @@ export class NgPaneTabbedComponent<X> {
 
     /** Binds an event handler to the given stream of current tab events */
     public set $currentTab(val: Observable<number>) {
-        if (this.subscription !== undefined) { this.subscription.unsubscribe(); }
+        if (this.subscription !== undefined) {
+            this.subscription.unsubscribe();
+        }
 
         this.subscription = val.subscribe(tab => {
-            if (this.current !== undefined) { this.children[this.current].hidden = true; }
+            if (this.current !== undefined) {
+                this.children[this.current].hidden = true;
+            }
 
             this.current = tab;
 

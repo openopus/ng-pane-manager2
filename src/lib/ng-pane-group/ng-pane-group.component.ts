@@ -18,25 +18,25 @@
  *
  *******************************************************************************************/
 
-import {Component, ElementRef, ViewChild} from '@angular/core';
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneComponent} from '../ng-pane/ng-pane.component';
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneComponent } from '../ng-pane/ng-pane.component';
 
 /**
  * A grouped split pane, adding header controls to a contained split pane.
  */
 @Component({
     selector: 'lib-ng-pane-group',
-    template: `<ng-container libNgPaneRenderer></ng-container>`,
+    template: '<ng-container libNgPaneRenderer></ng-container>',
     styleUrls: ['./ng-pane-group.component.scss'],
 })
 export class NgPaneGroupComponent<X> {
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The child split pane rendered into this one */
-    public split: NgPaneComponent<X>|undefined;
+    public split: NgPaneComponent<X> | undefined;
 
     /**
      * Construct a new grouped split pane.

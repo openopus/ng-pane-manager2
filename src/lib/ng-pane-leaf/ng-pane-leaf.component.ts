@@ -18,12 +18,12 @@
  *
  ******************************************************************************************/
 
-import {Component, ElementRef, ViewChild} from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneComponent} from '../ng-pane/ng-pane.component';
-import {LeafLayout} from '../pane-layout/module';
-import {LeafNodeContext, LeafNodeTemplate, sameLeafTemplate} from '../pane-template';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneComponent } from '../ng-pane/ng-pane.component';
+import { LeafLayout } from '../pane-layout/module';
+import { LeafNodeContext, LeafNodeTemplate, sameLeafTemplate } from '../pane-template';
 
 /**
  * A leaf pane node, containing only a rendered template.
@@ -35,11 +35,11 @@ import {LeafNodeContext, LeafNodeTemplate, sameLeafTemplate} from '../pane-templ
 })
 export class NgPaneLeafComponent<X> {
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     private readonly renderer!: NgPaneRendererDirective;
 
     /** See `template`. */
-    private _template: LeafNodeTemplate<X>|undefined;
+    private _template: LeafNodeTemplate<X> | undefined;
     /**
      * The pane containing this leaf node.\
      * Used by `PaneFactory`.
@@ -49,18 +49,24 @@ export class NgPaneLeafComponent<X> {
     public layout!: LeafLayout<X>;
 
     /** The leaf pane template to render */
-    public get template(): LeafNodeTemplate<X>|undefined { return this._template; }
+    public get template(): LeafNodeTemplate<X> | undefined {
+        return this._template;
+    }
 
-    public set template(val: LeafNodeTemplate<X>|undefined) {
-        if (sameLeafTemplate(val, this._template)) { return; }
+    public set template(val: LeafNodeTemplate<X> | undefined) {
+        if (sameLeafTemplate(val, this._template)) {
+            return;
+        }
 
         this._template = val;
 
         this.renderer.viewContainer.clear();
 
         if (val !== undefined) {
-            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext<X>>(val.pane,
-                                                                               val.context);
+            this.renderer.viewContainer.createEmbeddedView<LeafNodeContext<X>>(
+                val.pane,
+                val.context,
+            );
         }
     }
 

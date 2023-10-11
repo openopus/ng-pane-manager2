@@ -18,24 +18,27 @@
  *
  *********************************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneDropHighlightComponent} from './ng-pane-drop-highlight.component';
+import { NgPaneDropHighlightComponent } from './ng-pane-drop-highlight.component';
 
 describe('NgPaneDropHighlightComponent', () => {
     let component: NgPaneDropHighlightComponent;
     let fixture: ComponentFixture<NgPaneDropHighlightComponent>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneDropHighlightComponent]})
-            .compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneDropHighlightComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneDropHighlightComponent);
+        fixture = TestBed.createComponent(NgPaneDropHighlightComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });

@@ -27,7 +27,9 @@ export const EPSILON = 1e-7;
  * @param x the number to clamp
  */
 export function clipDenormPos(x: number): number {
-    if (!isFinite(x) || x > EPSILON) { return x; }
+    if (!isFinite(x) || x > EPSILON) {
+        return x;
+    }
 
     return EPSILON;
 }
@@ -37,7 +39,9 @@ export function clipDenormPos(x: number): number {
  * @param x the number to clamp
  */
 export function clipDenorm(x: number): number {
-    if (!isFinite(x) || Math.abs(x) > EPSILON) { return x; }
+    if (!isFinite(x) || Math.abs(x) > EPSILON) {
+        return x;
+    }
 
     return EPSILON * Math.sign(x);
 }

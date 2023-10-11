@@ -26,25 +26,23 @@ import {
     ViewContainerRef,
     ViewRef,
 } from '@angular/core';
-import {BehaviorSubject, merge, Observable, of, Subject, Subscription} from 'rxjs';
-import {filter, map, switchAll, switchMap} from 'rxjs/operators';
+import { BehaviorSubject, merge, Observable, of, Subject, Subscription } from 'rxjs';
+import { filter, map, switchAll, switchMap } from 'rxjs/operators';
 
-import {DropTarget, DropTargetType} from './drag-and-drop';
-import {
-    NgPaneDropHighlightComponent,
-} from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
-import {NgPaneGroupComponent} from './ng-pane-group/ng-pane-group.component';
-import {NgPaneHeaderTemplateService} from './ng-pane-header-templates.service';
-import {NgPaneHeaderComponent} from './ng-pane-header/ng-pane-header.component';
-import {NgPaneLeafTemplateService} from './ng-pane-leaf-templates.service';
-import {NgPaneLeafComponent} from './ng-pane-leaf/ng-pane-leaf.component';
-import {NgPaneManagerComponent} from './ng-pane-manager/ng-pane-manager.component';
-import {NgPaneSplitThumbComponent} from './ng-pane-split-thumb/ng-pane-split-thumb.component';
-import {NgPaneSplitComponent} from './ng-pane-split/ng-pane-split.component';
-import {NgPaneTabRowComponent} from './ng-pane-tab-row/ng-pane-tab-row.component';
-import {NgPaneTabComponent} from './ng-pane-tab/ng-pane-tab.component';
-import {NgPaneTabbedComponent} from './ng-pane-tabbed/ng-pane-tabbed.component';
-import {NgPaneComponent} from './ng-pane/ng-pane.component';
+import { DropTarget, DropTargetType } from './drag-and-drop';
+import { NgPaneDropHighlightComponent } from './ng-pane-drop-highlight/ng-pane-drop-highlight.component';
+import { NgPaneGroupComponent } from './ng-pane-group/ng-pane-group.component';
+import { NgPaneHeaderTemplateService } from './ng-pane-header-templates.service';
+import { NgPaneHeaderComponent } from './ng-pane-header/ng-pane-header.component';
+import { NgPaneLeafTemplateService } from './ng-pane-leaf-templates.service';
+import { NgPaneLeafComponent } from './ng-pane-leaf/ng-pane-leaf.component';
+import { NgPaneManagerComponent } from './ng-pane-manager/ng-pane-manager.component';
+import { NgPaneSplitThumbComponent } from './ng-pane-split-thumb/ng-pane-split-thumb.component';
+import { NgPaneSplitComponent } from './ng-pane-split/ng-pane-split.component';
+import { NgPaneTabRowComponent } from './ng-pane-tab-row/ng-pane-tab-row.component';
+import { NgPaneTabComponent } from './ng-pane-tab/ng-pane-tab.component';
+import { NgPaneTabbedComponent } from './ng-pane-tabbed/ng-pane-tabbed.component';
+import { NgPaneComponent } from './ng-pane/ng-pane.component';
 import {
     childFromId,
     childIdValid,
@@ -89,31 +87,33 @@ export const enum PaneHeaderType {
  * The header attached to a pane component.
  * See `PaneHeaderType` for additional information.
  */
-export type PaneHeader<X> = {
-    /** The pane is headerless */
-    type: PaneHeaderType.None;
-}|{
-    /** The pane should not attempt to render a header */
-    type: PaneHeaderType.Skip;
-}
-|{
-    /** The pane has a simple header */
-    type: PaneHeaderType.Header;
-    /** The header of the pane */
-    header: ComponentInst<NgPaneHeaderComponent<X>>;
-}
-|{
-    /** The pane has a (real or mock) tab row header */
-    type: PaneHeaderType.TabRow;
-    /** The tab row of the pane */
-    header: ComponentInst<NgPaneTabRowComponent<X>>;
-}
-|{
-    /** The pane is associated with a tab from another pane */
-    type: PaneHeaderType.Tab;
-    /** The tab associated with this pane */
-    header: ComponentInst<NgPaneTabComponent<X>>;
-};
+export type PaneHeader<X> =
+    | {
+          /** The pane is headerless */
+          type: PaneHeaderType.None;
+      }
+    | {
+          /** The pane should not attempt to render a header */
+          type: PaneHeaderType.Skip;
+      }
+    | {
+          /** The pane has a simple header */
+          type: PaneHeaderType.Header;
+          /** The header of the pane */
+          header: ComponentInst<NgPaneHeaderComponent<X>>;
+      }
+    | {
+          /** The pane has a (real or mock) tab row header */
+          type: PaneHeaderType.TabRow;
+          /** The tab row of the pane */
+          header: ComponentInst<NgPaneTabRowComponent<X>>;
+      }
+    | {
+          /** The pane is associated with a tab from another pane */
+          type: PaneHeaderType.Tab;
+          /** The tab associated with this pane */
+          header: ComponentInst<NgPaneTabComponent<X>>;
+      };
 
 /**
  * Converts `PaneHeaderMode` values to a corresponding `PaneHeaderType`.
@@ -121,9 +121,12 @@ export type PaneHeader<X> = {
  */
 function headerTypeForMode(mode: PaneHeaderMode): PaneHeaderType {
     switch (mode) {
-    case PaneHeaderMode.Hidden: return PaneHeaderType.None;
-    case PaneHeaderMode.Visible: return PaneHeaderType.Header;
-    case PaneHeaderMode.AlwaysTab: return PaneHeaderType.TabRow;
+        case PaneHeaderMode.Hidden:
+            return PaneHeaderType.None;
+        case PaneHeaderMode.Visible:
+            return PaneHeaderType.Header;
+        case PaneHeaderMode.AlwaysTab:
+            return PaneHeaderType.TabRow;
     }
 }
 
@@ -183,8 +186,8 @@ export class PaneFactory<X> {
      *
      * A value of `undefined` indicates to use the default template header.
      */
-    private readonly leafHeaders:
-        Map<string, BehaviorSubject<PaneHeaderStyle|undefined>> = new Map();
+    private readonly leafHeaders: Map<string, BehaviorSubject<PaneHeaderStyle | undefined>> =
+        new Map();
     /**
      * The resize event streams of all currently rendered leaf nodes, stored by
      * leaf pane ID.
@@ -192,8 +195,8 @@ export class PaneFactory<X> {
      * Intended for use with `getLeafResizeStream`, which pipes the stream
      * through `switchAll`.
      */
-    private readonly leafResizeStreams:
-        Map<string, BehaviorSubject<Observable<undefined>>> = new Map();
+    private readonly leafResizeStreams: Map<string, BehaviorSubject<Observable<undefined>>> =
+        new Map();
     /** All RxJS subscriptions associated with the current layout */
     private readonly layoutSubscriptions: Subscription[] = [];
     /** All hit testing information for the currently rendered components */
@@ -206,29 +209,40 @@ export class PaneFactory<X> {
      * @param manager the pane manager this renderer was created for
      * @param cfr needed to resolve inner component factories
      */
-    public constructor(private readonly manager: NgPaneManagerComponent<X>,
-                       private readonly leafTemplateService: NgPaneLeafTemplateService<X>,
-                       private readonly headerTemplateService: NgPaneHeaderTemplateService<X>,
-                       cfr: ComponentFactoryResolver) {
+    public constructor(
+        private readonly manager: NgPaneManagerComponent<X>,
+        private readonly leafTemplateService: NgPaneLeafTemplateService<X>,
+        private readonly headerTemplateService: NgPaneHeaderTemplateService<X>,
+        cfr: ComponentFactoryResolver,
+    ) {
         this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
-        this.headerFactory        = cfr.resolveComponentFactory(NgPaneHeaderComponent) as
-                             ComponentFactory<NgPaneHeaderComponent<X>>;
-        this.leafFactory = cfr.resolveComponentFactory(NgPaneLeafComponent) as
-                           ComponentFactory<NgPaneLeafComponent<X>>;
-        this.paneFactory = cfr.resolveComponentFactory(NgPaneComponent) as
-                           ComponentFactory<NgPaneComponent<X>>;
-        this.groupFactory = cfr.resolveComponentFactory(NgPaneGroupComponent) as
-                            ComponentFactory<NgPaneGroupComponent<X>>;
-        this.splitFactory = cfr.resolveComponentFactory(NgPaneSplitComponent) as
-                            ComponentFactory<NgPaneSplitComponent<X>>;
-        this.splitThumbFactory = cfr.resolveComponentFactory(NgPaneSplitThumbComponent) as
-                                 ComponentFactory<NgPaneSplitThumbComponent<X>>;
-        this.tabFactory = cfr.resolveComponentFactory(NgPaneTabComponent) as
-                          ComponentFactory<NgPaneTabComponent<X>>;
-        this.tabRowFactory = cfr.resolveComponentFactory(NgPaneTabRowComponent) as
-                             ComponentFactory<NgPaneTabRowComponent<X>>;
-        this.tabbedFactory = cfr.resolveComponentFactory(NgPaneTabbedComponent) as
-                             ComponentFactory<NgPaneTabbedComponent<X>>;
+        this.headerFactory = cfr.resolveComponentFactory(NgPaneHeaderComponent) as ComponentFactory<
+            NgPaneHeaderComponent<X>
+        >;
+        this.leafFactory = cfr.resolveComponentFactory(NgPaneLeafComponent) as ComponentFactory<
+            NgPaneLeafComponent<X>
+        >;
+        this.paneFactory = cfr.resolveComponentFactory(NgPaneComponent) as ComponentFactory<
+            NgPaneComponent<X>
+        >;
+        this.groupFactory = cfr.resolveComponentFactory(NgPaneGroupComponent) as ComponentFactory<
+            NgPaneGroupComponent<X>
+        >;
+        this.splitFactory = cfr.resolveComponentFactory(NgPaneSplitComponent) as ComponentFactory<
+            NgPaneSplitComponent<X>
+        >;
+        this.splitThumbFactory = cfr.resolveComponentFactory(
+            NgPaneSplitThumbComponent,
+        ) as ComponentFactory<NgPaneSplitThumbComponent<X>>;
+        this.tabFactory = cfr.resolveComponentFactory(NgPaneTabComponent) as ComponentFactory<
+            NgPaneTabComponent<X>
+        >;
+        this.tabRowFactory = cfr.resolveComponentFactory(NgPaneTabRowComponent) as ComponentFactory<
+            NgPaneTabRowComponent<X>
+        >;
+        this.tabbedFactory = cfr.resolveComponentFactory(NgPaneTabbedComponent) as ComponentFactory<
+            NgPaneTabbedComponent<X>
+        >;
     }
 
     /**
@@ -239,11 +253,11 @@ export class PaneFactory<X> {
      * @param id the ID of the leaf node (_not_ template) to retrieve the header
      *           for
      */
-    private initLeafHeader(id: string): BehaviorSubject<PaneHeaderStyle|undefined> {
+    private initLeafHeader(id: string): BehaviorSubject<PaneHeaderStyle | undefined> {
         let entry = this.leafHeaders.get(id);
 
         if (entry === undefined) {
-            entry = new BehaviorSubject<PaneHeaderStyle|undefined>(undefined);
+            entry = new BehaviorSubject<PaneHeaderStyle | undefined>(undefined);
             this.leafHeaders.set(id, entry);
         }
 
@@ -262,15 +276,16 @@ export class PaneFactory<X> {
      *           stream for
      * @param nextWith an inner stream of events to switch the current stream to
      */
-    private getLeafResizeStream(id: string,
-                                nextWith: Observable<undefined>): Observable<undefined> {
+    private getLeafResizeStream(
+        id: string,
+        nextWith: Observable<undefined>,
+    ): Observable<undefined> {
         let entry = this.leafResizeStreams.get(id);
 
         if (entry === undefined) {
             entry = new BehaviorSubject<Observable<undefined>>(nextWith);
             this.leafResizeStreams.set(id, entry);
-        }
-        else {
+        } else {
             // TODO: suppress this for panes when we know the size didn't change
             entry.next(of(undefined));
             entry.next(nextWith);
@@ -285,34 +300,40 @@ export class PaneFactory<X> {
      * @param layout the name of the template to produce
      * @param onResize a stream of resize events for the associated pane
      */
-    private renderLeafTemplate(layout: LeafLayout<X>, onResize: Observable<undefined>):
-        Observable<LeafNodeTemplate<X>|undefined> {
+    private renderLeafTemplate(
+        layout: LeafLayout<X>,
+        onResize: Observable<undefined>,
+    ): Observable<LeafNodeTemplate<X> | undefined> {
         const $info = this.leafTemplateService.get(layout.template);
 
-        return $info.pipe(map(info => {
-            if (info === undefined) { return undefined; }
+        return $info.pipe(
+            map(info => {
+                if (info === undefined) {
+                    return undefined;
+                }
 
-            const {template, header: templateHeader} = info;
+                const { template, header: templateHeader } = info;
 
-            const header = this.initLeafHeader(layout.id);
+                const header = this.initLeafHeader(layout.id);
 
-            const $implicit = {
-                get header(): PaneHeaderStyle {
-                    return header.value !== undefined ? header.value : templateHeader;
-                },
-                set header(val: PaneHeaderStyle) {
-                    // TODO: possibly add a synchronous version of this, but I
-                    //       think that wouldn't be usable without raising
-                    //       ExpressionChangedAfterItHasBeenCheckedErrors
-                    if (!Object.is(val, header.value)) {
-                        requestAnimationFrame(_ => header.next(val));
-                    }
-                },
-                onResize,
-            };
+                const $implicit = {
+                    get header(): PaneHeaderStyle {
+                        return header.value !== undefined ? header.value : templateHeader;
+                    },
+                    set header(val: PaneHeaderStyle) {
+                        // TODO: possibly add a synchronous version of this, but I
+                        //       think that wouldn't be usable without raising
+                        //       ExpressionChangedAfterItHasBeenCheckedErrors
+                        if (!Object.is(val, header.value)) {
+                            requestAnimationFrame(_ => header.next(val));
+                        }
+                    },
+                    onResize,
+                };
 
-            return {pane: template, context: {$implicit, extra: layout.extra}};
-        }));
+                return { pane: template, context: { $implicit, extra: layout.extra } };
+            }),
+        );
     }
 
     /**
@@ -321,30 +342,37 @@ export class PaneFactory<X> {
      * @param layout the layout to render a header for
      * @param style the style information for the header
      */
-    private renderHeaderTemplate<T extends PaneHeaderMode>(layout: ChildLayout<X>,
-                                                           style: PaneHeaderStyle<T>):
-        Observable<PaneHeaderStyle<T, HeaderWidgetTemplate<X>|undefined>> {
-        if (style.widgets === undefined) { return of(style); }
+    private renderHeaderTemplate<T extends PaneHeaderMode>(
+        layout: ChildLayout<X>,
+        style: PaneHeaderStyle<T>,
+    ): Observable<PaneHeaderStyle<T, HeaderWidgetTemplate<X> | undefined>> {
+        if (style.widgets === undefined) {
+            return of(style);
+        }
 
         const $info = this.headerTemplateService.get(style.widgets);
 
         // Don't do any widget funny business if the header isn't visible
         if (Object.is(style.headerMode, PaneHeaderMode.Hidden)) {
-            return of({...style, widgets: undefined});
+            return of({ ...style, widgets: undefined });
         }
 
-        const {headerMode, closable} = style;
+        const { headerMode, closable } = style;
 
-        return $info.pipe(map(info => {
-                              if (info === undefined) { return undefined; }
+        return $info.pipe(
+            map(info => {
+                if (info === undefined) {
+                    return undefined;
+                }
 
-                              const {title, controls} = info;
+                const { title, controls } = info;
 
-                              const $implicit = {};
+                const $implicit = {};
 
-                              return {title, controls, context: {$implicit, layout}};
-                          }),
-                          map(widgets => ({headerMode, widgets, closable})));
+                return { title, controls, context: { $implicit, layout } };
+            }),
+            map(widgets => ({ headerMode, widgets, closable })),
+        );
     }
 
     /**
@@ -354,41 +382,51 @@ export class PaneFactory<X> {
     private headerStyleForLayout(layout: ChildLayout<X>): Observable<PaneHeaderStyle> {
         // TODO: correctly calculate branch header style
         switch (layout.type) {
-        case LayoutType.Leaf:
-            const $info = this.leafTemplateService.get(layout.template);
+            case LayoutType.Leaf:
+                const $info = this.leafTemplateService.get(layout.template);
 
-            return $info.pipe(switchMap(info => this.initLeafHeader(layout.id).pipe(map(header => {
-                if (header !== undefined) { return header; }
-                if (info !== undefined) { return info.header; }
+                return $info.pipe(
+                    switchMap(info =>
+                        this.initLeafHeader(layout.id).pipe(
+                            map(header => {
+                                if (header !== undefined) {
+                                    return header;
+                                }
+                                if (info !== undefined) {
+                                    return info.header;
+                                }
 
-                return {
+                                return {
+                                    headerMode: PaneHeaderMode.Visible,
+                                    title: new BehaviorSubject('???'),
+                                    icon: new BehaviorSubject(undefined),
+                                    closable: true,
+                                };
+                            }),
+                        ),
+                    ),
+                );
+            case LayoutType.Group:
+                return new BehaviorSubject({
                     headerMode: PaneHeaderMode.Visible,
-                    title: new BehaviorSubject('???'),
+                    widgets: layout.headerWidgetId,
+                    closable: false, // TODO
+                });
+            case LayoutType.Horiz:
+            case LayoutType.Vert:
+                return new BehaviorSubject({
+                    headerMode: PaneHeaderMode.Hidden,
+                    title: new BehaviorSubject('SPLIT'),
                     icon: new BehaviorSubject(undefined),
-                    closable: true,
-                };
-            }))));
-        case LayoutType.Group:
-            return new BehaviorSubject({
-                headerMode: PaneHeaderMode.Visible,
-                widgets: layout.headerWidgetId,
-                closable: false, // TODO
-            });
-        case LayoutType.Horiz:
-        case LayoutType.Vert:
-            return new BehaviorSubject({
-                headerMode: PaneHeaderMode.Hidden,
-                title: new BehaviorSubject('SPLIT'),
-                icon: new BehaviorSubject(undefined),
-                closable: false,
-            });
-        case LayoutType.Tabbed:
-            return new BehaviorSubject({
-                headerMode: PaneHeaderMode.AlwaysTab,
-                title: new BehaviorSubject('TABBED'),
-                icon: new BehaviorSubject(undefined),
-                closable: false,
-            });
+                    closable: false,
+                });
+            case LayoutType.Tabbed:
+                return new BehaviorSubject({
+                    headerMode: PaneHeaderMode.AlwaysTab,
+                    title: new BehaviorSubject('TABBED'),
+                    icon: new BehaviorSubject(undefined),
+                    closable: false,
+                });
         }
     }
 
@@ -398,12 +436,16 @@ export class PaneFactory<X> {
      * @param el the element containing the pane
      * @param style the header style of the pane
      */
-    private setPaneDropTarget(id: ChildLayoutId<X>,
-                              el: ElementRef<HTMLElement>,
-                              style: PaneHeaderStyle): void {
+    private setPaneDropTarget(
+        id: ChildLayoutId<X>,
+        el: ElementRef<HTMLElement>,
+        style: PaneHeaderStyle,
+    ): void {
         this.dropTargets.set(el, {
-            type: style.headerMode === PaneHeaderMode.Hidden ? DropTargetType.PaneNoTab
-                                                             : DropTargetType.Pane,
+            type:
+                style.headerMode === PaneHeaderMode.Hidden
+                    ? DropTargetType.PaneNoTab
+                    : DropTargetType.Pane,
             id,
         });
     }
@@ -412,10 +454,14 @@ export class PaneFactory<X> {
      * Attempt to fetch an existing rendered leaf node from the component tree.
      * @param id the ID of the leaf node
      */
-    private tryDetachLeaf(id: string): [ViewRef, ComponentInst<NgPaneLeafComponent<X>>]|undefined {
+    private tryDetachLeaf(
+        id: string,
+    ): [ViewRef, ComponentInst<NgPaneLeafComponent<X>>] | undefined {
         const leaf = this.leaves.get(id);
 
-        if (leaf === undefined) { return undefined; }
+        if (leaf === undefined) {
+            return undefined;
+        }
 
         if (leaf.hostView.destroyed) {
             console.warn(`leaf ${id} destroyed during layout change`);
@@ -425,7 +471,9 @@ export class PaneFactory<X> {
 
         const index = leaf.container.indexOf(leaf.hostView);
 
-        if (index < 0) { throw new Error(`leaf '${id}' not found in container`); }
+        if (index < 0) {
+            throw new Error(`leaf '${id}' not found in container`);
+        }
 
         const view = leaf.container.detach(index);
 
@@ -446,14 +494,16 @@ export class PaneFactory<X> {
      * @param onResize a stream of resize events for the pane
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeLeaf(container: ViewContainerRef,
-                      withId: ChildWithId<X, LeafLayout<X>>,
-                      pane: NgPaneComponent<X>,
-                      onResize: Observable<undefined>,
-                      skipDropTarget: boolean): ComponentRef<NgPaneLeafComponent<X>> {
-        const {child: layout, id} = withId;
-        let component: ComponentRef<NgPaneLeafComponent<X>>|undefined;
-        let hostView: ViewRef|undefined;
+    private placeLeaf(
+        container: ViewContainerRef,
+        withId: ChildWithId<X, LeafLayout<X>>,
+        pane: NgPaneComponent<X>,
+        onResize: Observable<undefined>,
+        skipDropTarget: boolean,
+    ): ComponentRef<NgPaneLeafComponent<X>> {
+        const { child: layout, id } = withId;
+        let component: ComponentRef<NgPaneLeafComponent<X>> | undefined;
+        let hostView: ViewRef | undefined;
 
         const detached = this.tryDetachLeaf(layout.id);
 
@@ -462,33 +512,37 @@ export class PaneFactory<X> {
 
             container.insert(view);
             component = leaf.component;
-            hostView  = view;
+            hostView = view;
         }
 
         if (component === undefined) {
             component = container.createComponent(this.leafFactory);
-            hostView  = component.hostView;
+            hostView = component.hostView;
         }
 
         if (hostView === undefined) {
             throw new Error('host view is undefined - this should never happen');
         }
 
-        this.leaves.set(layout.id, {component, container, hostView});
+        this.leaves.set(layout.id, { component, container, hostView });
 
         const inst = component.instance;
 
-        inst.pane   = pane;
+        inst.pane = pane;
         inst.layout = layout;
 
         const stream = this.getLeafResizeStream(layout.id, onResize);
 
         this.layoutSubscriptions.push(
-            this.renderLeafTemplate(layout, stream).subscribe(t => inst.template = t));
+            this.renderLeafTemplate(layout, stream).subscribe(t => (inst.template = t)),
+        );
 
         if (!skipDropTarget) {
-            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-                s => this.setPaneDropTarget(id, inst.el, s)));
+            this.layoutSubscriptions.push(
+                this.headerStyleForLayout(layout).subscribe(s =>
+                    this.setPaneDropTarget(id, inst.el, s),
+                ),
+            );
         }
 
         return component;
@@ -501,24 +555,34 @@ export class PaneFactory<X> {
      * @param onResize a stream of resize events for the pane
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeGroup(container: ViewContainerRef,
-                       withId: ChildWithId<X, GroupLayout<X>>,
-                       onResize: Observable<undefined>,
-                       skipDropTarget: boolean): ComponentRef<NgPaneGroupComponent<X>> {
-        const {child: layout, id} = withId;
-        const component           = container.createComponent(this.groupFactory);
-        const inst                = component.instance;
+    private placeGroup(
+        container: ViewContainerRef,
+        withId: ChildWithId<X, GroupLayout<X>>,
+        onResize: Observable<undefined>,
+        skipDropTarget: boolean,
+    ): ComponentRef<NgPaneGroupComponent<X>> {
+        const { child: layout, id } = withId;
+        const component = container.createComponent(this.groupFactory);
+        const inst = component.instance;
 
         if (layout.split !== undefined) {
             const pane = this.placePane(
-                inst.renderer.viewContainer, layout.childId(), onResize, undefined, skipDropTarget);
+                inst.renderer.viewContainer,
+                layout.childId(),
+                onResize,
+                undefined,
+                skipDropTarget,
+            );
 
             inst.split = pane.instance;
         }
 
         if (!skipDropTarget) {
-            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-                s => this.setPaneDropTarget(id, inst.el, s)));
+            this.layoutSubscriptions.push(
+                this.headerStyleForLayout(layout).subscribe(s =>
+                    this.setPaneDropTarget(id, inst.el, s),
+                ),
+            );
         }
 
         return component;
@@ -530,18 +594,20 @@ export class PaneFactory<X> {
      * @param childId the layout node ID corresponding to the neighboring child
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeSplitThumb(container: ViewContainerRef,
-                            childId: ChildLayoutId<X, SplitLayout<X>>,
-                            skipDropTarget: boolean): ComponentRef<NgPaneSplitThumbComponent<X>> {
+    private placeSplitThumb(
+        container: ViewContainerRef,
+        childId: ChildLayoutId<X, SplitLayout<X>>,
+        skipDropTarget: boolean,
+    ): ComponentRef<NgPaneSplitThumbComponent<X>> {
         const component = container.createComponent(this.splitThumbFactory);
-        const inst      = component.instance;
+        const inst = component.instance;
 
         inst.factory = this;
         inst.childId = childId;
-        inst.vert    = childId.stem.type === LayoutType.Vert;
+        inst.vert = childId.stem.type === LayoutType.Vert;
 
         if (!skipDropTarget) {
-            this.dropTargets.set(inst.el, {type: DropTargetType.SplitThumb, id: childId});
+            this.dropTargets.set(inst.el, { type: DropTargetType.SplitThumb, id: childId });
         }
 
         return component;
@@ -554,32 +620,41 @@ export class PaneFactory<X> {
      * @param onResize a stream of resize events for the pane
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeSplit(container: ViewContainerRef,
-                       withId: ChildWithId<X, SplitLayout<X>>,
-                       onResize: Observable<undefined>,
-                       skipDropTarget: boolean): ComponentRef<NgPaneSplitComponent<X>> {
-        const {child: layout, id} = withId;
-        const component           = container.createComponent(this.splitFactory);
-        const inst                = component.instance;
+    private placeSplit(
+        container: ViewContainerRef,
+        withId: ChildWithId<X, SplitLayout<X>>,
+        onResize: Observable<undefined>,
+        skipDropTarget: boolean,
+    ): ComponentRef<NgPaneSplitComponent<X>> {
+        const { child: layout, id } = withId;
+        const component = container.createComponent(this.splitFactory);
+        const inst = component.instance;
 
         inst.vert = layout.type === LayoutType.Vert;
 
         for (let i = 0; i < layout.children.length; i += 1) {
             if (i !== 0) {
-                this.placeSplitThumb(inst.renderer.viewContainer,
-                                     {stem: layout, index: i - 1},
-                                     skipDropTarget);
+                this.placeSplitThumb(
+                    inst.renderer.viewContainer,
+                    { stem: layout, index: i - 1 },
+                    skipDropTarget,
+                );
             }
 
-            const pane = this.placePane(inst.renderer.viewContainer,
-                                        layout.childId(i),
-                                        merge(onResize,
-                                              layout.ratioSumChanged.pipe(map(_ => undefined)),
-                                              layout.resizeEvents.pipe(filter(({index}) => index ===
-                                                                                           i),
-                                                                       map(_ => undefined))),
-                                        undefined,
-                                        skipDropTarget);
+            const pane = this.placePane(
+                inst.renderer.viewContainer,
+                layout.childId(i),
+                merge(
+                    onResize,
+                    layout.ratioSumChanged.pipe(map(_ => undefined)),
+                    layout.resizeEvents.pipe(
+                        filter(({ index }) => index === i),
+                        map(_ => undefined),
+                    ),
+                ),
+                undefined,
+                skipDropTarget,
+            );
 
             pane.instance.ratio = layout.ratios[i];
 
@@ -589,12 +664,16 @@ export class PaneFactory<X> {
         inst.resizeEvents = layout.resizeEvents;
 
         if (!skipDropTarget) {
-            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-                s => this.setPaneDropTarget(id, inst.el, s)));
+            this.layoutSubscriptions.push(
+                this.headerStyleForLayout(layout).subscribe(s =>
+                    this.setPaneDropTarget(id, inst.el, s),
+                ),
+            );
         }
 
-        merge(layout.resizeEvents, layout.ratioSumChanged)
-            .subscribe(_ => this.layoutUpdate.next(undefined));
+        merge(layout.resizeEvents, layout.ratioSumChanged).subscribe(_ =>
+            this.layoutUpdate.next(undefined),
+        );
 
         return component;
     }
@@ -606,22 +685,30 @@ export class PaneFactory<X> {
      * @param onResize a stream of resize events for the pane
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeTabbed(container: ViewContainerRef,
-                        withId: ChildWithId<X, TabbedLayout<X>>,
-                        onResize: Observable<undefined>,
-                        skipDropTarget: boolean): ComponentRef<NgPaneTabbedComponent<X>> {
-        const {child: layout, id} = withId;
-        const component           = container.createComponent(this.tabbedFactory);
-        const inst                = component.instance;
+    private placeTabbed(
+        container: ViewContainerRef,
+        withId: ChildWithId<X, TabbedLayout<X>>,
+        onResize: Observable<undefined>,
+        skipDropTarget: boolean,
+    ): ComponentRef<NgPaneTabbedComponent<X>> {
+        const { child: layout, id } = withId;
+        const component = container.createComponent(this.tabbedFactory);
+        const inst = component.instance;
 
         for (let i = 0; i < layout.children.length; i += 1) {
-            const pane = this.placePane(inst.renderer.viewContainer,
-                                        layout.childId(i),
-                                        merge(onResize.pipe(filter(_ => layout.currentTab === i)),
-                                              layout.$currentTab.pipe(filter(t => t === i),
-                                                                      map(_ => undefined))),
-                                        true,
-                                        skipDropTarget);
+            const pane = this.placePane(
+                inst.renderer.viewContainer,
+                layout.childId(i),
+                merge(
+                    onResize.pipe(filter(_ => layout.currentTab === i)),
+                    layout.$currentTab.pipe(
+                        filter(t => t === i),
+                        map(_ => undefined),
+                    ),
+                ),
+                true,
+                skipDropTarget,
+            );
 
             pane.instance.hidden = true;
 
@@ -631,8 +718,11 @@ export class PaneFactory<X> {
         inst.$currentTab = layout.$currentTab;
 
         if (!skipDropTarget) {
-            this.layoutSubscriptions.push(this.headerStyleForLayout(layout).subscribe(
-                s => this.setPaneDropTarget(id, inst.el, s)));
+            this.layoutSubscriptions.push(
+                this.headerStyleForLayout(layout).subscribe(s =>
+                    this.setPaneDropTarget(id, inst.el, s),
+                ),
+            );
         }
 
         layout.$currentTab.subscribe(_ => this.layoutUpdate.next(undefined));
@@ -647,24 +737,27 @@ export class PaneFactory<X> {
      * @param style the style information for the header
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeHeader(container: ViewContainerRef,
-                        withId: ChildWithId<X>,
-                        style: PaneHeaderStyle<PaneHeaderMode.Visible>,
-                        skipDropTarget: boolean): ComponentInst<NgPaneHeaderComponent<X>> {
+    private placeHeader(
+        container: ViewContainerRef,
+        withId: ChildWithId<X>,
+        style: PaneHeaderStyle<PaneHeaderMode.Visible>,
+        skipDropTarget: boolean,
+    ): ComponentInst<NgPaneHeaderComponent<X>> {
         const component = container.createComponent(this.headerFactory, 0);
-        const inst      = component.instance;
+        const inst = component.instance;
 
         inst.manager = this.manager;
         inst.childId = withId.id;
 
         this.layoutSubscriptions.push(
-            this.renderHeaderTemplate(withId.child, style).subscribe(s => inst.style = s));
+            this.renderHeaderTemplate(withId.child, style).subscribe(s => (inst.style = s)),
+        );
 
         if (!skipDropTarget) {
-            this.dropTargets.set(inst.el, {type: DropTargetType.Header, id: withId.id});
+            this.dropTargets.set(inst.el, { type: DropTargetType.Header, id: withId.id });
         }
 
-        return {component, container, hostView: component.hostView};
+        return { component, container, hostView: component.hostView };
     }
 
     /**
@@ -677,19 +770,22 @@ export class PaneFactory<X> {
      * @param withId the layout node corresponding to the tab
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeTab(container: ViewContainerRef, withId: ChildWithId<X>, skipDropTarget: boolean):
-        ComponentInst<NgPaneTabComponent<X>> {
+    private placeTab(
+        container: ViewContainerRef,
+        withId: ChildWithId<X>,
+        skipDropTarget: boolean,
+    ): ComponentInst<NgPaneTabComponent<X>> {
         const component = container.createComponent(this.tabFactory);
-        const inst      = component.instance;
+        const inst = component.instance;
 
         inst.manager = this.manager;
         inst.childId = withId.id;
 
         if (!skipDropTarget) {
-            this.dropTargets.set(inst.el, {type: DropTargetType.Tab, id: withId.id});
+            this.dropTargets.set(inst.el, { type: DropTargetType.Tab, id: withId.id });
         }
 
-        return {component, container, hostView: component.hostView};
+        return { component, container, hostView: component.hostView };
     }
 
     /**
@@ -700,12 +796,14 @@ export class PaneFactory<X> {
      * @param style the header style information for the tab row
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    private placeTabRow(container: ViewContainerRef,
-                        withId: ChildWithId<X>,
-                        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
-                        skipDropTarget: boolean): ComponentInst<NgPaneTabRowComponent<X>> {
+    private placeTabRow(
+        container: ViewContainerRef,
+        withId: ChildWithId<X>,
+        style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
+        skipDropTarget: boolean,
+    ): ComponentInst<NgPaneTabRowComponent<X>> {
         const component = container.createComponent(this.tabRowFactory, 0);
-        const inst      = component.instance;
+        const inst = component.instance;
 
         inst.manager = this.manager;
         inst.childId = withId.id;
@@ -714,38 +812,43 @@ export class PaneFactory<X> {
 
         if (layout.type === LayoutType.Tabbed) {
             layout.children.forEach((subchild, childIndex) => {
-                const tab  = this.placeTab(inst.renderer.viewContainer,
-                                          {child: subchild, id: layout.childId(childIndex)},
-                                          skipDropTarget);
+                const tab = this.placeTab(
+                    inst.renderer.viewContainer,
+                    { child: subchild, id: layout.childId(childIndex) },
+                    skipDropTarget,
+                );
                 const pane = this.panes.get(subchild);
 
-                if (pane === undefined) { throw new Error('no pane found to match tab'); }
+                if (pane === undefined) {
+                    throw new Error('no pane found to match tab');
+                }
 
-                pane.instance.header = {type: PaneHeaderType.Tab, header: tab};
+                pane.instance.header = { type: PaneHeaderType.Tab, header: tab };
 
                 this.updatePaneHeader(pane.instance, skipDropTarget);
 
                 inst.tabs.push(tab.component.instance);
             });
 
-            inst.style       = style;
+            inst.style = style;
             inst.$currentTab = layout.$currentTab;
-        }
-        else {
-            const tab  = this.placeTab(component.instance.renderer.viewContainer,
-                                      withId,
-                                      skipDropTarget);
-            inst.tab   = tab.component.instance as NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
+        } else {
+            const tab = this.placeTab(
+                component.instance.renderer.viewContainer,
+                withId,
+                skipDropTarget,
+            );
+            inst.tab = tab.component.instance as NgPaneTabComponent<X, PaneHeaderMode.AlwaysTab>;
             inst.style = style;
 
             tab.component.instance.active = true;
         }
 
         if (!skipDropTarget) {
-            this.dropTargets.set(inst.el, {type: DropTargetType.TabRow, id: withId.id});
+            this.dropTargets.set(inst.el, { type: DropTargetType.TabRow, id: withId.id });
         }
 
-        return {component, container, hostView: component.hostView};
+        return { component, container, hostView: component.hostView };
     }
 
     /**
@@ -754,62 +857,77 @@ export class PaneFactory<X> {
      * @param skipDropTarget set to true to disable registering a drop target
      */
     private updatePaneHeader(pane: NgPaneComponent<X>, skipDropTarget: boolean): void {
-        if (pane.header.type === PaneHeaderType.Skip) { return; }
+        if (pane.header.type === PaneHeaderType.Skip) {
+            return;
+        }
 
         const withId = ChildWithId.fromId(pane.childId);
         const $style = this.headerStyleForLayout(withId.child);
 
-        this.layoutSubscriptions.push($style.subscribe(style => {
-            if (pane.header.type === PaneHeaderType.Skip) { return; }
-
-            const newType = pane.header.type === PaneHeaderType.Tab
-                                ? PaneHeaderType.Tab
-                                : headerTypeForMode(style.headerMode);
-
-            if (pane.header.type !== newType) {
-                if (pane.header.type !== PaneHeaderType.None) {
-                    const {container, hostView} = pane.header.header;
-
-                    container.remove(container.indexOf(hostView));
+        this.layoutSubscriptions.push(
+            $style.subscribe(style => {
+                if (pane.header.type === PaneHeaderType.Skip) {
+                    return;
                 }
 
-                switch (newType) {
-                case PaneHeaderType.None: pane.header = {type: PaneHeaderType.None}; break;
-                case PaneHeaderType.Header:
-                    pane.header = {
-                        type: PaneHeaderType.Header,
-                        header: this.placeHeader(pane.renderer.viewContainer,
-                                                 withId,
-                                                 style as PaneHeaderStyle<PaneHeaderMode.Visible>,
-                                                 skipDropTarget),
-                    };
-                    break;
-                case PaneHeaderType.TabRow:
-                    pane.header = {
-                        type: PaneHeaderType.TabRow,
-                        header: this.placeTabRow(pane.renderer.viewContainer,
-                                                 withId,
-                                                 style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
-                                                 skipDropTarget),
-                    };
-                    break;
-                case PaneHeaderType.Tab: throw new Error('unreachable');
+                const newType =
+                    pane.header.type === PaneHeaderType.Tab
+                        ? PaneHeaderType.Tab
+                        : headerTypeForMode(style.headerMode);
+
+                if (pane.header.type !== newType) {
+                    if (pane.header.type !== PaneHeaderType.None) {
+                        const { container, hostView } = pane.header.header;
+
+                        container.remove(container.indexOf(hostView));
+                    }
+
+                    switch (newType) {
+                        case PaneHeaderType.None:
+                            pane.header = { type: PaneHeaderType.None };
+                            break;
+                        case PaneHeaderType.Header:
+                            pane.header = {
+                                type: PaneHeaderType.Header,
+                                header: this.placeHeader(
+                                    pane.renderer.viewContainer,
+                                    withId,
+                                    style as PaneHeaderStyle<PaneHeaderMode.Visible>,
+                                    skipDropTarget,
+                                ),
+                            };
+                            break;
+                        case PaneHeaderType.TabRow:
+                            pane.header = {
+                                type: PaneHeaderType.TabRow,
+                                header: this.placeTabRow(
+                                    pane.renderer.viewContainer,
+                                    withId,
+                                    style as PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
+                                    skipDropTarget,
+                                ),
+                            };
+                            break;
+                        case PaneHeaderType.Tab:
+                            throw new Error('unreachable');
+                    }
+                } else if (pane.header.type !== PaneHeaderType.None) {
+                    pane.header.header.component.instance.style = style;
                 }
-            }
-            else if (pane.header.type !== PaneHeaderType.None) {
-                pane.header.header.component.instance.style = style;
-            }
-        }));
+            }),
+        );
     }
 
     /**
      * Get the bounding client rectangle for a pane.
      * @param layout the layout corresponding to the pane
      */
-    public getPaneRect(layout: ChildLayout<X>): DOMRect|undefined {
+    public getPaneRect(layout: ChildLayout<X>): DOMRect | undefined {
         const pane = this.panes.get(layout);
 
-        if (pane === undefined) { return undefined; }
+        if (pane === undefined) {
+            return undefined;
+        }
 
         return (pane.location.nativeElement as Element).getBoundingClientRect();
     }
@@ -826,16 +944,18 @@ export class PaneFactory<X> {
     } {
         this.layoutUpdate.complete();
 
-        this.dropTargets  = new Map();
+        this.dropTargets = new Map();
         this.layoutUpdate = new Subject();
 
         this.panes.clear();
 
-        for (const sub of this.layoutSubscriptions) { sub.unsubscribe(); }
+        for (const sub of this.layoutSubscriptions) {
+            sub.unsubscribe();
+        }
 
         this.layoutSubscriptions.splice(0, this.layoutSubscriptions.length);
 
-        return {targets: this.dropTargets, layoutUpdate: this.layoutUpdate};
+        return { targets: this.dropTargets, layoutUpdate: this.layoutUpdate };
     }
 
     /**
@@ -866,16 +986,20 @@ export class PaneFactory<X> {
      * @param skipHeader disable rendering the header of this pane
      * @param skipDropTarget set to true to disable registering a drop target
      */
-    public placePane(container: ViewContainerRef,
-                     childId: ChildLayoutId<X>,
-                     onResize: Observable<undefined>,
-                     skipHeader: boolean     = false,
-                     skipDropTarget: boolean = false): ComponentRef<NgPaneComponent<X>> {
+    public placePane(
+        container: ViewContainerRef,
+        childId: ChildLayoutId<X>,
+        onResize: Observable<undefined>,
+        skipHeader: boolean = false,
+        skipDropTarget: boolean = false,
+    ): ComponentRef<NgPaneComponent<X>> {
         const component = container.createComponent(this.paneFactory);
 
         const inst = component.instance;
 
-        if (!childIdValid(childId)) { return component; }
+        if (!childIdValid(childId)) {
+            return component;
+        }
 
         const child = childFromId(childId);
 
@@ -883,32 +1007,45 @@ export class PaneFactory<X> {
 
         inst.childId = childId;
 
-        if (skipHeader) { inst.header = {type: PaneHeaderType.Skip}; }
+        if (skipHeader) {
+            inst.header = { type: PaneHeaderType.Skip };
+        }
 
         switch (child.type) {
-        case LayoutType.Leaf:
-            inst.content = this.placeLeaf(
-                inst.renderer.viewContainer, {child, id: childId}, inst, onResize, skipDropTarget);
-            break;
-        case LayoutType.Group:
-            inst.content = this.placeGroup(inst.renderer.viewContainer,
-                                           {child, id: childId},
-                                           onResize,
-                                           skipDropTarget);
-            break;
-        case LayoutType.Horiz:
-        case LayoutType.Vert:
-            inst.content = this.placeSplit(inst.renderer.viewContainer,
-                                           {child, id: childId},
-                                           onResize,
-                                           skipDropTarget);
-            break;
-        case LayoutType.Tabbed:
-            inst.content = this.placeTabbed(inst.renderer.viewContainer,
-                                            {child, id: childId},
-                                            onResize,
-                                            skipDropTarget);
-            break;
+            case LayoutType.Leaf:
+                inst.content = this.placeLeaf(
+                    inst.renderer.viewContainer,
+                    { child, id: childId },
+                    inst,
+                    onResize,
+                    skipDropTarget,
+                );
+                break;
+            case LayoutType.Group:
+                inst.content = this.placeGroup(
+                    inst.renderer.viewContainer,
+                    { child, id: childId },
+                    onResize,
+                    skipDropTarget,
+                );
+                break;
+            case LayoutType.Horiz:
+            case LayoutType.Vert:
+                inst.content = this.placeSplit(
+                    inst.renderer.viewContainer,
+                    { child, id: childId },
+                    onResize,
+                    skipDropTarget,
+                );
+                break;
+            case LayoutType.Tabbed:
+                inst.content = this.placeTabbed(
+                    inst.renderer.viewContainer,
+                    { child, id: childId },
+                    onResize,
+                    skipDropTarget,
+                );
+                break;
         }
 
         this.updatePaneHeader(inst, skipDropTarget);
@@ -920,8 +1057,9 @@ export class PaneFactory<X> {
      * Render a drop highlight visual.
      * @param container the container to render the drop highlight in
      */
-    public placeDropHighlight(container: ViewContainerRef):
-        ComponentRef<NgPaneDropHighlightComponent> {
+    public placeDropHighlight(
+        container: ViewContainerRef,
+    ): ComponentRef<NgPaneDropHighlightComponent> {
         const component = container.createComponent(this.dropHighlightFactory);
 
         return component;

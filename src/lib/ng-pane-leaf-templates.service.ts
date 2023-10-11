@@ -18,10 +18,10 @@
  *
  **************************************************************************************************/
 
-import {Injectable, TemplateRef} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
+import { Injectable, TemplateRef } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-import {LeafNodeContext, PaneHeaderStyle} from './pane-template';
+import { LeafNodeContext, PaneHeaderStyle } from './pane-template';
 
 /**
  * A leaf template and any extra information associated with it.
@@ -37,17 +37,17 @@ export interface LeafTemplateInfo<X> {
  * Optional identifying information for a leaf template.
  */
 export type LeafTemplateInfoOpt<X> = {
-    [K in keyof LeafTemplateInfo<X>]?: LeafTemplateInfo<X>[K]
+    [K in keyof LeafTemplateInfo<X>]?: LeafTemplateInfo<X>[K];
 };
 
 /**
  * Provides access to the global dictionary of pane leaf templates.
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class NgPaneLeafTemplateService<X> {
     /** Registered leaf templates, stored by name */
-    private readonly templates:
-        Map<string, BehaviorSubject<LeafTemplateInfo<X>|undefined>> = new Map();
+    private readonly templates: Map<string, BehaviorSubject<LeafTemplateInfo<X> | undefined>> =
+        new Map();
     /**
      * Whether a prune operation is currently scheduled.\
      * See `schedulePrune`.
@@ -65,14 +65,17 @@ export class NgPaneLeafTemplateService<X> {
                 let remove;
                 for (const [key, val] of this.templates) {
                     if (val.value === undefined && val.observers.length === 0) {
-                        if (remove === undefined) { remove = [key]; }
-                        else {
+                        if (remove === undefined) {
+                            remove = [key];
+                        } else {
                             remove.push(key);
                         }
                     }
                 }
 
-                if (remove !== undefined) { remove.forEach(k => this.templates.delete(k)); }
+                if (remove !== undefined) {
+                    remove.forEach(k => this.templates.delete(k));
+                }
 
                 this.pruneScheduled = false;
             });
@@ -83,14 +86,16 @@ export class NgPaneLeafTemplateService<X> {
      * Retrieve the template with the given name.
      * @param name the name of the template
      */
-    public get(name: string): Observable<LeafTemplateInfo<X>|undefined> {
+    public get(name: string): Observable<LeafTemplateInfo<X> | undefined> {
         const entry = this.templates.get(name);
 
         this.schedulePrune();
 
-        if (entry !== undefined) { return entry; }
+        if (entry !== undefined) {
+            return entry;
+        }
 
-        const ret = new BehaviorSubject<LeafTemplateInfo<X>|undefined>(undefined);
+        const ret = new BehaviorSubject<LeafTemplateInfo<X> | undefined>(undefined);
 
         this.templates.set(name, ret);
 
@@ -109,7 +114,7 @@ export class NgPaneLeafTemplateService<X> {
         const entry = this.templates.get(name);
 
         if (entry === undefined) {
-            this.templates.set(name, new BehaviorSubject<LeafTemplateInfo<X>|undefined>(info));
+            this.templates.set(name, new BehaviorSubject<LeafTemplateInfo<X> | undefined>(info));
 
             return;
         }
@@ -131,11 +136,13 @@ export class NgPaneLeafTemplateService<X> {
      * @param force set to true to override an existing template with this name
      * @deprecated use `add(name, {header, template}, force)` instead
      */
-    public registerLeafTemplate(name: string,
-                                header: PaneHeaderStyle,
-                                template: TemplateRef<LeafNodeContext<X>>,
-                                force: boolean = false): void {
-        this.add(name, {header, template}, force);
+    public registerLeafTemplate(
+        name: string,
+        header: PaneHeaderStyle,
+        template: TemplateRef<LeafNodeContext<X>>,
+        force: boolean = false,
+    ): void {
+        this.add(name, { header, template }, force);
     }
 
     /**
@@ -146,13 +153,17 @@ export class NgPaneLeafTemplateService<X> {
      * @returns whether a matching template was found and removed
      */
     public remove(name: string, info: LeafTemplateInfoOpt<X>): boolean {
-        const {template, header} = info;
-        const entry              = this.templates.get(name);
+        const { template, header } = info;
+        const entry = this.templates.get(name);
 
-        if (entry === undefined || entry.value === undefined) { return false; }
+        if (entry === undefined || entry.value === undefined) {
+            return false;
+        }
 
-        if (template !== undefined && !Object.is(entry.value.template, template) ||
-            header !== undefined && !Object.is(entry.value.header.widgets, header.widgets)) {
+        if (
+            (template !== undefined && !Object.is(entry.value.template, template)) ||
+            (header !== undefined && !Object.is(entry.value.header.widgets, header.widgets))
+        ) {
             return false;
         }
 
@@ -173,8 +184,10 @@ export class NgPaneLeafTemplateService<X> {
      * @returns whether a matching template was found
      * @deprecated use `remove(name, {template?})` instead
      */
-    public unregisterLeafTemplate(name: string,
-                                  template?: TemplateRef<LeafNodeContext<X>>): boolean {
-        return this.remove(name, {template});
+    public unregisterLeafTemplate(
+        name: string,
+        template?: TemplateRef<LeafNodeContext<X>>,
+    ): boolean {
+        return this.remove(name, { template });
     }
 }

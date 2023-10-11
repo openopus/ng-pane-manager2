@@ -18,24 +18,27 @@
  *
  **************************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneTabRowComponent} from './ng-pane-tab-row.component';
+import { NgPaneTabRowComponent } from './ng-pane-tab-row.component';
 
 describe('NgPaneTabRowComponent', () => {
     let component: NgPaneTabRowComponent<any>;
     let fixture: ComponentFixture<NgPaneTabRowComponent<any>>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneTabRowComponent]})
-            .compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneTabRowComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneTabRowComponent);
+        fixture = TestBed.createComponent(NgPaneTabRowComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });

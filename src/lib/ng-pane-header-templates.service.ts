@@ -18,10 +18,10 @@
  *
  ****************************************************************************************************/
 
-import {Injectable, TemplateRef} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
+import { Injectable, TemplateRef } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-import {HeaderWidgetContext} from './pane-template';
+import { HeaderWidgetContext } from './pane-template';
 
 /**
  * A set of header widget templates and any extra information associated with them.
@@ -30,24 +30,24 @@ export interface HeaderTemplateInfo<X> {
     /** The title template.  See `HeaderWidgetTemplate<X>` for more info. */
     title: TemplateRef<HeaderWidgetContext<X>>;
     /** The controls template.  See `HeaderWidgetTemplate<X>` for more info. */
-    controls: TemplateRef<HeaderWidgetContext<X>>|undefined;
+    controls: TemplateRef<HeaderWidgetContext<X>> | undefined;
 }
 
 /**
  * Optional identifying information for a header template.
  */
 export type HeaderTemplateInfoOpt<X> = {
-    [K in keyof HeaderTemplateInfo<X>]?: HeaderTemplateInfo<X>[K]
+    [K in keyof HeaderTemplateInfo<X>]?: HeaderTemplateInfo<X>[K];
 };
 
 /**
  * Provides access to the global dictionary of pane header templates.
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class NgPaneHeaderTemplateService<X> {
     /** Registered header templates, stored by name */
-    private readonly templates:
-        Map<string, BehaviorSubject<HeaderTemplateInfo<X>|undefined>> = new Map();
+    private readonly templates: Map<string, BehaviorSubject<HeaderTemplateInfo<X> | undefined>> =
+        new Map();
     /**
      * Whether a prune operation is currently scheduled.\
      * See `schedulePrune`.
@@ -65,14 +65,17 @@ export class NgPaneHeaderTemplateService<X> {
                 let remove;
                 for (const [key, val] of this.templates) {
                     if (val.value === undefined && val.observers.length === 0) {
-                        if (remove === undefined) { remove = [key]; }
-                        else {
+                        if (remove === undefined) {
+                            remove = [key];
+                        } else {
                             remove.push(key);
                         }
                     }
                 }
 
-                if (remove !== undefined) { remove.forEach(k => this.templates.delete(k)); }
+                if (remove !== undefined) {
+                    remove.forEach(k => this.templates.delete(k));
+                }
 
                 this.pruneScheduled = false;
             });
@@ -83,14 +86,16 @@ export class NgPaneHeaderTemplateService<X> {
      * Retrieve the template with the given name.
      * @param name the name of the template
      */
-    public get(name: string): Observable<HeaderTemplateInfo<X>|undefined> {
+    public get(name: string): Observable<HeaderTemplateInfo<X> | undefined> {
         const entry = this.templates.get(name);
 
         this.schedulePrune();
 
-        if (entry !== undefined) { return entry; }
+        if (entry !== undefined) {
+            return entry;
+        }
 
-        const ret = new BehaviorSubject<HeaderTemplateInfo<X>|undefined>(undefined);
+        const ret = new BehaviorSubject<HeaderTemplateInfo<X> | undefined>(undefined);
 
         this.templates.set(name, ret);
 
@@ -108,7 +113,7 @@ export class NgPaneHeaderTemplateService<X> {
         const entry = this.templates.get(name);
 
         if (entry === undefined) {
-            this.templates.set(name, new BehaviorSubject<HeaderTemplateInfo<X>|undefined>(info));
+            this.templates.set(name, new BehaviorSubject<HeaderTemplateInfo<X> | undefined>(info));
 
             return;
         }
@@ -128,13 +133,17 @@ export class NgPaneHeaderTemplateService<X> {
      * @returns whether a matching template was found and removed
      */
     public remove(name: string, info: HeaderTemplateInfoOpt<X>): boolean {
-        const {title, controls} = info;
-        const entry             = this.templates.get(name);
+        const { title, controls } = info;
+        const entry = this.templates.get(name);
 
-        if (entry === undefined || entry.value === undefined) { return false; }
+        if (entry === undefined || entry.value === undefined) {
+            return false;
+        }
 
-        if (title !== undefined && !Object.is(entry.value.title, title) ||
-            controls !== undefined && !Object.is(entry.value.controls, controls)) {
+        if (
+            (title !== undefined && !Object.is(entry.value.title, title)) ||
+            (controls !== undefined && !Object.is(entry.value.controls, controls))
+        ) {
             return false;
         }
 

@@ -18,24 +18,27 @@
  *
  ************************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneGroupComponent} from './ng-pane-group.component';
+import { NgPaneGroupComponent } from './ng-pane-group.component';
 
 describe('NgPaneGroupComponent', () => {
     let component: NgPaneGroupComponent<any>;
     let fixture: ComponentFixture<NgPaneGroupComponent<any>>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneGroupComponent]})
-            .compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneGroupComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneGroupComponent);
+        fixture = TestBed.createComponent(NgPaneGroupComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });

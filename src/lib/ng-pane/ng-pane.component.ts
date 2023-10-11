@@ -18,15 +18,15 @@
  *
  *************************************************************************************/
 
-import {Component, ComponentRef, HostBinding, ViewChild} from '@angular/core';
+import { Component, ComponentRef, HostBinding, ViewChild } from '@angular/core';
 
-import {NgPaneGroupComponent} from '../ng-pane-group/ng-pane-group.component';
-import {NgPaneLeafComponent} from '../ng-pane-leaf/ng-pane-leaf.component';
-import {NgPaneRendererDirective} from '../ng-pane-renderer.directive';
-import {NgPaneSplitComponent} from '../ng-pane-split/ng-pane-split.component';
-import {NgPaneTabbedComponent} from '../ng-pane-tabbed/ng-pane-tabbed.component';
-import {PaneHeader, PaneHeaderType} from '../pane-factory';
-import {ChildLayoutId} from '../pane-layout/module';
+import { NgPaneGroupComponent } from '../ng-pane-group/ng-pane-group.component';
+import { NgPaneLeafComponent } from '../ng-pane-leaf/ng-pane-leaf.component';
+import { NgPaneRendererDirective } from '../ng-pane-renderer.directive';
+import { NgPaneSplitComponent } from '../ng-pane-split/ng-pane-split.component';
+import { NgPaneTabbedComponent } from '../ng-pane-tabbed/ng-pane-tabbed.component';
+import { PaneHeader, PaneHeaderType } from '../pane-factory';
+import { ChildLayoutId } from '../pane-layout/module';
 
 /**
  * The outer container for a pane, containing the pane contents and a header.
@@ -38,11 +38,11 @@ import {ChildLayoutId} from '../pane-layout/module';
 })
 export class NgPaneComponent<X> {
     /** Provides a view container to render into */
-    @ViewChild(NgPaneRendererDirective, {static: true})
+    @ViewChild(NgPaneRendererDirective, { static: true })
     public readonly renderer!: NgPaneRendererDirective;
 
     /** The ratio to use if this is a child of a split branch */
-    @HostBinding('style.flex-grow') public ratio: number|undefined;
+    @HostBinding('style.flex-grow') public ratio: number | undefined;
     /** The pane visibility if this is a child of a tabbed branch */
     @HostBinding('class.lib-ng-pane-hidden') public hidden: boolean = false;
     /**
@@ -52,19 +52,25 @@ export class NgPaneComponent<X> {
      */
     @HostBinding('class.lib-ng-pane-floating') public floating: boolean = false;
     /** The X position of this pane, if it is floating */
-    @HostBinding('style.left.px') public left: number|undefined;
+    @HostBinding('style.left.px') public left: number | undefined;
     /** The Y position of this pane, if it is floating */
-    @HostBinding('style.top.px') public top: number|undefined;
+    @HostBinding('style.top.px') public top: number | undefined;
     /** The width of this pane, if it is floating */
-    @HostBinding('style.width.px') public width: number|undefined;
+    @HostBinding('style.width.px') public width: number | undefined;
     /** The height of this pane, if it is floating */
-    @HostBinding('style.height.px') public height: number|undefined;
+    @HostBinding('style.height.px') public height: number | undefined;
 
     /** The ID of the pane associated with this component */
     public childId!: ChildLayoutId<X>;
     /** The header for this pane */
-    public header: PaneHeader<X> = {type: PaneHeaderType.None};
+    public header: PaneHeader<X> = { type: PaneHeaderType.None };
     /** The content of this pane */
-    public content: ComponentRef<NgPaneGroupComponent<X>|NgPaneSplitComponent<X>|
-                                 NgPaneLeafComponent<X>|NgPaneTabbedComponent<X>>|undefined;
+    public content:
+        | ComponentRef<
+              | NgPaneGroupComponent<X>
+              | NgPaneSplitComponent<X>
+              | NgPaneLeafComponent<X>
+              | NgPaneTabbedComponent<X>
+          >
+        | undefined;
 }

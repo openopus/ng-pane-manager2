@@ -22,10 +22,9 @@
 
 // TODO: clean up and/or expand all the Angular scaffolded suites
 
-describe('NgPaneRendererDirective',
-         () => {
-             // it('should create an instance', () => {
-             //     const directive = new NgPaneRendererDirective();
-             //     expect(directive).toBeTruthy();
-             // });
-         });
+describe('NgPaneRendererDirective', () => {
+    // it('should create an instance', () => {
+    //     const directive = new NgPaneRendererDirective();
+    //     expect(directive).toBeTruthy();
+    // });
+});

@@ -1,10 +1,7 @@
 {
     "extends": "tslint:recommended",
     "rules": {
-        "array-type": [
-            true,
-            "array"
-        ],
+        "array-type": [true, "array"],
         "arrow-parens": false,
         "arrow-return-shorthand": true,
         "await-promise": true,
@@ -25,14 +22,10 @@
             "types",
             {
                 "enum-members": {
-                    "visibilities": [
-                        "exported"
-                    ]
+                    "visibilities": ["exported"]
                 },
                 "variables": {
-                    "visibilities": [
-                        "exported"
-                    ]
+                    "visibilities": ["exported"]
                 }
             }
         ],
@@ -42,10 +35,7 @@
         },
         "encoding": true,
         "eofline": true,
-        "file-name-casing": [
-            true,
-            "kebab-case"
-        ],
+        "file-name-casing": [true, "kebab-case"],
         "function-constructor": true,
         "increment-decrement": true,
         "interface-name": false,
@@ -60,12 +50,7 @@
                 "ignore-pattern": "//|^\\s*/?\\*"
             }
         ],
-        "member-access": [
-            true,
-            "check-accessor",
-            "check-constructor",
-            "check-parameter-property"
-        ],
+        "member-access": [true, "check-accessor", "check-constructor", "check-parameter-property"],
         "member-ordering": [
             true,
             {
@@ -102,15 +87,7 @@
         "no-boolean-literal-compare": true,
         "no-conditional-assignment": true,
         "no-consecutive-blank-lines": false,
-        "no-console": [
-            true,
-            "debug",
-            "info",
-            "log",
-            "time",
-            "timeEnd",
-            "trace"
-        ],
+        "no-console": [true, "debug", "info", "log", "time", "timeEnd", "trace"],
         "no-debugger": true,
         "no-duplicate-imports": true,
         "no-duplicate-super": true,
@@ -124,23 +101,12 @@
         "no-for-in": true,
         "no-import-side-effect": true,
         "no-implicit-dependencies": true,
-        "no-inferrable-types": [
-            true,
-            "ignore-params",
-            "ignore-properties"
-        ],
+        "no-inferrable-types": [true, "ignore-params", "ignore-properties"],
         "no-internal-module": true,
         "no-invalid-template-strings": true,
         "no-invalid-this": true,
         "no-irregular-whitespace": true,
-        "no-magic-numbers": [
-            true,
-            -1,
-            0,
-            0.5,
-            1,
-            2
-        ],
+        "no-magic-numbers": [true, -1, 0, 0.5, 1, 2],
         "no-mergeable-namespace": true,
         "no-misused-new": true,
         "no-non-null-assertion": true,
@@ -161,10 +127,7 @@
         "no-trailing-whitespace": true,
         "no-unbound-method": true,
         "no-unnecessary-callback-wrapper": true,
-        "no-unnecessary-class": [
-            true,
-            "allow-empty-class"
-        ],
+        "no-unnecessary-class": [true, "allow-empty-class"],
         "no-unnecessary-initializer": true,
         "no-unnecessary-qualifier": true,
         "no-unnecessary-type-assertion": true,
@@ -173,18 +136,12 @@
         "no-var-keyword": true,
         "no-var-requires": true,
         "number-literal-format": true,
-        "object-literal-key-quotes": [
-            true,
-            "as-needed"
-        ],
+        "object-literal-key-quotes": [true, "as-needed"],
         "object-literal-shorthand": true,
         "object-literal-sort-keys": false,
         "one-line": false,
         "one-variable-per-declaration": true,
-        "only-arrow-functions": [
-            true,
-            "allow-named-functions"
-        ],
+        "only-arrow-functions": [true, "allow-named-functions"],
         "ordered-imports": true,
         "prefer-conditional-expression": true,
         "prefer-const": true,
@@ -195,10 +152,7 @@
         "prefer-switch": true,
         "prefer-template": true,
         "prefer-while": true,
-        "quotemark": [
-            true,
-            "single"
-        ],
+        "quotemark": [true, "single", "avoid-escape", "avoid-template"],
         "restrict-plus-operands": true,
         "return-undefined": true,
         "semicolon": true,
@@ -207,10 +161,7 @@
         "strict-comparisons": true,
         "strict-string-expressions": true,
         "strict-type-predicates": true,
-        "switch-final-break": [
-            true,
-            "always"
-        ],
+        "switch-final-break": [true, "always"],
         "template-banana-in-box": true,
         "template-no-negated-async": true,
         "trailing-comma": [
@@ -242,25 +193,12 @@
             "check-format",
             "require-const-for-all-caps"
         ],
-        "import-blacklist": [
-            true,
-            "rxjs/Rx"
-        ],
+        "import-blacklist": [true, "rxjs/Rx"],
         "component-class-suffix": true,
-        "component-selector": [
-            true,
-            "element",
-            "lib",
-            "kebab-case"
-        ],
+        "component-selector": [true, "element", "lib", "kebab-case"],
         "contextual-lifecycle": true,
         "directive-class-suffix": true,
-        "directive-selector": [
-            true,
-            "attribute",
-            "lib",
-            "camelCase"
-        ],
+        "directive-selector": [true, "attribute", "lib", "camelCase"],
         "no-conflicting-lifecycle": true,
         "no-host-metadata-property": true,
         "no-input-rename": true,
@@ -272,7 +210,5 @@
         "use-lifecycle-interface": true,
         "use-pipe-transform-interface": true
     },
-    "rulesDirectory": [
-        "codelyzer"
-    ]
+    "rulesDirectory": ["codelyzer"]
 }

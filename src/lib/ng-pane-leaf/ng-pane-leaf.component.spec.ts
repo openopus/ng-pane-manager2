@@ -18,24 +18,27 @@
  *
  ***********************************************************************************************/
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import {NgPaneLeafComponent} from './ng-pane-leaf.component';
+import { NgPaneLeafComponent } from './ng-pane-leaf.component';
 
 describe('NgPaneLeafComponent', () => {
     let component: NgPaneLeafComponent<any>;
     let fixture: ComponentFixture<NgPaneLeafComponent<any>>;
 
     beforeEach(async(() => {
-        void TestBed.configureTestingModule({declarations: [NgPaneLeafComponent]})
-            .compileComponents();
+        void TestBed.configureTestingModule({
+            declarations: [NgPaneLeafComponent],
+        }).compileComponents();
     }));
 
     beforeEach(() => {
-        fixture   = TestBed.createComponent(NgPaneLeafComponent);
+        fixture = TestBed.createComponent(NgPaneLeafComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it('should create', () => { void expect(component).toBeTruthy(); });
+    it('should create', () => {
+        void expect(component).toBeTruthy();
+    });
 });
