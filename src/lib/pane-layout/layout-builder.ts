@@ -135,7 +135,8 @@ export class LayoutBuilder<X> implements LayoutBuilderRunner<X> {
             const ok = this._root;
 
             return { ok, unwrap: () => ok };
-        } catch (err) {
+        } catch (e) {
+            const err = e instanceof Error ? e : new Error(String(e));
             return {
                 err,
                 unwrap: () => {

@@ -19,8 +19,6 @@
  ********************************************************************************/
 
 import {
-    ComponentFactory,
-    ComponentFactoryResolver,
     ComponentRef,
     ElementRef,
     ViewContainerRef,
@@ -96,25 +94,25 @@ export const enum PaneHeaderType {
  */
 export type PaneHeader<X> =
     | {
-          /** The pane is headerless */
-          type: PaneHeaderType.None;
-      }
+        /** The pane is headerless */
+        type: PaneHeaderType.None;
+    }
     | {
-          /** The pane should not attempt to render a header */
-          type: PaneHeaderType.Skip;
-      }
+        /** The pane should not attempt to render a header */
+        type: PaneHeaderType.Skip;
+    }
     | {
-          /** The pane has a simple or tabbed header */
-          type: PaneHeaderType.Header | PaneHeaderType.Tab;
-          /** The header or tab of the pane */
-          header: ComponentInst<NgPaneHeaderComponent<X>>;
-      }
+        /** The pane has a simple or tabbed header */
+        type: PaneHeaderType.Header | PaneHeaderType.Tab;
+        /** The header or tab of the pane */
+        header: ComponentInst<NgPaneHeaderComponent<X>>;
+    }
     | {
-          /** The pane has a (real or mock) tab row header */
-          type: PaneHeaderType.TabRow;
-          /** The tab row of the pane */
-          header: ComponentInst<NgPaneTabRowComponent<X>>;
-      };
+        /** The pane has a (real or mock) tab row header */
+        type: PaneHeaderType.TabRow;
+        /** The tab row of the pane */
+        header: ComponentInst<NgPaneTabRowComponent<X>>;
+    };
 
 /**
  * Converts `PaneHeaderMode` values to a corresponding `PaneHeaderType`.
@@ -153,25 +151,6 @@ export interface ComponentInst<C> {
  * layout of a pane manager.
  */
 export class PaneFactory<X> {
-    /** Factory for pane drop highlights */
-    private readonly dropHighlightFactory: ComponentFactory<NgPaneDropHighlightComponent>;
-    /** Factory for pane headers */
-    private readonly headerFactory: ComponentFactory<NgPaneHeaderComponent<X>>;
-    /** Factory for leaf panes */
-    private readonly leafFactory: ComponentFactory<NgPaneLeafComponent<X>>;
-    /** Factory for pane containers */
-    private readonly paneFactory: ComponentFactory<NgPaneComponent<X>>;
-    /** Factory for group panes */
-    private readonly groupFactory: ComponentFactory<NgPaneGroupComponent<X>>;
-    /** Factory for split branch panes */
-    private readonly splitFactory: ComponentFactory<NgPaneSplitComponent<X>>;
-    /** Factory for split branch thumbs */
-    private readonly splitThumbFactory: ComponentFactory<NgPaneSplitThumbComponent<X>>;
-    /** Factory for pane tab rows */
-    private readonly tabRowFactory: ComponentFactory<NgPaneTabRowComponent<X>>;
-    /** Factory for tabbed branch panes */
-    private readonly tabbedFactory: ComponentFactory<NgPaneTabbedComponent<X>>;
-
     // TODO: stress test layout changes to make sure all old data is cleaned out
     /** All currently rendered leaves, stored by leaf pane ID (_not_ template) */
     private readonly leaves: Map<string, ComponentInst<NgPaneLeafComponent<X>>> = new Map();
@@ -212,33 +191,7 @@ export class PaneFactory<X> {
         private readonly manager: NgPaneManagerComponent<X>,
         private readonly leafTemplateService: NgPaneLeafTemplateService<X>,
         private readonly headerTemplateService: NgPaneHeaderTemplateService<X>,
-        cfr: ComponentFactoryResolver,
     ) {
-        this.dropHighlightFactory = cfr.resolveComponentFactory(NgPaneDropHighlightComponent);
-        this.headerFactory = cfr.resolveComponentFactory(NgPaneHeaderComponent) as ComponentFactory<
-            NgPaneHeaderComponent<X>
-        >;
-        this.leafFactory = cfr.resolveComponentFactory(NgPaneLeafComponent) as ComponentFactory<
-            NgPaneLeafComponent<X>
-        >;
-        this.paneFactory = cfr.resolveComponentFactory(NgPaneComponent) as ComponentFactory<
-            NgPaneComponent<X>
-        >;
-        this.groupFactory = cfr.resolveComponentFactory(NgPaneGroupComponent) as ComponentFactory<
-            NgPaneGroupComponent<X>
-        >;
-        this.splitFactory = cfr.resolveComponentFactory(NgPaneSplitComponent) as ComponentFactory<
-            NgPaneSplitComponent<X>
-        >;
-        this.splitThumbFactory = cfr.resolveComponentFactory(
-            NgPaneSplitThumbComponent,
-        ) as ComponentFactory<NgPaneSplitThumbComponent<X>>;
-        this.tabRowFactory = cfr.resolveComponentFactory(NgPaneTabRowComponent) as ComponentFactory<
-            NgPaneTabRowComponent<X>
-        >;
-        this.tabbedFactory = cfr.resolveComponentFactory(NgPaneTabbedComponent) as ComponentFactory<
-            NgPaneTabbedComponent<X>
-        >;
     }
 
     /**
@@ -512,7 +465,7 @@ export class PaneFactory<X> {
         }
 
         if (component === undefined) {
-            component = container.createComponent(this.leafFactory);
+            component = container.createComponent(NgPaneLeafComponent<X>);
             hostView = component.hostView;
         }
 
@@ -558,7 +511,7 @@ export class PaneFactory<X> {
         skipDropTarget: boolean,
     ): ComponentRef<NgPaneGroupComponent<X>> {
         const { child: layout, id } = withId;
-        const component = container.createComponent(this.groupFactory);
+        const component = container.createComponent(NgPaneGroupComponent<X>);
         const inst = component.instance;
 
         if (layout.split !== undefined) {
@@ -595,7 +548,7 @@ export class PaneFactory<X> {
         childId: ChildLayoutId<X, SplitLayout<X>>,
         skipDropTarget: boolean,
     ): ComponentRef<NgPaneSplitThumbComponent<X>> {
-        const component = container.createComponent(this.splitThumbFactory);
+        const component = container.createComponent(NgPaneSplitThumbComponent<X>);
         const inst = component.instance;
 
         inst.factory = this;
@@ -623,7 +576,7 @@ export class PaneFactory<X> {
         skipDropTarget: boolean,
     ): ComponentRef<NgPaneSplitComponent<X>> {
         const { child: layout, id } = withId;
-        const component = container.createComponent(this.splitFactory);
+        const component = container.createComponent(NgPaneSplitComponent<X>);
         const inst = component.instance;
 
         inst.vert = layout.type === LayoutType.Vert;
@@ -688,7 +641,7 @@ export class PaneFactory<X> {
         skipDropTarget: boolean,
     ): ComponentRef<NgPaneTabbedComponent<X>> {
         const { child: layout, id } = withId;
-        const component = container.createComponent(this.tabbedFactory);
+        const component = container.createComponent(NgPaneTabbedComponent<X>);
         const inst = component.instance;
 
         for (let i = 0; i < layout.children.length; i += 1) {
@@ -739,7 +692,7 @@ export class PaneFactory<X> {
         style: PaneHeaderStyle<PaneHeaderMode.Visible>,
         skipDropTarget: boolean,
     ): ComponentInst<NgPaneHeaderComponent<X>> {
-        const component = container.createComponent(this.headerFactory, 0);
+        const component = container.createComponent(NgPaneHeaderComponent<X>, { index: 0 });
         const inst = component.instance;
 
         inst.manager = this.manager;
@@ -769,7 +722,7 @@ export class PaneFactory<X> {
         style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
         skipDropTarget: boolean,
     ): ComponentInst<NgPaneHeaderComponent<X>> {
-        const component = container.createComponent(this.headerFactory);
+        const component = container.createComponent(NgPaneHeaderComponent<X>);
         const inst = component.instance;
 
         inst.manager = this.manager;
@@ -800,7 +753,7 @@ export class PaneFactory<X> {
         style: PaneHeaderStyle<PaneHeaderMode.AlwaysTab>,
         skipDropTarget: boolean,
     ): ComponentInst<NgPaneTabRowComponent<X>> {
-        const component = container.createComponent(this.tabRowFactory, 0);
+        const component = container.createComponent(NgPaneTabRowComponent<X>, { index: 0 });
         const inst = component.instance;
 
         inst.manager = this.manager;
@@ -1005,7 +958,7 @@ export class PaneFactory<X> {
         skipHeader: boolean = false,
         skipDropTarget: boolean = false,
     ): ComponentRef<NgPaneComponent<X>> {
-        const component = container.createComponent(this.paneFactory);
+        const component = container.createComponent(NgPaneComponent<X>);
 
         const inst = component.instance;
 
@@ -1072,7 +1025,7 @@ export class PaneFactory<X> {
     public placeDropHighlight(
         container: ViewContainerRef,
     ): ComponentRef<NgPaneDropHighlightComponent> {
-        const component = container.createComponent(this.dropHighlightFactory);
+        const component = container.createComponent(NgPaneDropHighlightComponent);
 
         return component;
     }

@@ -64,6 +64,5 @@ import { NgPaneComponent } from './ng-pane/ng-pane.component';
     ],
     imports: [CommonModule],
     exports: [NgPaneManagerComponent, NgPaneTemplateDirective, NgPaneWidgetDirective],
-    entryComponents: [],
 })
 export class AngularPaneManagerModule {}

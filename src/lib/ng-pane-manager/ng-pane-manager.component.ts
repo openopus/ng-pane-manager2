@@ -20,7 +20,6 @@
 
 import {
     Component,
-    ComponentFactoryResolver,
     ComponentRef,
     ElementRef,
     EventEmitter,
@@ -62,7 +61,7 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
     private _dropTargets: Map<ElementRef<HTMLElement>, DropTarget<X>> = new Map();
     /** See `layoutUpdate` */
     private readonly _layoutUpdate: BehaviorSubject<Observable<RootLayout<X>>> =
-        new BehaviorSubject(of());
+        new BehaviorSubject(of() as Observable<RootLayout<X>>);
     /** A stream of resize events to send to all panes */
     private readonly onResize: Subject<undefined> = new Subject();
     /** The root component of the current layout */
@@ -113,9 +112,8 @@ export class NgPaneManagerComponent<X> implements OnDestroy {
         public el: ElementRef<Element>,
         leafTemplateService: NgPaneLeafTemplateService<X>,
         headerTemplateService: NgPaneHeaderTemplateService<X>,
-        cfr: ComponentFactoryResolver,
     ) {
-        this.factory = new PaneFactory(this, leafTemplateService, headerTemplateService, cfr);
+        this.factory = new PaneFactory(this, leafTemplateService, headerTemplateService);
     }
 
     /**

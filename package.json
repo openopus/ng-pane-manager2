@@ -1,6 +1,6 @@
 {
     "name": "@openopus/angular-pane-manager",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "author": {
         "name": "Ryan Schroeder",
         "email": "ryans@opuslogica.com",
@@ -21,20 +21,20 @@
     ],
     "license": "GPL-3.0-or-later",
     "dependencies": {
-        "tslib": "^2.0.0"
+        "tslib": "^2.6.2"
     },
     "peerDependencies": {
-        "@angular/common": "~10.0.6",
-        "@angular/core": "~10.0.6",
-        "@angular/platform-browser": "~10.0.6",
-        "@angular/platform-browser-dynamic": "~10.0.6",
-        "rxjs": "~6.6.0",
-        "zone.js": "~0.10.3"
+        "@angular/common": "~16.2.9",
+        "@angular/core": "~16.2.9",
+        "@angular/platform-browser": "~16.2.9",
+        "@angular/platform-browser-dynamic": "~16.2.9",
+        "rxjs": "~7.8.1",
+        "zone.js": "~0.13.0"
     },
     "devDependencies": {
-        "@types/chai": "^4.2.12",
-        "chai": "^4.2.0",
-        "fast-check": "^2.0.0"
+        "@types/chai": "^4.3.7",
+        "chai": "^4.3.10",
+        "fast-check": "^3.13.1"
     },
     "prettier": {
         "printWidth": 100,
